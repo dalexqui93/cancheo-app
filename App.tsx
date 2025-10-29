@@ -1,8 +1,4 @@
 
-
-
-
-
 // Fix: Implemented the main App component to manage state and routing.
 // Fix: Corrected the React import to include useState, useEffect, and useCallback hooks.
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -174,7 +170,7 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
+                // Fix: Pass error object to console.error for better debugging.
                 console.error("Error saving notification to database:", error);
             }
         }
@@ -243,7 +239,7 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
+                // Fix: Pass error object to console.error for better debugging.
                 console.error("Error deleting notification from database:", error);
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -271,7 +267,7 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
+                // Fix: Pass error object to console.error for better debugging.
                 console.error("Error marking notifications as read:", error);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -292,7 +288,7 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
+                // Fix: Pass error object to console.error for better debugging.
                 console.error("Error clearing notifications:", error);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -433,10 +429,38 @@ const App: React.FC = () => {
         checkLoyalty();
     }, [bookings, user, loading, addPersistentNotification]);
 
-    const handleLogin = (email: string, password: string) => {
+    // Check for remembered user on app load
+    useEffect(() => {
+        if (loading || user) return; // Don't run if data is loading or a user is already logged in
+
+        const rememberedUserId = localStorage.getItem('rememberedUserId');
+        if (rememberedUserId && allUsers.length > 0) {
+            const rememberedUser = allUsers.find(u => u.id === rememberedUserId);
+            if (rememberedUser) {
+                setUser(rememberedUser);
+                setNotifications(rememberedUser.notifications?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) || []);
+                showToast({
+                    type: 'info',
+                    title: 'Sesión Restaurada',
+                    message: `¡Hola de nuevo, ${rememberedUser.name}!`
+                });
+            } else {
+                // Clean up if the user ID is invalid
+                localStorage.removeItem('rememberedUserId');
+            }
+        }
+    }, [allUsers, loading, user, showToast]);
+
+    const handleLogin = (email: string, password: string, rememberMe: boolean) => {
         const loggedInUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     
         if (loggedInUser) {
+            if (rememberMe) {
+                localStorage.setItem('rememberedUserId', loggedInUser.id);
+            } else {
+                localStorage.removeItem('rememberedUserId');
+            }
+
             setUser(loggedInUser);
             setNotifications(loggedInUser.notifications?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) || []);
             showToast({
@@ -444,6 +468,7 @@ const App: React.FC = () => {
                 title: 'Inicio de sesión exitoso',
                 message: `¡Bienvenido, ${loggedInUser.name}!`
             });
+
             if (loggedInUser.isAdmin) {
                 handleNavigate(View.SUPER_ADMIN_DASHBOARD);
             } else if (loggedInUser.isOwner && loggedInUser.ownerStatus === 'approved') {
@@ -492,8 +517,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
-                console.error('Registration error:', error);
+                // Fix: Pass error object to console.error for better debugging.
+                console.error('Registration error: ', error);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -546,8 +571,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
-                console.error('Owner registration error:', error);
+                // Fix: Pass error object to console.error for better debugging.
+                console.error('Owner registration error: ', error);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -555,6 +580,7 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
+        localStorage.removeItem('rememberedUserId');
         setUser(null);
         setNotifications([]);
         handleNavigate(View.HOME);
@@ -665,8 +691,8 @@ const App: React.FC = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
-            console.error('Booking confirmation error:', error);
+            // Fix: Pass error object to console.error for better debugging.
+            console.error('Booking confirmation error: ', error);
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -778,8 +804,8 @@ const App: React.FC = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
-            console.error("Error updating password:", error);
+            // Fix: Pass error object to console.error for better debugging.
+            console.error("Error updating password: ", error);
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',
@@ -884,6 +910,8 @@ const App: React.FC = () => {
         }
         return [];
     }, [user, allBookings, ownerFieldIds]);
+    
+    const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
         const viewElement = (() => {
@@ -1050,7 +1078,7 @@ const App: React.FC = () => {
         <div className="bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
             <FirebaseWarningBanner />
             {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications}/>}
-            <main className={`transition-all duration-300 overflow-x-hidden ${[View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD].includes(view) ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''}`}>
+            <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''}`}>
                  {renderView()}
             </main>
             {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}

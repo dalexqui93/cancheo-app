@@ -6,7 +6,7 @@ import { EyeIcon } from '../components/icons/EyeIcon';
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
 
 interface LoginProps {
-    onLogin: (email: string, password: string) => void;
+    onLogin: (email: string, password: string, rememberMe: boolean) => void;
     onNavigateToHome: () => void;
     onNavigate: (view: View) => void;
 }
@@ -14,6 +14,7 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToHome, onNavigate }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
@@ -32,7 +33,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToHome, onNavigate }) 
             return;
         }
 
-        onLogin(email, password);
+        onLogin(email, password, rememberMe);
     };
     
     return (
@@ -116,7 +117,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToHome, onNavigate }) 
 
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center">
-                                    <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 rounded border-gray-300/50 text-[var(--color-primary-500)] focus:ring-[var(--color-primary-400)] bg-transparent" />
+                                    <input id="remember-me" name="remember-me" type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-gray-300/50 text-[var(--color-primary-500)] focus:ring-[var(--color-primary-400)] bg-transparent" />
                                     <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-200"> Recordarme </label>
                                 </div>
                                 <div className="text-sm">
