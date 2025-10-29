@@ -1,0 +1,5 @@
+{
+  "name": "Cancheo - Reserva de Canchas",
+  "description": "Una aplicación web para buscar, reservar y pagar canchas de fútbol sintéticas en tiempo real. Encuentra la cancha perfecta cerca de ti, revisa su disponibilidad y reserva tu partido en minutos.",
+  "requestFramePermissions": []
+}
