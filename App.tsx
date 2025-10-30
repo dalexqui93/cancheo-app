@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication } from './types';
 import { View } from './types';
@@ -465,8 +466,8 @@ const App: React.FC = () => {
             }
 
             setUser(loggedInUser);
-            // Fix: Added a check to ensure notification timestamps are valid dates before sorting to prevent runtime errors.
-            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp as unknown as string).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            // Fix: Replaced unsafe type assertion `as unknown as string` with a safer `as string | Date` to handle potential runtime type inconsistencies of notification timestamps, preventing a TypeScript error.
+            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp as string | Date).getTime())).sort((a, b) => new Date(b.timestamp as string | Date).getTime() - new Date(a.timestamp as string | Date).getTime());
             setNotifications(sortedNotifications);
             showToast({
                 type: 'success',
@@ -670,24 +671,6 @@ const App: React.FC = () => {
         }
     
         setIsSearchingLocation(true);
-    
-        // First, check permission status if the Permissions API is available.
-        if (navigator.permissions) {
-            try {
-                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-                if (permissionStatus.state === 'denied') {
-                    showToast({
-                        type: 'error',
-                        title: 'Error de Ubicación',
-                        message: 'Permiso de ubicación denegado. Actívalo en los ajustes de tu navegador para usar esta función.'
-                    });
-                    setIsSearchingLocation(false);
-                    return;
-                }
-            } catch (permError) {
-                console.warn("Could not query geolocation permission status:", permError);
-            }
-        }
     
         try {
             const position = await getCurrentPosition({ timeout: 15000, maximumAge: 60000, enableHighAccuracy: true });
