@@ -10,6 +10,7 @@ import { SparklesIcon } from '../../components/icons/SparklesIcon';
 import { ShoeIcon } from '../../components/icons/ShoeIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
 import { UserPlusIcon } from '../../components/icons/UserPlusIcon';
+import { MedalIcon } from '../../components/icons/MedalIcon';
 
 interface PlayerProfileDetailViewProps {
     player: Player;
@@ -120,6 +121,21 @@ const PlayerProfileDetailView: React.FC<PlayerProfileDetailViewProps> = ({ playe
                             </div>
                         ) : (
                             <p className="text-sm text-gray-500">No se han especificado habilidades.</p>
+                        )}
+                    </div>
+                    
+                    <div>
+                        <h3 className="font-bold mb-3 text-lg flex items-center gap-2"><MedalIcon className="w-5 h-5 text-yellow-400"/> Logros</h3>
+                        {player.achievements && player.achievements.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {player.achievements.map(achievement => (
+                                    <span key={achievement} className="py-1 px-3 text-sm rounded-full bg-yellow-500/20 text-yellow-300 font-semibold flex items-center gap-1">
+                                       🏆 {achievement}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500">Sigue jugando para desbloquear logros.</p>
                         )}
                     </div>
                 </div>

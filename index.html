@@ -118,13 +118,12 @@
                 transform: translateY(0);
             }
         }
-        @keyframes bounce {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.4);
-            }
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            14% { transform: scale(1.3); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.3); }
+            70% { transform: scale(1); }
         }
         @keyframes slideInFromRight {
             from { transform: translateX(100%); opacity: 0.5; }
@@ -153,6 +152,11 @@
             50% { opacity: 1; }
             100% { transform: scale(1.5); opacity: 0; }
         }
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
 
         .animate-fade-in {
             animation: fadeIn 0.3s ease-in-out;
@@ -160,14 +164,33 @@
         .animate-slide-in-up {
             animation: slideInUp 0.5s ease-out both;
         }
-        .animate-bounce {
-            animation: bounce 0.4s ease-in-out;
+        .animate-heartbeat {
+            animation: heartbeat 0.8s ease-in-out;
         }
         .animate-slide-in-from-right {
             animation: slideInFromRight 0.3s ease-out;
         }
         .animate-slide-in-from-left {
             animation: slideInFromLeft 0.3s ease-out;
+        }
+
+        .shimmer-bg {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer-bg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.2) 20%, rgba(255, 255, 255, 0.5) 60%, rgba(255, 255, 255, 0));
+            animation: shimmer 2s infinite;
+        }
+        .dark .shimmer-bg::after {
+            background-image: linear-gradient(90deg, rgba(200, 200, 200, 0) 0, rgba(200, 200, 200, 0.1) 20%, rgba(200, 200, 200, 0.2) 60%, rgba(200, 200, 200, 0));
         }
 
 

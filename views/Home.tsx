@@ -42,6 +42,7 @@ const CategoryButton: React.FC<{
 const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation }) => {
     const [location, setLocation] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [hoveredComplexId, setHoveredComplexId] = useState<string | null>(null);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,6 +63,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         return Object.values(grouped);
     }, [fields]);
     
+
     const filteredAnnouncements = useMemo(() => {
         if (!user || !user.favoriteFields) {
             return [];
@@ -145,6 +147,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                         </div>
                     </div>
                 )}
+                
 
                 {/* Categories Section */}
                 <div>
@@ -195,6 +198,8 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                                         onSelect={onSelectField} 
                                         isFavorite={favoriteFields.includes(complexId)}
                                         onToggleFavorite={onToggleFavorite}
+                                        onHover={setHoveredComplexId}
+                                        isHighlighted={hoveredComplexId === complexId}
                                         className="animate-slide-in-up"
                                         style={{ animationDelay: `${i * 100}ms` }}
                                     />
@@ -202,7 +207,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                             })}
                         </div>
                     ) : (
-                        <MapView fields={fields} onSelectField={onSelectField} theme={theme} />
+                        <MapView fields={fields} onSelectField={onSelectField} theme={theme} hoveredComplexId={hoveredComplexId} />
                     )}
                 </div>
             </div>

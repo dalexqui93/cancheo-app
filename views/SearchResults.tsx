@@ -34,6 +34,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, on
         services: [],
     });
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [hoveredComplexId, setHoveredComplexId] = useState<string | null>(null);
 
     const availableServices = useMemo(() => {
         const allServices = fields.flatMap(field => field.services.map(s => s.name));
@@ -218,6 +219,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, on
                                     onSelect={onSelectField} 
                                     isFavorite={favoriteFields.includes(complexId)}
                                     onToggleFavorite={onToggleFavorite}
+                                    onHover={setHoveredComplexId}
+                                    isHighlighted={hoveredComplexId === complexId}
                                     className="animate-slide-in-up"
                                     style={{ animationDelay: `${i * 100}ms` }}
                                 />
@@ -225,7 +228,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, on
                         })}
                     </div>
                 ) : (
-                    <MapView fields={filteredFields} onSelectField={onSelectField} theme={theme} />
+                    <MapView fields={filteredFields} onSelectField={onSelectField} theme={theme} hoveredComplexId={hoveredComplexId} />
                 )
             ) : (
                 <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md dark:border dark:border-gray-700">

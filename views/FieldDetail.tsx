@@ -10,6 +10,7 @@ import { ClockIcon } from '../components/icons/ClockIcon';
 import { HeartIcon } from '../components/icons/HeartIcon';
 import ReviewsModal from '../components/ReviewsModal';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
+import ImageLightbox from '../components/ImageLightbox';
 
 interface ComplexDisplayData {
     name: string;
@@ -146,6 +147,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
     const [unavailableTimes, setUnavailableTimes] = useState<string[]>([]);
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
     useEffect(() => {
         if (!selectedDate || !selectedField.id) return;
@@ -180,9 +182,10 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
     
     const handleToggleFavoriteClick = () => {
         onToggleFavorite(complexId);
-        setIsBouncing(true);
-        const timer = setTimeout(() => setIsBouncing(false), 400);
-        return () => clearTimeout(timer);
+        if (!isFavorite) {
+            setIsBouncing(true);
+            setTimeout(() => setIsBouncing(false), 800);
+        }
     };
     
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,12 +216,12 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
             </button>
 
             <div className="w-full aspect-video lg:aspect-[2.4/1] -mx-4 md:mx-0 md:mt-2">
-                <div className="relative group h-full w-full md:rounded-2xl md:overflow-hidden shadow-lg flex items-center justify-center bg-gray-200 dark:bg-gray-800">
+                <div className="relative group h-full w-full md:rounded-2xl md:overflow-hidden shadow-lg flex items-center justify-center bg-gray-200 dark:bg-gray-800 cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
                     {complex.images.length > 0 && <img key={complex.images[activeImageIndex]} src={complex.images[activeImageIndex]} alt={`${complex.name} - Imagen ${activeImageIndex + 1}`} className="w-full h-full object-cover transition-opacity duration-300" />}
                     {complex.images.length > 1 && (
                         <>
-                            <button onClick={handlePrevImage} aria-label="Imagen anterior" className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-800"><ChevronLeftIcon className="h-6 w-6 text-gray-800 dark:text-gray-200" /></button>
-                             <button onClick={handleNextImage} aria-label="Siguiente imagen" className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-800"><ChevronRightIcon className="h-6 w-6 text-gray-800 dark:text-gray-200" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} aria-label="Imagen anterior" className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-800"><ChevronLeftIcon className="h-6 w-6 text-gray-800 dark:text-gray-200" /></button>
+                             <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} aria-label="Siguiente imagen" className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-800"><ChevronRightIcon className="h-6 w-6 text-gray-800 dark:text-gray-200" /></button>
                         </>
                     )}
                 </div>
@@ -260,7 +263,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                                     <div className="flex items-center"><StarRating rating={selectedField.rating} /><span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({selectedField.reviews.length} opiniones)</span></div>
                                 </div>
                             </div>
-                            <button onClick={handleToggleFavoriteClick} className={`p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-full shadow-sm transition-transform ${isBouncing ? 'animate-bounce' : 'transform hover:scale-110'} flex-shrink-0 mt-2`} aria-label={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}>
+                            <button onClick={handleToggleFavoriteClick} className={`p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-full shadow-sm transition-transform ${isBouncing ? 'animate-heartbeat' : 'transform hover:scale-110'} flex-shrink-0 mt-2`} aria-label={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}>
                                 <HeartIcon isFilled={isFavorite} className="w-6 h-6" />
                             </button>
                         </div>
@@ -319,16 +322,19 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
             </div>
 
             {isReviewsModalOpen && <ReviewsModal fieldName={selectedField.name} reviews={selectedField.reviews} onClose={() => setIsReviewsModalOpen(false)} />}
+            {isLightboxOpen && <ImageLightbox images={complex.images} startIndex={activeImageIndex} onClose={() => setIsLightboxOpen(false)} />}
 
-             <div className="lg:hidden fixed bottom-20 left-0 right-0 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 shadow-t-2xl z-40 -mx-4">
-                <div className="flex items-center justify-between gap-4 container mx-auto px-4">
-                     <div className="text-left">
-                         <p className="font-bold text-gray-900 dark:text-gray-100">{selectedTime ? `$${selectedField.pricePerHour.toLocaleString('es-CO')}` : 'Selecciona una hora'}</p>
-                        <p className="text-xs font-normal text-gray-500 dark:text-gray-400"> {selectedTime ? 'Total por 1 hora' : 'Disponibilidad para el día seleccionado'}</p>
+             {!isLightboxOpen && (
+                <div className="lg:hidden fixed bottom-20 left-0 right-0 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 shadow-t-2xl z-40 -mx-4">
+                    <div className="flex items-center justify-between gap-4 container mx-auto px-4">
+                        <div className="text-left">
+                            <p className="font-bold text-gray-900 dark:text-gray-100">{selectedTime ? `$${selectedField.pricePerHour.toLocaleString('es-CO')}` : 'Selecciona una hora'}</p>
+                            <p className="text-xs font-normal text-gray-500 dark:text-gray-400"> {selectedTime ? 'Total por 1 hora' : 'Disponibilidad para el día seleccionado'}</p>
+                        </div>
+                        <button onClick={handleBookNowClick} disabled={!selectedTime} className="bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex-grow-[2] max-w-[60%]">Reservar ahora</button>
                     </div>
-                    <button onClick={handleBookNowClick} disabled={!selectedTime} className="bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex-grow-[2] max-w-[60%]">Reservar ahora</button>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

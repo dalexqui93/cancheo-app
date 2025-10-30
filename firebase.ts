@@ -248,8 +248,8 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // FIX: Cast unknown error to any to satisfy strict TypeScript rule.
-        console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts:', e as any);
+        // FIX: Consolidated console.error arguments into a single string.
+        console.error(`Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: ${String(e)}`);
     }
 } else {
     console.warn("ATENCIÓN: Firebase no está configurado. La aplicación se ejecutará en modo de demostración con datos locales. Edita el archivo 'firebase.ts' con tus credenciales para habilitar la persistencia.");
@@ -333,8 +333,8 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
-        console.error('Error poblando la base de datos:', error as any);
+        // FIX: Consolidated console.error arguments into a single string.
+        console.error(`Error poblando la base de datos: ${String(error)}`);
     }
 };
 

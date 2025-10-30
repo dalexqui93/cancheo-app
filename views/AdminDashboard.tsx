@@ -18,6 +18,9 @@ import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { IdentificationIcon } from '../components/icons/IdentificationIcon';
 import * as db from '../firebase';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
+import { UserIcon } from '../components/icons/UserIcon';
+import { TrophyIcon } from '../components/icons/TrophyIcon';
+
 
 interface OwnerDashboardProps {
     user: User;
@@ -70,6 +73,30 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[] }> = (
     );
 };
 
+const TopCustomers: React.FC<{ topCustomers: [string, number][] }> = ({ topCustomers }) => (
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
+        <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-gray-100">Top Clientes</h3>
+        {topCustomers.length > 0 ? (
+            <div className="space-y-3">
+                {topCustomers.map(([name, count], index) => (
+                    <div key={name} className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-yellow-400' : index === 1 ? 'bg-gray-400' : 'bg-orange-400'}`}>
+                            {index + 1}
+                        </div>
+                        <div className="flex-grow">
+                            <p className="font-semibold text-gray-700 dark:text-gray-200">{name}</p>
+                        </div>
+                        <div className="font-bold text-gray-800 dark:text-gray-100">{count} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">reservas</span></div>
+                    </div>
+                ))}
+            </div>
+        ) : (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">Aún no hay suficientes datos de reservas.</p>
+        )}
+    </div>
+);
+
+
 const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerField[] }> = ({ bookings, fields }) => {
     const { todayRevenue, upcomingBookingsCount } = useMemo(() => {
         const today = new Date();
@@ -99,6 +126,18 @@ const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerFiel
         return { label: date.toLocaleDateString('es-CO', { weekday: 'short' }), value: revenue };
     }), [bookings]);
 
+    const topCustomers = useMemo(() => {
+        const customerCounts: { [key: string]: number } = bookings.reduce((acc, booking) => {
+            if (booking.status === 'confirmed') {
+                acc[booking.userName] = (acc[booking.userName] || 0) + 1;
+            }
+            return acc;
+        }, {});
+        return Object.entries(customerCounts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 3); // Top 3
+    }, [bookings]);
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -108,6 +147,7 @@ const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerFiel
                 <StatCard title="Canchas" value={String(fields.length)} icon={<PitchIcon className="w-6 h-6" />} />
             </div>
             <SimpleBarChart data={chartData} />
+            <TopCustomers topCustomers={topCustomers} />
         </div>
     );
 };
@@ -968,8 +1008,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setIsComplexEditorOpen(false);
             setEditingComplex(null);
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
-            console.error('Error saving complex:', error as any);
+            // FIX: Consolidated console.error arguments into a single string.
+            console.error(`Error saving complex: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo guardar el complejo.' });
         }
     };
@@ -987,8 +1027,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 message: `La cancha "${fieldToDelete.name}" ha sido eliminada.`,
             });
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
-            console.error('Error deleting field:', error as any);
+            // FIX: Consolidated console.error arguments into a single string.
+            console.error(`Error deleting field: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar la cancha.' });
         } finally {
             setFieldToDelete(null);
@@ -1010,8 +1050,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             props.addNotification({type: 'success', title: 'Anuncio Creado', message: 'El anuncio ahora es visible para los usuarios.'});
             setIsAnnouncementEditorOpen(false);
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
-            console.error('Error creating announcement:', error as any);
+            // FIX: Consolidated console.error arguments into a single string.
+            console.error(`Error creating announcement: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo crear el anuncio.' });
             setIsAnnouncementEditorOpen(false);
         }
@@ -1023,8 +1063,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             props.setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
             props.addNotification({ type: 'info', title: 'Anuncio Eliminado', message: 'El anuncio ha sido eliminado.' });
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
-            console.error('Error deleting announcement:', error as any);
+            // FIX: Consolidated console.error arguments into a single string.
+            console.error(`Error deleting announcement: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el anuncio.' });
         }
     };
@@ -1037,8 +1077,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setIsBookingModalOpen(false);
             props.addNotification({ type: 'success', title: 'Reserva(s) Creada(s)', message: `Se han creado ${newBookingsData.length} nueva(s) reserva(s).` });
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
-            console.error('Error creating bookings:', error as any);
+            // FIX: Consolidated console.error arguments into a single string.
+            console.error(`Error creating bookings: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudieron crear las reservas.' });
             setIsBookingModalOpen(false);
         }

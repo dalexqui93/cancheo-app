@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import type { SoccerField, Theme } from '../types';
 
 // Since we are using the global 'L' from the script tag in index.html, we need to declare it to satisfy TypeScript.
@@ -9,13 +9,26 @@ interface MapViewProps {
     onSelectField: (field: SoccerField) => void;
     className?: string;
     theme: Theme;
+    hoveredComplexId?: string | null;
 }
 
-const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = '', theme }) => {
+const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = '', theme, hoveredComplexId }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
-    const markersRef = useRef<any[]>([]);
+    const markersRef = useRef<{ [key: string]: any }>({});
     const tileLayerRef = useRef<any>(null);
+
+    const complexes = useMemo(() => {
+        const grouped: { [key: string]: SoccerField } = {};
+        fields.forEach(field => {
+            const id = field.complexId || field.id;
+            if (!grouped[id]) {
+                grouped[id] = field; // Store the first field as representative for the complex
+            }
+        });
+        return Object.values(grouped);
+    }, [fields]);
+
 
     // Effect for initializing and updating markers
     useEffect(() => {
@@ -47,24 +60,26 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
         const map = mapRef.current;
 
         // Clear existing markers
-        markersRef.current.forEach(marker => map.removeLayer(marker));
-        markersRef.current = [];
+        Object.values(markersRef.current).forEach(marker => map.removeLayer(marker));
+        markersRef.current = {};
 
-        if (fields.length === 0) {
+        if (complexes.length === 0) {
             map.setView([4.6097, -74.0817], 6);
             return;
         }
 
         const bounds = L.latLngBounds([]);
 
-        fields.forEach(field => {
+        complexes.forEach(field => {
+            const complexId = field.complexId || field.id;
+            const complexName = field.name.split(' - ')[0] || field.name;
             const marker = L.marker([field.latitude, field.longitude]).addTo(map);
             
             const popupContent = `
                 <div>
-                    <img src="${field.images[0]}" alt="${field.name}" class="popup-image" />
+                    <img src="${field.images[0]}" alt="${complexName}" class="popup-image" />
                     <div class="popup-info">
-                        <h3 class="popup-title">${field.name}</h3>
+                        <h3 class="popup-title">${complexName}</h3>
                         <p class="popup-city">${field.city}</p>
                         <button data-field-id="${field.id}" class="popup-details-button">
                             Ver Detalles
@@ -73,7 +88,7 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
                 </div>
             `;
             marker.bindPopup(popupContent, { minWidth: 220 });
-            markersRef.current.push(marker);
+            markersRef.current[complexId] = marker;
             bounds.extend([field.latitude, field.longitude]);
         });
 
@@ -93,7 +108,7 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
             resizeObserver.disconnect();
         };
 
-    }, [fields, onSelectField]);
+    }, [complexes, onSelectField, fields]);
 
     // Effect for handling theme changes
     useEffect(() => {
@@ -104,7 +119,6 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
         const updateTileLayer = () => {
             const isDark = theme === 'dark' || (theme === 'system' && mediaQuery.matches);
             
-            // Use CARTO tiles for both light and dark themes to comply with usage policies.
             const newUrl = isDark
                 ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
                 : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
@@ -114,18 +128,31 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
             if (tileLayerRef.current._url !== newUrl) {
                 tileLayerRef.current.setUrl(newUrl);
                 tileLayerRef.current.options.attribution = newAttribution;
-                // Force redraw of attribution control
                 if (mapRef.current.attributionControl) {
                     mapRef.current.attributionControl.setPrefix(false);
                 }
             }
         };
 
-        updateTileLayer(); // Initial update based on theme prop
+        updateTileLayer();
 
         mediaQuery.addEventListener('change', updateTileLayer);
         return () => mediaQuery.removeEventListener('change', updateTileLayer);
     }, [theme]);
+    
+    // Effect for highlighting hovered field from list
+    useEffect(() => {
+        if (mapRef.current && hoveredComplexId && markersRef.current[hoveredComplexId]) {
+            const marker = markersRef.current[hoveredComplexId];
+            if (!marker.isPopupOpen()) {
+                mapRef.current.flyTo(marker.getLatLng(), 16, {
+                    animate: true,
+                    duration: 0.5
+                });
+                marker.openPopup();
+            }
+        }
+    }, [hoveredComplexId]);
 
 
     return <div ref={mapContainerRef} className={`w-full h-[500px] md:h-[600px] rounded-2xl shadow-md dark:shadow-none overflow-hidden z-0 ${className}`} />;

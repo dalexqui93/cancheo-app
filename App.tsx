@@ -47,7 +47,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     // FIX: Remove incorrect explicit typings on useState hooks to allow TypeScript to correctly infer setter types.
@@ -172,8 +172,8 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // FIX: Cast 'error' to 'any' in console.error to handle unknown error type from catch block.
-            console.error("Error al reproducir sonido de notificación:", error as any);
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error al reproducir sonido de notificación: ${String(error)}`);
         }
     }, []);
 
@@ -207,7 +207,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error saving notification to database:', error as any);
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                console.error(`Error saving notification to database: ${String(error)}`);
             }
         }
     }, [user, playNotificationSound]);
@@ -274,7 +275,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error deleting notification from database:', error as any);
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                console.error(`Error deleting notification from database: ${String(error)}`);
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -300,7 +302,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error marking notifications as read:', error as any);
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                console.error(`Error marking notifications as read: ${String(error)}`);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -319,7 +322,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error clearing notifications:', error as any);
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                console.error(`Error clearing notifications: ${String(error)}`);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -548,7 +552,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error('Registration error:', error as any);
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                console.error(`Registration error: ${String(error)}`);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -601,7 +606,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error('Owner registration error:', error as any);
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                console.error(`Owner registration error: ${String(error)}`);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -724,7 +730,8 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            console.error("Error getting location:", error as any);
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error getting location: ${String(error)}`);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === error.PERMISSION_DENIED) {
@@ -791,7 +798,8 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            console.error('Booking confirmation error:', error as any);
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Booking confirmation error: ${String(error)}`);
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -903,7 +911,8 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            console.error('Error updating password:', error as any);
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error updating password: ${String(error)}`);
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',
@@ -1147,6 +1156,7 @@ const App = () => {
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:
                     if (user) {
+                        // FIX: Pass `showToast` to the `addNotification` prop as the function was not defined in this scope.
                         return <SocialView user={user} addNotification={showToast} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;

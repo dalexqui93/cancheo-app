@@ -11,9 +11,11 @@ interface FieldCardProps {
     onToggleFavorite: (complexId: string) => void;
     className?: string;
     style?: React.CSSProperties;
+    onHover?: (complexId: string | null) => void;
+    isHighlighted?: boolean;
 }
 
-const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onToggleFavorite, className = '', style }) => {
+const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onToggleFavorite, className = '', style, onHover, isHighlighted }) => {
     const [isBouncing, setIsBouncing] = useState(false);
 
     const representativeField = fields[0];
@@ -37,16 +39,19 @@ const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onT
     const handleFavoriteClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card click event from firing
         onToggleFavorite(complexId);
-        setIsBouncing(true);
-        const timer = setTimeout(() => setIsBouncing(false), 400);
-        return () => clearTimeout(timer);
+        if (!isFavorite) {
+            setIsBouncing(true);
+            setTimeout(() => setIsBouncing(false), 800);
+        }
     };
 
     return (
         <div
-            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-md dark:shadow-none dark:border dark:border-gray-700 overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-xl dark:hover:border-[var(--color-primary-600)] hover:-translate-y-1 ${className}`}
+            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-md dark:shadow-none dark:border overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isHighlighted ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]' : 'dark:border-gray-700 dark:hover:border-[var(--color-primary-600)]'} ${className}`}
             style={style}
             onClick={() => onSelect(representativeField)}
+            onMouseEnter={() => onHover?.(complexId)}
+            onMouseLeave={() => onHover?.(null)}
             aria-label={`Ver detalles de ${displayName}`}
         >
             <div className="relative">
@@ -57,7 +62,7 @@ const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onT
                 
                 <button 
                     onClick={handleFavoriteClick}
-                    className={`absolute top-3 right-3 bg-white/80 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full z-10 transition-transform ${isBouncing ? 'animate-bounce' : 'transform hover:scale-110'}`}
+                    className={`absolute top-3 right-3 bg-white/80 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full z-10 transition-transform ${isBouncing ? 'animate-heartbeat' : 'transform hover:scale-110'}`}
                     aria-label={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
                 >
                     <HeartIcon isFilled={isFavorite} className="w-5 h-5" />
