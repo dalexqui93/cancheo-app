@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication } from './types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData } from './types';
 import { View } from './types';
 import Header from './components/Header';
 import Home from './views/Home';
@@ -47,7 +48,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     // FIX: Remove incorrect explicit typings on useState hooks to allow TypeScript to correctly infer setter types.
@@ -79,6 +80,12 @@ const App = () => {
     const [isRegisterLoading, setIsRegisterLoading] = useState<boolean>(false);
     const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState<boolean>(false);
     const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
+
+    // Weather State
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
+    const [weatherError, setWeatherError] = useState<string | null>(null);
+
 
     // Solicitar permiso para notificaciones al cargar la app
     useEffect(() => {
@@ -120,6 +127,65 @@ const App = () => {
         };
         loadData();
     }, []);
+
+    const fetchWeather = useCallback(async () => {
+        setIsWeatherLoading(true);
+        setWeatherError(null);
+
+        const processWeatherData = (data: any): WeatherData => {
+            const now = new Date();
+            const currentHourIndex = data.hourly.time.findIndex((t: string) => new Date(t) >= now);
+            
+            const hourlyData = data.hourly.time.map((t: string, i: number) => ({
+                time: new Date(t),
+                temperature: data.hourly.temperature_2m[i],
+                apparentTemperature: data.hourly.apparent_temperature[i],
+                precipitationProbability: data.hourly.precipitation_probability[i],
+                windSpeed: data.hourly.windspeed_10m[i],
+                weatherCode: data.hourly.weathercode[i],
+            }));
+
+            return {
+                latitude: data.latitude,
+                longitude: data.longitude,
+                timezone: data.timezone,
+                lastUpdated: new Date(),
+                current: hourlyData[currentHourIndex] || hourlyData[0],
+                hourly: hourlyData,
+            };
+        };
+
+        try {
+            const position = await getCurrentPosition({ timeout: 5000, maximumAge: 3600000 });
+            const { latitude, longitude } = position.coords;
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            const processedData = processWeatherData(data);
+            setWeatherData(processedData);
+            localStorage.setItem('weatherCache', JSON.stringify(processedData));
+        } catch (error) {
+            console.warn(`Error fetching weather, using fallback/cache: ${String(error)}`);
+            const cachedData = localStorage.getItem('weatherCache');
+            if (cachedData) {
+                const parsedData = JSON.parse(cachedData);
+                // Make sure date strings are converted back to Date objects
+                parsedData.lastUpdated = new Date(parsedData.lastUpdated);
+                parsedData.current.time = new Date(parsedData.current.time);
+                parsedData.hourly = parsedData.hourly.map((h: any) => ({...h, time: new Date(h.time)}));
+                setWeatherData(parsedData);
+            } else {
+                setWeatherError("No se pudo cargar el pronóstico del tiempo.");
+            }
+        } finally {
+            setIsWeatherLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchWeather();
+    }, [fetchWeather]);
 
     // Load user-specific data when user logs in or allBookings change
     useEffect(() => {
@@ -731,7 +797,7 @@ const App = () => {
             
         } catch (error) {
             // FIX: Consolidated console.error arguments into a single string to fix type error.
-            console.error(`Error getting location: ${String(error)}`);
+            console.error(`Error getting location: ${error}`);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === error.PERMISSION_DENIED) {
@@ -1021,7 +1087,7 @@ const App = () => {
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
-        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} />;
+        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} weatherData={weatherData} isWeatherLoading={isWeatherLoading} />;
         
         const viewElement = (() => {
             switch (view) {
@@ -1047,6 +1113,7 @@ const App = () => {
                                     favoriteFields={user?.favoriteFields || []} 
                                     onToggleFavorite={handleToggleFavorite}
                                     allBookings={allBookings}
+                                    weatherData={weatherData}
                                 />;
                     }
                     return homeComponent;
@@ -1057,7 +1124,7 @@ const App = () => {
                     return homeComponent;
                 case View.BOOKING_CONFIRMATION:
                     if(confirmedBooking) {
-                        return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} />;
+                        return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} weatherData={weatherData} />;
                     }
                     return homeComponent;
                 case View.LOGIN:
@@ -1151,7 +1218,7 @@ const App = () => {
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.BOOKING_DETAIL:
                     if(user && selectedBooking){
-                        return <BookingDetailView booking={selectedBooking} onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} onCancelBooking={handleCancelBooking} />;
+                        return <BookingDetailView booking={selectedBooking} onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} onCancelBooking={handleCancelBooking} weatherData={weatherData} />;
                     }
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:

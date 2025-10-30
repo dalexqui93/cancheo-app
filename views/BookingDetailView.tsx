@@ -1,6 +1,6 @@
 // Fix: Implemented the BookingDetailView component to show booking details.
 import React, { useState } from 'react';
-import type { ConfirmedBooking } from '../types';
+import type { ConfirmedBooking, WeatherData } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { LocationIcon } from '../components/icons/LocationIcon';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
@@ -8,14 +8,16 @@ import { ClockIcon } from '../components/icons/ClockIcon';
 import { CreditCardIcon } from '../components/icons/CreditCardIcon';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { CashIcon } from '../components/icons/CashIcon';
+import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
 
 interface BookingDetailViewProps {
     booking: ConfirmedBooking;
     onBack: () => void;
     onCancelBooking: (bookingId: string) => void;
+    weatherData: WeatherData | null;
 }
 
-const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, onCancelBooking }) => {
+const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, onCancelBooking, weatherData }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const getBookingDateTime = () => {
@@ -88,6 +90,13 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, 
                                 <p className="font-semibold text-gray-800 dark:text-gray-200">Duración</p>
                                 <p className="text-gray-600 dark:text-gray-400">1 hora</p>
                             </div>
+                        </div>
+                         <div className="pt-4 border-t border-gray-200 dark:border-gray-700 -mx-6 px-6">
+                            <BookingWeatherStatus 
+                                weatherData={weatherData}
+                                selectedDate={booking.date}
+                                selectedTime={booking.time}
+                            />
                         </div>
                     </div>
                      <div className="mt-6 border-t dark:border-gray-700 pt-6">

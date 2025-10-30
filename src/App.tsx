@@ -366,6 +366,7 @@ const App: React.FC = () => {
             });
         // FIX: Correctly handle specific registration errors, such as duplicate emails, and provide appropriate user feedback. Fallback to a generic error for unexpected issues.
         } catch (error) {
+            // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors.
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
                 addNotification({
                     type: 'error',
@@ -378,7 +379,7 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Consolidated console.error arguments into a single string.
+                // FIX: Consolidated console.error arguments into a single string to fix type error.
                 console.error(`Registration error: ${String(error)}`);
             }
         } finally {
@@ -421,6 +422,7 @@ const App: React.FC = () => {
             handleNavigate(View.OWNER_PENDING_VERIFICATION);
 // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors, improving code robustness.
         } catch (error) {
+            // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors.
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
                 addNotification({
                     type: 'error',
@@ -433,8 +435,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Pass error object as a separate argument to console.error to satisfy strict TypeScript rules and improve debugging.
                 // FIX: Consolidated console.error arguments into a single string.
+                // FIX: The console.error was receiving multiple arguments, which can cause issues. It has been consolidated into a single string.
                 console.error(`Owner registration error: ${String(error)}`);
             }
         } finally {
@@ -556,7 +558,7 @@ const App: React.FC = () => {
                 title: 'Error de Reserva',
                 message: 'No se pudo confirmar tu reserva. Por favor, inténtalo de nuevo.'
             });
-            // FIX: Consolidated console.error arguments into a single string.
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Booking confirmation error: ${String(error)}`);
         } finally {
             setIsBookingLoading(false);
@@ -571,4 +573,366 @@ const App: React.FC = () => {
             : [...user.favoriteFields, complexId];
         
         await db.updateUser(user.id, { favoriteFields: newFavorites });
-        setUser
+        setUser(prevUser => prevUser ? { ...prevUser, favoriteFields: newFavorites } : null);
+
+        const complexField = fields.find(f => (f.complexId || f.id) === complexId);
+        const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
+
+        if (isCurrentlyFavorite) {
+            addNotification({type: 'info', title: 'Favorito eliminado', message: `${complexName} fue eliminado de tus favoritos.`});
+        } else {
+             addNotification({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
+        }
+    };
+    
+    const handleSelectBooking = (booking: ConfirmedBooking) => {
+        setSelectedBooking(booking);
+        handleNavigate(View.BOOKING_DETAIL);
+    };
+
+    const handleCancelBooking = async (bookingId: string) => {
+        const bookingToCancel = bookings.find(b => b.id === bookingId);
+        if (bookingToCancel) {
+            await db.updateBooking(bookingId, { status: 'cancelled' });
+            setAllBookings(prev => prev.map(b => 
+                b.id === bookingId ? { ...b, status: 'cancelled' } : b
+            ));
+            
+            if (selectedBooking && selectedBooking.id === bookingId) {
+                setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
+            }
+
+            handleNavigate(View.BOOKINGS, { isBack: true });
+            addNotification({
+                type: 'success',
+                title: 'Reserva Cancelada',
+                message: `Tu reserva en ${bookingToCancel.field.name} ha sido cancelada.`
+            });
+        }
+    };
+
+    const handleUpdateProfilePicture = async (imageDataUrl: string) => {
+        if (!user) return;
+        await db.updateUser(user.id, { profilePicture: imageDataUrl });
+        setUser(prevUser => prevUser ? { ...prevUser, profilePicture: imageDataUrl } : null);
+        addNotification({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
+    };
+    
+    const handleRemoveProfilePicture = async () => {
+        if (!user) return;
+        await db.removeUserField(user.id, 'profilePicture');
+        const { profilePicture, ...rest } = user;
+        setUser(rest);
+        addNotification({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
+    };
+    
+    const handleUpdateUserInfo = async (updatedInfo: { name: string; phone?: string }) => {
+        if (!user) return;
+        await db.updateUser(user.id, updatedInfo);
+        setUser(prevUser => prevUser ? { ...prevUser, ...updatedInfo } : null);
+        addNotification({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
+    };
+    
+    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+        if (!user) return;
+    
+        if (user.password !== currentPassword) {
+            addNotification({
+                type: 'error',
+                title: 'Error de Contraseña',
+                message: 'La contraseña actual es incorrecta.'
+            });
+            return;
+        }
+    
+        await db.updateUser(user.id, { password: newPassword });
+        setUser(prevUser => prevUser ? { ...prevUser, password: newPassword } : null);
+        addNotification({
+            type: 'success',
+            title: 'Contraseña Actualizada',
+            message: 'Tu contraseña ha sido cambiada exitosamente.'
+        });
+    };
+    
+    const handleUpdateNotificationPreferences = async (prefs: { newAvailability: boolean; specialDiscounts: boolean; importantNews: boolean; }) => {
+        if (!user) return;
+        await db.updateUser(user.id, { notificationPreferences: prefs });
+        setUser(prevUser => prevUser ? { ...prevUser, notificationPreferences: prefs } : null);
+        addNotification({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
+    };
+    
+    const handleUpdateTheme = (newTheme: Theme) => setTheme(newTheme);
+    const handleUpdateAccentColor = (newColor: AccentColor) => setAccentColor(newColor);
+
+    const handleAddPaymentMethod = async (method: Omit<PaymentMethod, 'id'>) => {
+        if (!user) return;
+        const newMethod = { ...method, id: `pm_${Date.now()}` } as PaymentMethod;
+        const updatedMethods = [...(user.paymentMethods || []), newMethod];
+        if (updatedMethods.filter(m => m.type === 'card').length === 1) {
+            const cardIndex = updatedMethods.findIndex(m => m.id === newMethod.id);
+            if (cardIndex !== -1) (updatedMethods[cardIndex] as CardPaymentMethod).isDefault = true;
+        }
+        await db.updateUser(user.id, { paymentMethods: updatedMethods });
+        setUser(prevUser => prevUser ? { ...prevUser, paymentMethods: updatedMethods } : null);
+        addNotification({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
+    };
+
+    const handleDeletePaymentMethod = async (methodId: string) => {
+        if (!user) return;
+        const updatedMethods = user.paymentMethods?.filter(m => m.id !== methodId) || [];
+        await db.updateUser(user.id, { paymentMethods: updatedMethods });
+        setUser(prevUser => prevUser ? { ...prevUser, paymentMethods: updatedMethods } : null);
+        addNotification({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
+    };
+
+    const handleSetDefaultPaymentMethod = async (methodId: string) => {
+        if (!user || !user.paymentMethods) return;
+        const updatedMethods: PaymentMethod[] = user.paymentMethods.map(m => ({ ...m, isDefault: m.id === methodId }));
+        await db.updateUser(user.id, { paymentMethods: updatedMethods });
+        setUser(prevUser => prevUser ? { ...prevUser, paymentMethods: updatedMethods } : null);
+        addNotification({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
+    };
+
+    const handleUpdatePlayerProfile = async (updatedProfile: Player) => {
+        if (!user) return;
+        await db.updateUser(user.id, { playerProfile: updatedProfile });
+        setUser(prevUser => prevUser ? { ...prevUser, playerProfile: updatedProfile } : null);
+        addNotification({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
+        handleNavigate(View.SOCIAL);
+    };
+
+    const handleRewardAnimationEnd = (field: SoccerField) => {
+        setRewardInfo(null);
+        setRatingInfo({ field });
+    };
+
+    const handleRatingSubmit = async (fieldId: string, rating: number, comment: string) => {
+        if (!user) return;
+        const newReview: Review = { id: `r${Date.now()}`, author: user.name, rating, comment, timestamp: new Date() };
+        await db.addReviewToField(fieldId, newReview);
+        
+        setFields(prevFields => {
+            return prevFields.map(field => {
+                if (field.id === fieldId) {
+                    const newTotalReviews = field.reviews.length + 1;
+                    const newAverageRating = ((field.rating * field.reviews.length) + rating) / newTotalReviews;
+                    return { ...field, reviews: [newReview, ...field.reviews], rating: parseFloat(newAverageRating.toFixed(1)) };
+                }
+                return field;
+            });
+        });
+
+        setRatingInfo(null);
+        addNotification({ type: 'success', title: '¡Gracias por tu opinión!', message: 'Tu calificación nos ayuda a mejorar.' });
+    };
+
+    const ownerFields = useMemo(() => {
+        if (user?.isOwner) {
+            return fields.filter(f => f.ownerId === user.id);
+        }
+        return [];
+    }, [user, fields]);
+    const ownerFieldIds = useMemo(() => new Set(ownerFields.map(f => f.id)), [ownerFields]);
+
+    const ownerBookings = useMemo(() => {
+        if (user?.isOwner) {
+            return allBookings.filter(b => ownerFieldIds.has(b.field.id));
+        }
+        return [];
+    }, [user, allBookings, ownerFieldIds]);
+    
+    const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
+
+    const renderView = () => {
+        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} />;
+        
+        const viewElement = (() => {
+            switch (view) {
+                case View.SEARCH_RESULTS:
+                    return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} />;
+                case View.FIELD_DETAIL:
+                    if (selectedField) {
+                        const complexFields = fields.filter(f => f.complexId === selectedField.complexId);
+                        const complexObject = {
+                            name: selectedField.name.split(' - ')[0],
+                            address: selectedField.address,
+                            city: selectedField.city,
+                            description: selectedField.description,
+                            images: selectedField.images,
+                            services: selectedField.services,
+                            fields: complexFields.length > 0 ? complexFields : [selectedField] // Fallback for fields without complexId
+                        };
+                        return <FieldDetail 
+                                    complex={complexObject} 
+                                    initialFieldId={selectedField.id}
+                                    onBookNow={handleBookNow} 
+                                    onBack={() => handleNavigate(View.HOME, { isBack: true })} 
+                                    favoriteFields={user?.favoriteFields || []} 
+                                    onToggleFavorite={handleToggleFavorite}
+                                    allBookings={allBookings}
+                                />;
+                    }
+                    return homeComponent;
+                case View.BOOKING:
+                    if (bookingDetails && user) {
+                        return <Booking user={user} details={bookingDetails} onConfirm={handleConfirmBooking} onBack={() => handleNavigate(View.FIELD_DETAIL, { isBack: true })} isBookingLoading={isBookingLoading} />;
+                    }
+                    return homeComponent;
+                case View.BOOKING_CONFIRMATION:
+                    if(confirmedBooking) {
+                        return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} />;
+                    }
+                    return homeComponent;
+                case View.LOGIN:
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.REGISTER:
+                    return <Register onRegister={handleRegister} onNavigate={handleNavigate} isRegisterLoading={isRegisterLoading} />;
+                case View.OWNER_REGISTER:
+                    return <OwnerRegisterView onRegister={handleOwnerRegister} onNavigate={handleNavigate} isOwnerRegisterLoading={isOwnerRegisterLoading} />;
+                case View.OWNER_PENDING_VERIFICATION:
+                    return <OwnerPendingVerificationView onNavigate={handleNavigate} />;
+                case View.FORGOT_PASSWORD:
+                    return <ForgotPasswordView onNavigate={handleNavigate} addNotification={addNotification} />;
+                case View.OWNER_DASHBOARD:
+                    if (user) {
+                        return <OwnerDashboard 
+                                    user={user}
+                                    fields={ownerFields} 
+                                    setFields={setFields} 
+                                    bookings={ownerBookings}
+                                    setBookings={setAllBookings}
+                                    announcements={announcements}
+                                    setAnnouncements={setAnnouncements}
+                                    addNotification={addNotification}
+                                    onLogout={handleLogout}
+                                    allUsers={allUsers}
+                                    allFields={fields}
+                                />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.SUPER_ADMIN_DASHBOARD:
+                    return <SuperAdminDashboard
+                                currentUser={user}
+                                allUsers={allUsers}
+                                setAllUsers={setAllUsers}
+                                fields={fields}
+                                setFields={setFields}
+                                ownerApplications={ownerApplications}
+                                setOwnerApplications={setOwnerApplications}
+                                addNotification={addNotification}
+                                onLogout={handleLogout}
+                            />;
+                case View.PROFILE:
+                    if (user) {
+                        return <ProfileView 
+                                    user={user} 
+                                    onLogout={handleLogout} 
+                                    allFields={fields} 
+                                    onToggleFavorite={handleToggleFavorite} 
+                                    onSelectField={handleSelectField}
+                                    onUpdateProfilePicture={handleUpdateProfilePicture}
+                                    onRemoveProfilePicture={handleRemoveProfilePicture}
+                                    onUpdateUser={handleUpdateUserInfo}
+                                    onChangePassword={handleChangePassword}
+                                    onUpdateNotificationPreferences={handleUpdateNotificationPreferences}
+                                    onNavigate={handleNavigate}
+                                    setIsPremiumModalOpen={setIsPremiumModalOpen}
+                                />;
+                    }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.APPEARANCE:
+                     if (user) {
+                        return <AppearanceSettings 
+                            currentTheme={theme}
+                            onUpdateTheme={handleUpdateTheme}
+                            onBack={() => handleNavigate(View.PROFILE, { isBack: true })}
+                            currentAccentColor={accentColor}
+                            onUpdateAccentColor={handleUpdateAccentColor}
+                        />
+                     }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.HELP_SUPPORT:
+                     if (user) {
+                        return <HelpView onNavigate={handleNavigate} />
+                     }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.PAYMENT_METHODS:
+                     if(user){
+                        return <PaymentMethodsView 
+                                user={user}
+                                onBack={() => handleNavigate(View.PROFILE, { isBack: true })}
+                                onAddPaymentMethod={handleAddPaymentMethod}
+                                onDeletePaymentMethod={handleDeletePaymentMethod}
+                                onSetDefaultPaymentMethod={handleSetDefaultPaymentMethod}
+                                />;
+                     }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.BOOKINGS:
+                    if(user){
+                        return <BookingsView bookings={bookings} onSelectBooking={handleSelectBooking} />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.BOOKING_DETAIL:
+                    if(user && selectedBooking){
+                        return <BookingDetailView booking={selectedBooking} onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} onCancelBooking={handleCancelBooking} />;
+                    }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.SOCIAL:
+                    if (user) {
+                        return <SocialView user={user} addNotification={addNotification} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                 case View.PLAYER_PROFILE_CREATOR:
+                    if (user) {
+                        return <PlayerProfileCreatorView 
+                                    onBack={() => handleNavigate(View.SOCIAL, { isBack: true })} 
+                                    user={user}
+                                    onSave={handleUpdatePlayerProfile}
+                                />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.HOME:
+                default:
+                    return homeComponent;
+            }
+        })();
+        
+        return (
+            <div key={viewKey} className={animationClass}>
+                {viewElement}
+            </div>
+        );
+    };
+    
+    const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
+    const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR].includes(view);
+
+    return (
+        <div className="bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
+            <FirebaseWarningBanner />
+            {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={()=>{}} onClearAll={()=>{}}/>}
+            {/* FIX: The return statement was corrupted. Replaced the malformed JSX with the correct structure for rendering the main content and modals. */}
+            <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''}`}>
+                 {renderView()}
+            </main>
+            {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
+            <NotificationContainer notifications={notifications} onDismiss={dismissNotification} />
+            {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
+            {rewardInfo && (
+                <RewardAnimation 
+                    field={rewardInfo.field}
+                    onAnimationEnd={() => handleRewardAnimationEnd(rewardInfo.field)}
+                />
+            )}
+            {ratingInfo && (
+                <RatingModal 
+                    field={ratingInfo.field}
+                    onClose={() => setRatingInfo(null)}
+                    onSubmit={handleRatingSubmit}
+                />
+            )}
+        </div>
+    );
+};
+
+export default App;

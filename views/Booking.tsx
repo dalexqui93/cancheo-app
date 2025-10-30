@@ -107,6 +107,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, onConfirm, onBack, isB
     
     // FIX: Sanitize input value to remove non-digit characters for numeric fields.
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // FIX: Corrected object destructuring syntax from 'of' to '='.
         const { name, value } = e.target;
         if (name === 'cardNumber' || name === 'cvc') {
             const sanitizedValue = value.replace(/[^\d]/g, "");

@@ -1,13 +1,15 @@
 import React from 'react';
-import type { ConfirmedBooking } from '../types';
+import type { ConfirmedBooking, WeatherData } from '../types';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
+import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
 
 interface BookingConfirmationProps {
     details: ConfirmedBooking;
     onDone: () => void;
+    weatherData: WeatherData | null;
 }
 
-const BookingConfirmation: React.FC<BookingConfirmationProps> = ({ details, onDone }) => {
+const BookingConfirmation: React.FC<BookingConfirmationProps> = ({ details, onDone, weatherData }) => {
     
     const generateCalendarLink = () => {
         const startTime = new Date(details.date);
@@ -68,6 +70,13 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({ details, onDo
                         <span className="text-gray-500 dark:text-gray-400">Hora:</span>
                         <span className="font-semibold">{details.time}</span>
                     </div>
+                </div>
+                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                     <BookingWeatherStatus 
+                        weatherData={weatherData}
+                        selectedDate={details.date}
+                        selectedTime={details.time}
+                    />
                 </div>
             </div>
 

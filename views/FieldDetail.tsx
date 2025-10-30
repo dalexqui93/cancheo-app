@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { SoccerField, ConfirmedBooking } from '../types';
+import type { SoccerField, ConfirmedBooking, WeatherData } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { LocationIcon } from '../components/icons/LocationIcon';
@@ -11,6 +11,7 @@ import { HeartIcon } from '../components/icons/HeartIcon';
 import ReviewsModal from '../components/ReviewsModal';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import ImageLightbox from '../components/ImageLightbox';
+import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
 
 interface ComplexDisplayData {
     name: string;
@@ -30,6 +31,7 @@ interface FieldDetailProps {
     favoriteFields: string[];
     onToggleFavorite: (complexId: string) => void;
     allBookings: ConfirmedBooking[];
+    weatherData: WeatherData | null;
 }
 
 const BookingWidget: React.FC<{
@@ -43,7 +45,8 @@ const BookingWidget: React.FC<{
     formatDateForInput: (date: Date) => string;
     unavailableTimes: string[];
     isLoadingAvailability: boolean;
-}> = ({ field, uniqueId, selectedDate, selectedTime, onDateChange, onTimeSelect, minDate, formatDateForInput, unavailableTimes, isLoadingAvailability }) => {
+    weatherData: WeatherData | null;
+}> = ({ field, uniqueId, selectedDate, selectedTime, onDateChange, onTimeSelect, minDate, formatDateForInput, unavailableTimes, isLoadingAvailability, weatherData }) => {
     const [activeTimeTab, setActiveTimeTab] = useState<'mañana' | 'tarde' | 'noche'>('noche');
     
     const defaultTimes = {
@@ -86,6 +89,11 @@ const BookingWidget: React.FC<{
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                     <ClockIcon className="h-5 w-5 text-gray-500 dark:text-gray-400"/> Hora
                 </label>
+                <BookingWeatherStatus 
+                    weatherData={weatherData}
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                />
                 <div className="flex space-x-1 rounded-lg bg-gray-200 dark:bg-gray-900/50 p-1 mb-3">
                     {(['Mañana', 'Tarde', 'Noche'] as const).map(tab => (
                         <button
@@ -135,7 +143,7 @@ const BookingWidget: React.FC<{
     );
 };
 
-const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, allBookings }) => {
+const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, allBookings, weatherData }) => {
     const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
     const selectedField = complex.fields.find(f => f.id === selectedFieldId) || complex.fields[0];
     const complexId = selectedField.complexId || selectedField.id;
@@ -300,7 +308,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${selectedField.pricePerHour.toLocaleString('es-CO')}<span className="text-base font-normal text-gray-500 dark:text-gray-400"> / hora</span></p>
                             </div>
                             {selectedField.loyaltyEnabled && (<div className="flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-400 mt-2"><span className="text-lg">🎟️</span><span>Juega {selectedField.loyaltyGoal} y obtén 1 gratis</span></div>)}
-                            <BookingWidget field={selectedField} uniqueId="mobile" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} />
+                            <BookingWidget field={selectedField} uniqueId="mobile" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} weatherData={weatherData} />
                         </div>
                     </div>
 
@@ -314,7 +322,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                                 <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${selectedField.pricePerHour.toLocaleString('es-CO')}<span className="text-base font-normal text-gray-500 dark:text-gray-400"> / hora</span></p>
                             </div>
                             {selectedField.loyaltyEnabled && (<div className="flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-400 mt-2"><span className="text-lg">🎟️</span><span>Juega {selectedField.loyaltyGoal} y obtén 1 gratis</span></div>)}
-                            <BookingWidget field={selectedField} uniqueId="desktop" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} />
+                            <BookingWidget field={selectedField} uniqueId="desktop" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} weatherData={weatherData} />
                             <button onClick={handleBookNowClick} disabled={!selectedTime} className="w-full mt-6 bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none">Reservar ahora</button>
                         </div>
                     </aside>

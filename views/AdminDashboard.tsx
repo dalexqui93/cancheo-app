@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -256,7 +257,8 @@ const ComplexEditorModal: React.FC<{
             addNotification({ type: 'success', title: 'Ubicación Encontrada', message: 'Campos de dirección y coordenadas actualizados.' });
     
         } catch (err) {
-            console.error("Error getting location:", err as any);
+            // FIX: Consolidated console.error arguments into a single string.
+            console.error(`Error getting location: ${String(err)}`);
             addNotification({ type: 'error', title: 'Error de Ubicación', message: 'No se pudo obtener la ubicación. Ingresa los datos manualmente.' });
         } finally {
             setIsLocating(false);

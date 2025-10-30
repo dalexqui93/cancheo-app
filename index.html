@@ -49,6 +49,7 @@
             --color-primary-800: #166534;
             --color-primary-900: #14532d;
             --color-primary-950: #052e16;
+            --color-primary-rgb: 34, 197, 94;
         }
         .theme-green {
             /* Already the default */
@@ -65,6 +66,7 @@
             --color-primary-800: #1e40af;
             --color-primary-900: #1e3a8a;
             --color-primary-950: #172554;
+            --color-primary-rgb: 59, 130, 246;
         }
         .theme-orange {
             --color-primary-50: #fff7ed;
@@ -78,6 +80,7 @@
             --color-primary-800: #9a3412;
             --color-primary-900: #7c2d12;
             --color-primary-950: #431407;
+            --color-primary-rgb: 249, 115, 22;
         }
         .theme-purple {
             --color-primary-50: #f5f3ff;
@@ -91,6 +94,7 @@
             --color-primary-800: #5b21b6;
             --color-primary-900: #4c1d95;
             --color-primary-950: #2e1065;
+            --color-primary-rgb: 139, 92, 246;
         }
 
         /* Custom focus rings for accessibility and professional feel */
@@ -157,6 +161,20 @@
                 transform: translateX(100%);
             }
         }
+        @keyframes pulse-glow {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.5);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0);
+            }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
         .animate-fade-in {
             animation: fadeIn 0.3s ease-in-out;
@@ -173,6 +191,13 @@
         .animate-slide-in-from-left {
             animation: slideInFromLeft 0.3s ease-out;
         }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s infinite;
+        }
+        .animate-spin-slow {
+            animation: spin-slow 25s linear infinite;
+        }
+
 
         .shimmer-bg {
             position: relative;
@@ -191,6 +216,20 @@
         }
         .dark .shimmer-bg::after {
             background-image: linear-gradient(90deg, rgba(200, 200, 200, 0) 0, rgba(200, 200, 200, 0.1) 20%, rgba(200, 200, 200, 0.2) 60%, rgba(200, 200, 200, 0));
+        }
+
+        /* Weather Animations */
+        @keyframes rain {
+            0% { transform: translateY(-10%); }
+            100% { transform: translateY(110%); }
+        }
+        @keyframes cloud-move {
+            0% { transform: translateX(-20%); }
+            100% { transform: translateX(20%); }
+        }
+        @keyframes sun-glow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px 5px #FFD700; }
+            50% { transform: scale(1.1); box-shadow: 0 0 30px 10px #FFA500; }
         }
 
 

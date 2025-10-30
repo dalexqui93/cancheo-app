@@ -352,3 +352,30 @@ export interface ForumPost {
     reactions: ForumReaction[];
     comments: ForumComment[];
 }
+
+// --- Weather Module Types ---
+
+export type WeatherCondition = 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'unknown';
+
+export interface HourlyData {
+  time: Date;
+  temperature: number;
+  apparentTemperature: number;
+  precipitationProbability: number;
+  windSpeed: number;
+  weatherCode: number;
+}
+
+export interface WeatherData {
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  lastUpdated: Date;
+  current: HourlyData;
+  hourly: HourlyData[];
+}
+
+export interface Favorability {
+    status: 'Favorable' | 'Condicional' | 'Desfavorable';
+    reason: string;
+}
