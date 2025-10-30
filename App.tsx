@@ -465,7 +465,9 @@ const App: React.FC = () => {
             }
 
             setUser(loggedInUser);
-            setNotifications(loggedInUser.notifications?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) || []);
+            // Fix: Added a check to ensure notification timestamps are valid dates before sorting to prevent runtime errors.
+            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp as unknown as string).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            setNotifications(sortedNotifications);
             showToast({
                 type: 'success',
                 title: 'Inicio de sesión exitoso',
@@ -666,32 +668,51 @@ const App: React.FC = () => {
             });
             return;
         }
-
+    
         setIsSearchingLocation(true);
+    
+        // First, check permission status if the Permissions API is available.
+        if (navigator.permissions) {
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+                if (permissionStatus.state === 'denied') {
+                    showToast({
+                        type: 'error',
+                        title: 'Error de Ubicación',
+                        message: 'Permiso de ubicación denegado. Actívalo en los ajustes de tu navegador para usar esta función.'
+                    });
+                    setIsSearchingLocation(false);
+                    return;
+                }
+            } catch (permError) {
+                console.warn("Could not query geolocation permission status:", permError);
+            }
+        }
+    
         try {
-            const position = await getCurrentPosition({ timeout: 10000, maximumAge: 0 });
+            const position = await getCurrentPosition({ timeout: 15000, maximumAge: 60000, enableHighAccuracy: true });
             const { latitude, longitude } = position.coords;
-
+    
             const fieldsWithDistance = fields.map(field => {
                 const distance = calculateDistance(latitude, longitude, field.latitude, field.longitude);
                 return { ...field, distance };
             });
             
             fieldsWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-
+    
             setSearchResults(fieldsWithDistance);
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            console.error("Error getting location:", error);
-            let message = 'No se pudo obtener tu ubicación. Por favor, activa los permisos de geolocalización en tu navegador.';
+            console.error("Error getting location:", error as any);
+            let message = 'No se pudo obtener tu ubicación. Por favor, activa los permisos de geolocalización en tu navegador y en los ajustes de tu celular.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === error.PERMISSION_DENIED) {
                     message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu navegador para usar esta función.';
                 } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    message = 'La información de ubicación no está disponible en este momento.';
+                    message = 'La información de ubicación no está disponible en este momento. Revisa que el GPS de tu celular esté activado.';
                 } else if (error.code === error.TIMEOUT) {
-                    message = 'Se agotó el tiempo de espera para obtener la ubicación.';
+                    message = 'Se agotó el tiempo de espera para obtener la ubicación. Intenta de nuevo en un lugar con mejor señal.';
                 }
             }
             showToast({
