@@ -258,7 +258,7 @@ export enum View {
     SUPER_ADMIN_DASHBOARD,
 }
 
-export type Tab = 'explore' | 'bookings' | 'profile';
+export type Tab = 'explore' | 'bookings' | 'community' | 'profile';
 
 export type Theme = 'light' | 'dark' | 'system';
 

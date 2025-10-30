@@ -81,7 +81,7 @@ const PlayerProfileCreatorView: React.FC<PlayerProfileCreatorViewProps> = ({ onB
             <div className="container mx-auto px-4 py-6 sm:py-8">
                 <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
                     <ChevronLeftIcon className="h-5 w-5" />
-                    Volver a Comunidad
+                    Volver a DaviPlay
                 </button>
 
                 <h1 className="text-4xl font-black tracking-tight text-center mb-8" style={{textShadow: `0 0 15px var(--color-primary-500)`}}>

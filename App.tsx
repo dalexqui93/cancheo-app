@@ -170,8 +170,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass error object to console.error for better debugging.
-                console.error("Error saving notification to database:", error);
+                // Fix: Use format specifier to correctly log the unknown error object.
+                console.error("Error saving notification to database: %o", error);
             }
         }
     }, [user]);
@@ -239,8 +239,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass error object to console.error for better debugging.
-                console.error("Error deleting notification from database:", error);
+                // Fix: Use format specifier to correctly log the unknown error object.
+                console.error("Error deleting notification from database: %o", error);
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -267,8 +267,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass error object to console.error for better debugging.
-                console.error("Error marking notifications as read:", error);
+                // Fix: Use format specifier to correctly log the unknown error object.
+                console.error("Error marking notifications as read: %o", error);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -288,8 +288,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Pass error object to console.error for better debugging.
-                console.error("Error clearing notifications:", error);
+                // Fix: Use format specifier to correctly log the unknown error object.
+                console.error("Error clearing notifications: %o", error);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -517,8 +517,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Pass error object to console.error for better debugging.
-                console.error('Registration error: ', error);
+                // Fix: Use format specifier to correctly log the unknown error object.
+                console.error('Registration error: %o', error);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -571,8 +571,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Pass error object to console.error for better debugging.
-                console.error('Owner registration error: ', error);
+                // Fix: Use format specifier to correctly log the unknown error object.
+                console.error('Owner registration error: %o', error);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -605,6 +605,7 @@ const App: React.FC = () => {
         } else {
              if ([View.HOME, View.SEARCH_RESULTS, View.FIELD_DETAIL].includes(newView)) setActiveTab('explore');
             else if ([View.BOOKINGS, View.BOOKING_DETAIL].includes(newView)) setActiveTab('bookings');
+            else if ([View.SOCIAL, View.PLAYER_PROFILE_CREATOR].includes(newView)) setActiveTab('community');
             else if ([View.PROFILE, View.APPEARANCE, View.HELP_SUPPORT, View.PAYMENT_METHODS].includes(newView)) setActiveTab('profile');
         }
     };
@@ -615,6 +616,14 @@ const App: React.FC = () => {
         switch (tab) {
             case 'explore':
                 handleNavigate(View.HOME, navOptions);
+                break;
+            case 'community':
+                if (!user) {
+                    handleNavigate(View.LOGIN);
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para acceder a DaviPlay.' });
+                } else {
+                    handleNavigate(View.SOCIAL, navOptions);
+                }
                 break;
             case 'bookings':
                 if (!user) {
@@ -691,8 +700,8 @@ const App: React.FC = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // Fix: Pass error object to console.error for better debugging.
-            console.error('Booking confirmation error: ', error);
+            // Fix: Use format specifier to correctly log the unknown error object.
+            console.error('Booking confirmation error: %o', error);
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -804,8 +813,8 @@ const App: React.FC = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // Fix: Pass error object to console.error for better debugging.
-            console.error("Error updating password: ", error);
+            // Fix: Use format specifier to correctly log the unknown error object.
+            console.error("Error updating password: %o", error);
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',

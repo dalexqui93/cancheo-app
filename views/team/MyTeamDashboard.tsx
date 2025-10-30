@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { User, Team, Player, Notification, ChatMessage } from '../../types';
 import RosterView from './RosterView';
@@ -127,7 +126,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, onBack, addNoti
                 <div className="space-y-6">
                     <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold hover:underline">
                         <ChevronLeftIcon className="h-5 w-5" />
-                        Volver a Comunidad
+                        Volver a DaviPlay
                     </button>
                     {/* Header Section */}
                     <div className="bg-cover bg-center rounded-2xl p-6 text-white shadow-lg -mx-4" style={{backgroundImage: "linear-gradient(to right, rgba(22, 163, 74, 0.9), rgba(30, 58, 138, 0.9)), url('https://picsum.photos/seed/team-bg/1200/400')"}}>

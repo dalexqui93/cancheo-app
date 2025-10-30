@@ -40,6 +40,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate }) => {
                     isActive={activeTab === 'explore'}
                     onClick={() => onNavigate('explore')}
                 />
+                 <NavItem
+                    label="DaviPlay"
+                    icon={<img src="https://i.pinimg.com/736x/fc/70/cd/fc70cde92e1cc66379b0b8882ea4665a.jpg" alt="DaviPlay" className="h-8 w-8 rounded-full object-cover" />}
+                    isActive={activeTab === 'community'}
+                    onClick={() => onNavigate('community')}
+                />
                 <NavItem
                     label="Reservas"
                     icon={<img src="https://i.pinimg.com/736x/60/2f/c1/602fc1f2202be21b5797d8c8b3edeee0.jpg" alt="Reservas" className="h-8 w-8 rounded-full object-cover" />}

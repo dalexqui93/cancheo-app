@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -227,7 +226,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
             default:
                 return (
                     <>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">Comunidad</h1>
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">DaviPlay</h1>
                         <div className="space-y-4">
                             <SectionCard title="Mi Perfil de Jugador" description="Crea y personaliza tu avatar deportivo." icon={<span className="text-3xl">👕</span>} onClick={() => handlePremiumSectionClick(() => onNavigate(View.PLAYER_PROFILE_CREATOR))} isPremium isLocked={!user.isPremium} />
                             <SectionCard title="Foro Deportivo" description="Publica, debate y opina sobre deportes." icon={<span className="text-2xl">💬</span>} onClick={() => handlePremiumSectionClick(() => setSection('sports-forum'))} isPremium isLocked={!user.isPremium} />
@@ -261,7 +260,7 @@ const TournamentsView: React.FC<{
 }> = ({ tournaments, onBack, addNotification, user }) => {
     return (
         <div>
-            <BackButton onClick={onBack} text="Volver a Comunidad" />
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
                 <TrophyIcon className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500" />
                 <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Torneos</h2>
@@ -366,7 +365,7 @@ const ChallengeView: React.FC<{ teams: Team[], onBack: () => void, addNotificati
 
     return (
         <div>
-            <BackButton onClick={onBack} text="Volver a Comunidad" />
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">Retar Equipos</h1>
              <div className="relative mb-6">
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
@@ -413,7 +412,7 @@ const FindPlayersView: React.FC<{
 }> = ({ players, onBack, onRecruit, onViewProfile }) => {
     return (
         <div>
-            <BackButton onClick={onBack} text="Volver a Comunidad" />
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">Buscar Jugadores</h1>
             <div className="space-y-4">
                 {players.map(player => (
