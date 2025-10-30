@@ -137,7 +137,7 @@ const SectionCard: React.FC<{ title: string; description: string; icon: React.Re
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
     return (
         <div className="text-center py-12 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700">
-            <PlayerKickingBallIcon className="mx-auto h-20 w-20 text-[var(--color-primary-500)]" />
+            <img src="https://i.pinimg.com/originals/72/19/90/721990480d1f30f45c862cecad967e2d.gif" alt="Bienvenido a DaviPlay" className="mx-auto h-40 w-auto rounded-lg" />
             <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Bienvenido a DaviPlay</h2>
             <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                 Crea tu perfil de jugador para unirte a equipos, competir en torneos y registrar tus estadísticas. ¡Es hora de saltar a la cancha virtual!

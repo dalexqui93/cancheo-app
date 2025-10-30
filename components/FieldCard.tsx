@@ -82,6 +82,11 @@ const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onT
                 <p className="text-gray-600 dark:text-gray-400 flex items-center text-sm mb-3">
                     <LocationIcon className="h-4 w-4 mr-2 flex-shrink-0" />
                     <span>{representativeField.city}</span>
+                    {representativeField.distance !== undefined && (
+                        <span className="ml-2 pl-2 border-l border-gray-300 dark:border-gray-600 font-medium text-[var(--color-primary-700)] dark:text-[var(--color-primary-400)]">
+                            {representativeField.distance.toFixed(1)} km
+                        </span>
+                    )}
                 </p>
                 <div className="flex justify-between items-center">
                     <p className="text-lg font-bold text-gray-900 dark:text-gray-100">

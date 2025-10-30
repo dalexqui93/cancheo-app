@@ -1,3 +1,5 @@
+
+
 // Fix: Implemented the main App component to manage state and routing.
 // Fix: Corrected the React import to include useState, useEffect, and useCallback hooks.
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -31,6 +33,7 @@ import OwnerPendingVerificationView from './views/OwnerPendingVerificationView';
 import SuperAdminDashboard from './views/SuperAdminDashboard';
 import * as db from './firebase';
 import { isFirebaseConfigured } from './firebase';
+import { getCurrentPosition, calculateDistance } from './utils/geolocation';
 
 const FirebaseWarningBanner: React.FC = () => {
     if (isFirebaseConfigured) {
@@ -75,6 +78,7 @@ const App: React.FC = () => {
     const [isBookingLoading, setIsBookingLoading] = useState(false);
     const [isRegisterLoading, setIsRegisterLoading] = useState(false);
     const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState(false);
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
     
     useEffect(() => {
@@ -518,8 +522,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Registration error:', error);
+                // Fix: Coerce unknown error to string to satisfy strict console.error typing.
+                console.error('Registration error: ' + String(error));
             }
         } finally {
             setIsRegisterLoading(false);
@@ -653,6 +657,44 @@ const App: React.FC = () => {
         );
         setSearchResults(results);
         handleNavigate(View.SEARCH_RESULTS);
+    };
+
+    const handleSearchByLocation = async () => {
+        setIsSearchingLocation(true);
+        try {
+            const position = await getCurrentPosition({ enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+            const { latitude, longitude } = position.coords;
+
+            const fieldsWithDistance = fields.map(field => {
+                const distance = calculateDistance(latitude, longitude, field.latitude, field.longitude);
+                return { ...field, distance };
+            });
+            
+            fieldsWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+
+            setSearchResults(fieldsWithDistance);
+            handleNavigate(View.SEARCH_RESULTS);
+            
+        } catch (error) {
+            console.error("Error getting location:", error);
+            let message = 'No se pudo obtener tu ubicación. Por favor, activa los permisos de geolocalización en tu navegador.';
+            if (error instanceof GeolocationPositionError) {
+                if (error.code === error.PERMISSION_DENIED) {
+                    message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu navegador para usar esta función.';
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    message = 'La información de ubicación no está disponible en este momento.';
+                } else if (error.code === error.TIMEOUT) {
+                    message = 'Se agotó el tiempo de espera para obtener la ubicación.';
+                }
+            }
+            showToast({
+                type: 'error',
+                title: 'Error de Ubicación',
+                message: message
+            });
+        } finally {
+            setIsSearchingLocation(false);
+        }
     };
 
     const handleSelectField = (field: SoccerField) => {
@@ -924,10 +966,12 @@ const App: React.FC = () => {
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
+        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} />;
+        
         const viewElement = (() => {
             switch (view) {
                 case View.SEARCH_RESULTS:
-                    return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} />;
+                    return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} loading={isSearchingLocation} />;
                 case View.FIELD_DETAIL:
                     if (selectedField) {
                         const complexFields = fields.filter(f => f.complexId === selectedField.complexId);
@@ -950,17 +994,17 @@ const App: React.FC = () => {
                                     allBookings={allBookings}
                                 />;
                     }
-                    return <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} />;
+                    return homeComponent;
                 case View.BOOKING:
                     if (bookingDetails && user) {
                         return <Booking user={user} details={bookingDetails} onConfirm={handleConfirmBooking} onBack={() => handleNavigate(View.FIELD_DETAIL, { isBack: true })} isBookingLoading={isBookingLoading} />;
                     }
-                    return <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} />;
+                    return homeComponent;
                 case View.BOOKING_CONFIRMATION:
                     if(confirmedBooking) {
                         return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} />;
                     }
-                    return <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} />;
+                    return homeComponent;
                 case View.LOGIN:
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.REGISTER:
@@ -1071,7 +1115,7 @@ const App: React.FC = () => {
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.HOME:
                 default:
-                    return <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} />;
+                    return homeComponent;
             }
         })();
         

@@ -37,6 +37,7 @@ export interface SoccerField {
     };
     complexId?: string;
     ownerId?: string;
+    distance?: number;
 }
 
 // Fix: Added AvatarConfig interface to resolve import error in AvatarDisplay.tsx.

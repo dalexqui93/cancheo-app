@@ -378,7 +378,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error('Registration error:', error);
+                // Fix: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+                console.error('Registration error:', error as any);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -433,7 +434,8 @@ const App: React.FC = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // FIX: Pass error object as a separate argument to console.error to satisfy strict TypeScript rules and improve debugging.
-                console.error('Owner registration error:', error);
+                // Fix: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+                console.error('Owner registration error:', error as any);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -554,7 +556,8 @@ const App: React.FC = () => {
                 title: 'Error de Reserva',
                 message: 'No se pudo confirmar tu reserva. Por favor, inténtalo de nuevo.'
             });
-            console.error('Booking confirmation error:', error);
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Booking confirmation error:', error as any);
         } finally {
             setIsBookingLoading(false);
         }
@@ -662,7 +665,8 @@ const App: React.FC = () => {
                 title: 'Error Inesperado',
                 message: 'No se pudo actualizar tu contraseña. Inténtalo de nuevo.'
             });
-            console.error('Error updating password:', error);
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error updating password:', error as any);
         }
     };
     

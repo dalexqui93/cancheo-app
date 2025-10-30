@@ -3,7 +3,6 @@ import type { User, SoccerField } from '../types';
 import { View } from '../types';
 import { UserIcon } from '../components/icons/UserIcon';
 import { CreditCardIcon } from '../components/icons/CreditCardIcon';
-import { BellIcon } from '../components/icons/BellIcon';
 import { HelpIcon } from '../components/icons/HelpIcon';
 import { LogoutIcon } from '../components/icons/LogoutIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
@@ -439,7 +438,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout, allFields, on
                      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 mb-1 mt-2">Cuenta</h2>
                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
                         <ProfileMenuItem icon={<IdentificationIcon className="h-6 w-6 mr-4 text-gray-500 dark:text-gray-400"/>} label="Información Personal" onClick={() => setMode('editInfo')}/>
-                        <ProfileMenuItem icon={<BellIcon className="h-6 w-6 mr-4 text-gray-500 dark:text-gray-400"/>} label="Notificaciones" onClick={() => setMode('editNotifications')}/>
+                        <ProfileMenuItem icon={<img src="https://i.pinimg.com/736x/d9/89/fc/d989fcb7cb07f6984613f0f0ae02b6ee.jpg" alt="Notificaciones" className="h-6 w-6 mr-4 rounded-full object-cover"/>} label="Notificaciones" onClick={() => setMode('editNotifications')}/>
                         <ProfileMenuItem icon={<PaintBrushIcon className="h-6 w-6 mr-4 text-gray-500 dark:text-gray-400"/>} label="Apariencia" onClick={() => onNavigate(View.APPEARANCE)} />
                         <ProfileMenuItem icon={<CreditCardIcon className="h-6 w-6 mr-4 text-gray-500 dark:text-gray-400"/>} label="Métodos de Pago" onClick={() => onNavigate(View.PAYMENT_METHODS)} />
                      </div>

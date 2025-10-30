@@ -3,7 +3,6 @@ import type { User, Notification } from '../types';
 import { View } from '../types';
 import { UserIcon } from './icons/UserIcon';
 import { XIcon } from './icons/XIcon';
-import { BellIcon } from './icons/BellIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { InformationCircleIcon } from './icons/InformationCircleIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
@@ -87,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                     className="relative text-gray-600 dark:text-gray-300 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-500)] transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
                                     aria-label={`Notificaciones (${unreadCount} sin leer)`}
                                 >
-                                    <BellIcon className="h-6 w-6" />
+                                    <img src="https://i.pinimg.com/736x/d9/89/fc/d989fcb7cb07f6984613f0f0ae02b6ee.jpg" alt="Notificaciones" className="h-6 w-6 rounded-full object-cover" />
                                      {unreadCount > 0 && (
                                         <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" />
                                     )}
@@ -126,7 +125,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                                 ))
                                             ) : (
                                                 <div className="text-center py-16 px-4 flex flex-col items-center">
-                                                    <BellIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4"/>
+                                                    <img src="https://i.pinimg.com/736x/d9/89/fc/d989fcb7cb07f6984613f0f0ae02b6ee.jpg" alt="Notificaciones vacías" className="h-12 w-12 rounded-full object-cover opacity-50 mb-4"/>
                                                     <h4 className="font-bold text-gray-800 dark:text-gray-200">Todo está al día</h4>
                                                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No tienes notificaciones nuevas.</p>
                                                 </div>
