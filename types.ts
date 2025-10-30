@@ -294,6 +294,7 @@ export interface ConfirmedBooking extends BookingDetails {
     };
     isFree?: boolean;
     loyaltyApplied?: boolean;
+    ratingPrompted?: boolean;
 }
 
 export interface Announcement {

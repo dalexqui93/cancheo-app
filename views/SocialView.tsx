@@ -15,6 +15,7 @@ import { View } from '../types';
 import PlayerProfileDetailView from './player_profile/PlayerProfileDetailView';
 import { TrophyIcon } from '../components/icons/TrophyIcon';
 import PremiumBadge from '../components/PremiumBadge';
+import { PlayerKickingBallIcon } from '../components/icons/PlayerKickingBallIcon';
 
 // --- MOCK DATA ---
 const mockPlayers: Player[] = [
@@ -111,7 +112,7 @@ const mockTournaments: Tournament[] = [
 
 interface SocialViewProps {
     user: User;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onNavigate: (view: View) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
@@ -132,6 +133,24 @@ const SectionCard: React.FC<{ title: string; description: string; icon: React.Re
         </div>
     </button>
 );
+
+const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
+    return (
+        <div className="text-center py-12 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700">
+            <PlayerKickingBallIcon className="mx-auto h-20 w-20 text-[var(--color-primary-500)]" />
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Bienvenido a DaviPlay</h2>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                Crea tu perfil de jugador para unirte a equipos, competir en torneos y registrar tus estadísticas. ¡Es hora de saltar a la cancha virtual!
+            </p>
+            <button
+                onClick={() => onNavigate(View.PLAYER_PROFILE_CREATOR)}
+                className="mt-6 bg-[var(--color-primary-600)] text-white font-bold py-3 px-8 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 shadow-md"
+            >
+                Crear mi Perfil de Jugador
+            </button>
+        </div>
+    );
+};
 
 const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNavigate, setIsPremiumModalOpen }) => {
     const [section, setSection] = useState<SocialSection>('main');
@@ -186,6 +205,10 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
     };
 
     const renderContent = () => {
+        if (!user.playerProfile) {
+            return <PlayerProfileOnboarding onNavigate={onNavigate} />;
+        }
+
         switch (section) {
             case 'tournaments':
                 return <TournamentsView 
@@ -228,7 +251,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
                     <>
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">DaviPlay</h1>
                         <div className="space-y-4">
-                            <SectionCard title="Mi Perfil de Jugador" description="Crea y personaliza tu avatar deportivo." icon={<span className="text-3xl">👕</span>} onClick={() => handlePremiumSectionClick(() => onNavigate(View.PLAYER_PROFILE_CREATOR))} isPremium isLocked={!user.isPremium} />
+                            <SectionCard title="Mi Perfil de Jugador" description="Crea y personaliza tu avatar deportivo." icon={<span className="text-3xl">👕</span>} onClick={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
                             <SectionCard title="Foro Deportivo" description="Publica, debate y opina sobre deportes." icon={<span className="text-2xl">💬</span>} onClick={() => handlePremiumSectionClick(() => setSection('sports-forum'))} isPremium isLocked={!user.isPremium} />
                             <SectionCard title="Torneos" description="Compite por la gloria y los premios." icon={<span className="text-2xl">🏆</span>} onClick={() => handlePremiumSectionClick(() => setSection('tournaments'))} isPremium isLocked={!user.isPremium} />
                             <SectionCard title="Mi Equipo" description="Gestiona tu plantilla, tácticas y más." icon={<span className="text-2xl">🛡️</span>} onClick={() => handlePremiumSectionClick(() => setSection('my-team'))} isPremium isLocked={!user.isPremium} />

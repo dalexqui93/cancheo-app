@@ -1,9 +1,3 @@
-
-
-
-
-
-
 // Fix: Implemented the main App component to manage state and routing.
 // Fix: Corrected the React import to include useState, useEffect, and useCallback hooks.
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -525,7 +519,7 @@ const App: React.FC = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Registration error:', error as any);
+                console.error('Registration error:', error);
             }
         } finally {
             setIsRegisterLoading(false);

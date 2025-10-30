@@ -7,6 +7,7 @@ import { XIcon } from '../components/icons/XIcon';
 import { MapIcon } from '../components/icons/MapIcon';
 import { ListIcon } from '../components/icons/ListIcon';
 import MapView from './MapView';
+import FieldCardSkeleton from '../components/FieldCardSkeleton';
 
 
 interface SearchResultsProps {
@@ -16,6 +17,7 @@ interface SearchResultsProps {
     favoriteFields: string[];
     onToggleFavorite: (complexId: string) => void;
     theme: Theme;
+    loading?: boolean;
 }
 
 interface Filters {
@@ -24,7 +26,7 @@ interface Filters {
     services: string[];
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, onBack, favoriteFields, onToggleFavorite, theme }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, onBack, favoriteFields, onToggleFavorite, theme, loading = false }) => {
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState<Filters>({
         maxPrice: '',
@@ -86,7 +88,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, on
 
 
     return (
-        <div className="container mx-auto px-4 py-6 sm:py-8">
+        <div>
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver
@@ -197,10 +199,14 @@ const SearchResults: React.FC<SearchResultsProps> = ({ fields, onSelectField, on
                     </div>
                 </div>
             </div>
-
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Encontramos {complexes.length} complejo{complexes.length !== 1 && 's'} para ti.</p>
             
-            {complexes.length > 0 ? (
+            {!loading && <p className="text-gray-600 dark:text-gray-400 mb-6">Encontramos {complexes.length} complejo{complexes.length !== 1 && 's'} para ti.</p>}
+            
+            {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[...Array(6)].map((_, i) => <FieldCardSkeleton key={i} />)}
+                </div>
+            ) : complexes.length > 0 ? (
                 viewMode === 'list' ? (
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {complexes.map((fieldGroup, i) => {

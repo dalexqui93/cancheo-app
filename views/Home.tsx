@@ -9,6 +9,8 @@ import { ListIcon } from '../components/icons/ListIcon';
 import MapView from './MapView';
 import { MegaphoneIcon } from '../components/icons/MegaphoneIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { LocationIcon } from '../components/icons/LocationIcon';
+import FieldCardSkeleton from '../components/FieldCardSkeleton';
 
 
 interface HomeProps {
@@ -21,6 +23,8 @@ interface HomeProps {
     theme: Theme;
     announcements: Announcement[];
     user: User | null;
+    onSearchByLocation: () => void;
+    isSearchingLocation: boolean;
 }
 
 const CategoryButton: React.FC<{
@@ -35,7 +39,7 @@ const CategoryButton: React.FC<{
 );
 
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user }) => {
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation }) => {
     const [location, setLocation] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
@@ -114,6 +118,10 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                             </button>
                         </div>
                     </form>
+                    <button onClick={onSearchByLocation} disabled={isSearchingLocation} className="mt-4 flex items-center gap-2 mx-auto py-2 px-6 bg-white/20 backdrop-blur-sm rounded-full text-white font-semibold hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-wait">
+                        <LocationIcon className="w-5 h-5" />
+                        {isSearchingLocation ? 'Buscando...' : 'Canchas cerca de mí'}
+                    </button>
                 </div>
             </div>
 
@@ -174,15 +182,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                     </div>
                     {loading ? (
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[...Array(4)].map((_, i) => (
-                                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-md dark:border dark:border-gray-700 overflow-hidden animate-pulse">
-                                    <div className="aspect-video bg-gray-200 dark:bg-gray-700"></div>
-                                    <div className="p-4 space-y-3">
-                                        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                                    </div>
-                                </div>
-                            ))}
+                            {[...Array(4)].map((_, i) => <FieldCardSkeleton key={i} />)}
                         </div>
                     ) : viewMode === 'list' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
