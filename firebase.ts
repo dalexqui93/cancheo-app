@@ -273,7 +273,7 @@ const owner2ToSeed: Omit<User, 'id'> = {
 
 const fieldsToSeed: Omit<SoccerField, 'id'>[] = [
   {
-    complexId: 'complex-1', ownerId: 'owner-1', name: 'El Templo del Fútbol - Cancha 1', address: 'Calle 123 #45-67', city: 'Bogotá', pricePerHour: 90000, rating: 4.8,
+    complexId: 'complex-1', ownerId: 'owner-1', name: 'El Templo del Fútbol - Cancha 1', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 90000, rating: 4.8,
     images: ['https://i.pinimg.com/736x/47/33/3e/47333e07ed4963aa120c821b597d0f8e.jpg', 'https://i.pinimg.com/736x/ee/5b/8d/ee5b8d1fe632960104478b7c5b883c85.jpg'],
     description: 'El mejor lugar para jugar con tus amigos. Canchas de última generación con césped sintético de alta calidad.',
     services: [ { name: 'Vestuarios', icon: '👕' }, { name: 'Cafetería', icon: '☕' }, { name: 'Parqueadero', icon: '🅿️' } ],
@@ -281,14 +281,14 @@ const fieldsToSeed: Omit<SoccerField, 'id'>[] = [
     size: '5v5', latitude: 4.648283, longitude: -74.088951, loyaltyEnabled: true, loyaltyGoal: 7,
   },
   {
-    complexId: 'complex-1', ownerId: 'owner-1', name: 'El Templo del Fútbol - Cancha 2', address: 'Calle 123 #45-67', city: 'Bogotá', pricePerHour: 120000, rating: 4.8,
+    complexId: 'complex-1', ownerId: 'owner-1', name: 'El Templo del Fútbol - Cancha 2', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 120000, rating: 4.8,
     images: ['https://i.pinimg.com/736x/7f/b7/3c/7fb73cf022f824a1443d5c9081cfe618.jpg', 'https://i.pinimg.com/736x/a5/7a/fa/a57afa6abeaeb64f8f2a1a0689e9a3f8.jpg'],
     description: 'El mejor lugar para jugar con tus amigos. Canchas de última generación con césped sintético de alta calidad.',
     services: [ { name: 'Vestuarios', icon: '👕' }, { name: 'Cafetería', icon: '☕' }, { name: 'Parqueadero', icon: '🅿️' } ],
     reviews: [], size: '7v7', latitude: 4.648283, longitude: -74.088951, loyaltyEnabled: true, loyaltyGoal: 7,
   },
   {
-    complexId: 'complex-2', ownerId: 'owner-2', name: 'Gol Center - Cancha A', address: 'Avenida 68 #90-12', city: 'Medellín', pricePerHour: 75000, rating: 4.5,
+    complexId: 'complex-2', ownerId: 'owner-2', name: 'Gol Center - Cancha A', address: 'Avenida 68 #90-12', city: 'Medellín', department: 'Antioquia', pricePerHour: 75000, rating: 4.5,
     images: ['https://i.pinimg.com/originals/7f/e1/99/7fe1991a0c74a7b73c4e33989e24634f.jpg', 'https://i.pinimg.com/originals/1c/c7/2b/1cc72b7a957252277d3f0a9903b418a0.jpg'],
     description: 'Canchas económicas y de buena calidad en el corazón de la ciudad. Ideal para partidos casuales.',
     services: [ { name: 'Balones', icon: '⚽' }, { name: 'Tienda', icon: '🏪' } ],

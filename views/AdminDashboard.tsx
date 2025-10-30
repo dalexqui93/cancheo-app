@@ -120,21 +120,25 @@ const ComplexEditorModal: React.FC<{
         name: string;
         address: string;
         city: string;
+        department?: string;
         description: string;
         images: string[];
         services: Service[];
         fields: SoccerField[];
     } | null; 
     onClose: () => void; 
-    onSave: (data: any) => Promise<void>; 
-}> = ({ complex, onClose, onSave }) => {
+    onSave: (data: any) => Promise<void>;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
+}> = ({ complex, onClose, onSave, addNotification }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
     const [formData, setFormData] = useState({
         complexId: complex?.complexId || `complex-${Date.now()}`,
         name: complex?.name || '',
         address: complex?.address || '',
         city: complex?.city || '',
+        department: complex?.department || '',
         description: complex?.description || '',
         images: complex?.images || [],
         services: complex?.services.map(s => s.name) || [],
@@ -166,6 +170,57 @@ const ComplexEditorModal: React.FC<{
         tarde: ['12:00', '13:00', '14:00', '15:00', '16:00'],
         noche: ['17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
     };
+
+    const handleAutofillLocation = async () => {
+        setIsLocating(true);
+        addNotification({ type: 'info', title: 'Geolocalización', message: 'Obteniendo tu ubicación...' });
+        
+        if (!navigator.geolocation) {
+            addNotification({ type: 'error', title: 'Error', message: 'La geolocalización no es compatible con tu navegador.' });
+            setIsLocating(false);
+            return;
+        }
+    
+        try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            });
+            
+            const { latitude, longitude } = position.coords;
+    
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch address data');
+            }
+            const data = await response.json();
+            
+            const { address } = data;
+            const road = address.road || '';
+            const house_number = address.house_number || '';
+            const city = address.city || address.town || address.village || '';
+            const department = address.state || '';
+    
+            setFormData(prev => ({
+                ...prev,
+                address: `${road} ${house_number}`.trim(),
+                city: city,
+                department: department
+            }));
+    
+            addNotification({ type: 'success', title: 'Ubicación Encontrada', message: 'Campos de dirección actualizados.' });
+    
+        } catch (err) {
+            console.error("Error getting location:", err as any);
+            addNotification({ type: 'error', title: 'Error de Ubicación', message: 'No se pudo obtener la ubicación. Ingresa los datos manualmente.' });
+        } finally {
+            setIsLocating(false);
+        }
+    };
+    
 
     const handleSubFieldChange = (index: number, field: string, value: any) => {
         const newSubFields = [...formData.subFields];
@@ -310,22 +365,35 @@ const ComplexEditorModal: React.FC<{
                 </div>
                 <form onSubmit={handleSaveSubmit} noValidate className="flex-grow overflow-hidden flex flex-col">
                     <div className="p-5 overflow-y-auto space-y-4 text-sm">
+                        
+                        <button type="button" onClick={handleAutofillLocation} disabled={isLocating} className="w-full flex items-center justify-center gap-2 p-2 mb-4 border-2 border-dashed rounded-md border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-wait">
+                            {isLocating ? <SpinnerIcon className="w-5 h-5"/> : <LocationIcon className="w-5 h-5"/>}
+                            {isLocating ? 'Buscando...' : 'Usar mi ubicación actual'}
+                        </button>
+                        
                         {/* Shared Fields */}
+                        <div>
+                            <label className="font-semibold block mb-1 text-xs uppercase">Nombre del Complejo <span className="text-red-500">*</span></label>
+                            <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className={`w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 ${formErrors.name ? 'border-red-500' : ''}`}/>
+                            {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
-                           <div>
-                                <label className="font-semibold block mb-1 text-xs uppercase">Nombre del Complejo <span className="text-red-500">*</span></label>
-                                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className={`w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 ${formErrors.name ? 'border-red-500' : ''}`}/>
-                                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
-                            </div>
                             <div>
                                 <label className="font-semibold block mb-1 text-xs uppercase">Ciudad <span className="text-red-500">*</span></label>
                                 <input type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
                             </div>
+                            <div>
+                                <label className="font-semibold block mb-1 text-xs uppercase">Departamento <span className="text-red-500">*</span></label>
+                                <input type="text" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                            </div>
                         </div>
+
                         <div>
                             <label className="font-semibold block mb-1 text-xs uppercase">Dirección <span className="text-red-500">*</span></label>
                             <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
                         </div>
+
                          <div>
                             <label className="font-semibold block mb-1 text-xs uppercase">Descripción</label>
                             <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" rows={2}/>
@@ -859,6 +927,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                     ownerId: props.user.id,
                     address: data.address,
                     city: data.city,
+                    department: data.department,
                     description: data.description,
                     images: data.images,
                     services: data.services,
@@ -992,6 +1061,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 name: baseName,
                 address: targetFields[0].address,
                 city: targetFields[0].city,
+                department: targetFields[0].department,
                 description: targetFields[0].description,
                 images: targetFields[0].images,
                 services: targetFields[0].services,
@@ -1053,7 +1123,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 ))}
             </nav>
             
-            {isComplexEditorOpen && <ComplexEditorModal complex={editingComplex} onClose={() => setIsComplexEditorOpen(false)} onSave={handleSaveComplex} />}
+            {isComplexEditorOpen && <ComplexEditorModal complex={editingComplex} onClose={() => setIsComplexEditorOpen(false)} onSave={handleSaveComplex} addNotification={props.addNotification} />}
             {isAnnouncementEditorOpen && <AnnouncementEditorModal onClose={() => setIsAnnouncementEditorOpen(false)} onSave={handleCreateAnnouncement} />}
             {isBookingModalOpen && <BookingCreatorModal fields={props.fields} allUsers={props.allUsers} onClose={() => setIsBookingModalOpen(false)} onSave={handleSaveBookings} />}
 

@@ -19,6 +19,7 @@ export interface SoccerField {
     name: string;
     address: string;
     city: string;
+    department?: string;
     pricePerHour: number;
     rating: number;
     images: string[];
