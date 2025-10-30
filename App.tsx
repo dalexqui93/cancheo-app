@@ -48,7 +48,8 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..//tAR8AEFJAAA4QAAABfWCAAE5BAMFCQACHkMAMAgD///8//+8RDAjAAAGgAACABAhEATEAAAANAUCAMpAAN4P/AAAIoYAEACAoPMj//9/8Vb8B//8A+Ev3/x2//v36+f/e/tP+j/zP4z//v//l///wAAAA//+4Bj5G///w//9oADAgEAAQABABolVmpmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..//8UEFNTAsAAAAAAAAAAAD/8/MPAAAACAAADwAAAAQUG9wLWpha2ViYWxkcnktNjEwNTE0MzEubXAz//45GkAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/+vQ4ADAgEAAQABABolVmpmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..!!-..-..-..-..-..-..-..-..-..-..-..-GLISH';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..//tAR8AEFJAAA4QAAABfWCAAE5BAMFCQACHkMAMAgD///8//+8RDAjAAAGgAACABAhEATEAAAANAUCAMpAAN4P/AAAIoYAEACAoPMj//9/8Vb8B//8A+Ev3/x2//v36+f/e/tP+j/zP4z//v//l///wAAAA//+4Bj5G///w//9oADAgEAAQABABolVmpmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-!'
+;
 
 const App = () => {
     const [fields, setFields]: [SoccerField[], (fields: SoccerField[]) => void] = useState<SoccerField[]>([]);
@@ -193,7 +194,8 @@ const App = () => {
             read: false, 
         };
         
-        setNotifications(prev => [newNotification, ...prev]);
+        // FIX: Explicitly type 'prev' to 'Notification[]' to resolve TypeScript error.
+        setNotifications((prev: Notification[]) => [newNotification, ...prev]);
     
         if (user && isFirebaseConfigured) {
             try {
@@ -204,7 +206,8 @@ const App = () => {
                 
                 const updatedUser = { ...user, notifications: notificationsToSave };
                 setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error saving notification to database:', error as any);
@@ -218,7 +221,8 @@ const App = () => {
             id: Date.now(),
             timestamp: new Date()
         };
-        setToasts(prev => [newToast, ...prev]);
+        // FIX: Explicitly type 'prev' to 'Notification[]' to resolve TypeScript error.
+        setToasts((prev: Notification[]) => [newToast, ...prev]);
     }, []);
     
     // Simulate push notifications for favorite fields
@@ -272,7 +276,8 @@ const App = () => {
                 
                 const updatedUser = { ...user, notifications: updatedNotifications };
                 setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error deleting notification from database:', error as any);
@@ -299,7 +304,8 @@ const App = () => {
                 await db.updateUser(user.id, { notifications: updatedNotifications });
                 const updatedUser = { ...user, notifications: updatedNotifications };
                 setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error marking notifications as read:', error as any);
@@ -319,7 +325,8 @@ const App = () => {
                 await db.updateUser(user.id, { notifications: [] });
                 const updatedUser = { ...user, notifications: [] };
                 setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error clearing notifications:', error as any);
@@ -329,7 +336,8 @@ const App = () => {
     };
 
     const dismissToast = (id: number) => {
-        setToasts(prev => prev.filter(t => t.id !== id));
+        // FIX: Explicitly type 'prev' to 'Notification[]' to resolve TypeScript error.
+        setToasts((prev: Notification[]) => prev.filter(t => t.id !== id));
     };
     
     // Reminder notification checker
@@ -376,7 +384,8 @@ const App = () => {
             }
     
             if (bookingsToUpdate.length > 0) {
-                setAllBookings(prevAllBookings => {
+                // FIX: Explicitly type 'prevAllBookings' to 'ConfirmedBooking[]' to resolve TypeScript error.
+                setAllBookings((prevAllBookings: ConfirmedBooking[]) => {
                     const updatedMap = new Map(bookingsToUpdate.map(b => [b.id, b]));
                     return prevAllBookings.map(b => updatedMap.get(b.id) || b);
                 });
@@ -444,14 +453,16 @@ const App = () => {
                     await db.updateUser(user.id, { loyalty: newLoyalty });
                     const updatedUser = { ...user, loyalty: newLoyalty };
                     setUser(updatedUser);
-                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                    // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+                    setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
     
                 const playedBookingIds = new Set(playedBookings.map(b => b.id));
                 for (const bookingId of playedBookingIds) {
                     await db.updateBooking(bookingId, { loyaltyApplied: true });
                 }
-                setAllBookings(prevBookings => 
+                // FIX: Explicitly type 'prevBookings' to 'ConfirmedBooking[]' to resolve TypeScript error.
+                setAllBookings((prevBookings: ConfirmedBooking[]) => 
                     prevBookings.map(b => 
                         playedBookingIds.has(b.id) ? { ...b, loyaltyApplied: true } : b
                     )
@@ -531,7 +542,8 @@ const App = () => {
             };
             const createdUser = await db.addUser(newUser);
             setUser(createdUser);
-            setAllUsers(prev => [...prev, createdUser]);
+            // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+            setAllUsers((prev: User[]) => [...prev, createdUser]);
             handleNavigate(View.HOME);
             showToast({
                 type: 'success',
@@ -582,8 +594,10 @@ const App = () => {
 
             const newApplication = await db.addOwnerApplication(newApplicationData);
 
-            setAllUsers(prev => [...prev, newUser]);
-            setOwnerApplications(prev => [...prev, newApplication]);
+            // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+            setAllUsers((prev: User[]) => [...prev, newUser]);
+            // FIX: Explicitly type 'prev' to 'OwnerApplication[]' to resolve TypeScript error.
+            setOwnerApplications((prev: OwnerApplication[]) => [...prev, newApplication]);
 
             addPersistentNotification({
                 type: 'success',
@@ -701,7 +715,7 @@ const App = () => {
         setIsSearchingLocation(true);
     
         try {
-            const position = await getCurrentPosition({ timeout: 15000, maximumAge: 60000, enableHighAccuracy: true });
+            const position = await getCurrentPosition({ timeout: 20000, maximumAge: 60000, enableHighAccuracy: false });
             const { latitude, longitude } = position.coords;
     
             const fieldsWithDistance = fields.map(field => {
@@ -765,7 +779,8 @@ const App = () => {
                     await db.updateUser(user.id, { loyalty: updatedLoyalty });
                     const updatedUser = { ...user, loyalty: updatedLoyalty };
                     setUser(updatedUser);
-                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                    // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+                    setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
             }
             
@@ -779,7 +794,8 @@ const App = () => {
             };
             const newBooking = await db.addBooking(bookingData);
             setConfirmedBooking(newBooking);
-            setAllBookings(prev => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            // FIX: Explicitly type 'prev' to 'ConfirmedBooking[]' to resolve TypeScript error.
+            setAllBookings((prev: ConfirmedBooking[]) => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
@@ -805,7 +821,8 @@ const App = () => {
         await db.updateUser(user.id, { favoriteFields: newFavorites });
         const updatedUser = { ...user, favoriteFields: newFavorites };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
 
         const complexField = fields.find(f => (f.complexId || f.id) === complexId);
         const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
@@ -826,7 +843,8 @@ const App = () => {
         const bookingToCancel = bookings.find(b => b.id === bookingId);
         if (bookingToCancel) {
             await db.updateBooking(bookingId, { status: 'cancelled' });
-            setAllBookings(prev => prev.map(b => 
+            // FIX: Explicitly type 'prev' to 'ConfirmedBooking[]' to resolve TypeScript error.
+            setAllBookings((prev: ConfirmedBooking[]) => prev.map(b => 
                 b.id === bookingId ? { ...b, status: 'cancelled' } : b
             ));
             
@@ -848,7 +866,8 @@ const App = () => {
         await db.updateUser(user.id, { profilePicture: imageDataUrl });
         const updatedUser = { ...user, profilePicture: imageDataUrl };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
     };
     
@@ -858,7 +877,8 @@ const App = () => {
         const { profilePicture, ...rest } = user;
         const updatedUser = rest;
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
     };
     
@@ -867,7 +887,8 @@ const App = () => {
         await db.updateUser(user.id, updatedInfo);
         const updatedUser = { ...user, ...updatedInfo };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
     };
     
@@ -888,7 +909,8 @@ const App = () => {
             
             const updatedUser = { ...user, password: newPassword };
             setUser(updatedUser);
-            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+            setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
 
             showToast({
                 type: 'success',
@@ -911,7 +933,8 @@ const App = () => {
         await db.updateUser(user.id, { notificationPreferences: prefs });
         const updatedUser = { ...user, notificationPreferences: prefs };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
     };
     
@@ -929,7 +952,8 @@ const App = () => {
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
         const updatedUser = { ...user, paymentMethods: updatedMethods };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
     };
 
@@ -939,7 +963,8 @@ const App = () => {
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
         const updatedUser = { ...user, paymentMethods: updatedMethods };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
     };
 
@@ -949,7 +974,8 @@ const App = () => {
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
         const updatedUser = { ...user, paymentMethods: updatedMethods };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
     };
 
@@ -958,7 +984,8 @@ const App = () => {
         await db.updateUser(user.id, { playerProfile: updatedProfile });
         const updatedUser = { ...user, playerProfile: updatedProfile };
         setUser(updatedUser);
-        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
+        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
         handleNavigate(View.SOCIAL);
     };
@@ -973,7 +1000,8 @@ const App = () => {
         const newReview: Review = { id: `r${Date.now()}`, author: user.name, rating, comment, timestamp: new Date() };
         await db.addReviewToField(fieldId, newReview);
         
-        setFields(prevFields => {
+        // FIX: Explicitly type 'prevFields' to 'SoccerField[]' to resolve TypeScript error.
+        setFields((prevFields: SoccerField[]) => {
             return prevFields.map(field => {
                 if (field.id === fieldId) {
                     const newTotalReviews = field.reviews.length + 1;
