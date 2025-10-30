@@ -1,7 +1,5 @@
 
 
-// Fix: Implemented the main App component to manage state and routing.
-// Fix: Corrected the React import to include useState, useEffect, and useCallback hooks.
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication } from './types';
 import { View } from './types';
@@ -522,8 +520,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Coerce unknown error to string to satisfy strict console.error typing.
-                console.error('Registration error: ' + String(error));
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Registration error:', error as any);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -660,9 +658,18 @@ const App: React.FC = () => {
     };
 
     const handleSearchByLocation = async () => {
+        if (!navigator.geolocation) {
+            showToast({
+                type: 'error',
+                title: 'Geolocalización no soportada',
+                message: 'Tu navegador no soporta esta función.'
+            });
+            return;
+        }
+
         setIsSearchingLocation(true);
         try {
-            const position = await getCurrentPosition({ enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+            const position = await getCurrentPosition({ timeout: 10000, maximumAge: 0 });
             const { latitude, longitude } = position.coords;
 
             const fieldsWithDistance = fields.map(field => {
