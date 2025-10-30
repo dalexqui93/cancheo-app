@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication } from './types';
 import { View } from './types';
@@ -48,38 +47,38 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..//tAR8AEFJAAA4QAAABfWCAAE5BAMFCQACHkMAMAgD///8//+8RDAjAAAGgAACABAhEATEAAAANAUCAMpAAN4P/AAAIoYAEACAoPMj//9/8Vb8B//8A+Ev3/x2//v36+f/e/tP+j/zP4z//v//l///wAAAA//+4Bj5G///w//9oADAgEAAQABABolVmpmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-..-!'
-;
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
-    const [fields, setFields]: [SoccerField[], (fields: SoccerField[]) => void] = useState<SoccerField[]>([]);
-    const [allUsers, setAllUsers]: [User[], (users: User[]) => void] = useState<User[]>([]);
-    const [ownerApplications, setOwnerApplications]: [OwnerApplication[], (apps: OwnerApplication[]) => void] = useState<OwnerApplication[]>([]);
-    const [allBookings, setAllBookings]: [ConfirmedBooking[], (bookings: ConfirmedBooking[]) => void] = useState<ConfirmedBooking[]>([]);
-    const [view, setView]: [View, (view: View) => void] = useState<View>(View.HOME);
-    const [activeTab, setActiveTab]: [Tab, (tab: Tab) => void] = useState<Tab>('explore');
-    const [user, setUser]: [User | null, (user: User | null) => void] = useState<User | null>(null);
-    const [selectedField, setSelectedField]: [SoccerField | null, (field: SoccerField | null) => void] = useState<SoccerField | null>(null);
-    const [searchResults, setSearchResults]: [SoccerField[], (fields: SoccerField[]) => void] = useState<SoccerField[]>([]);
-    const [bookingDetails, setBookingDetails]: [BookingDetails | null, (details: BookingDetails | null) => void] = useState<BookingDetails | null>(null);
-    const [confirmedBooking, setConfirmedBooking]: [ConfirmedBooking | null, (booking: ConfirmedBooking | null) => void] = useState<ConfirmedBooking | null>(null);
-    const [notifications, setNotifications]: [Notification[], (notifications: Notification[]) => void] = useState<Notification[]>([]);
-    const [toasts, setToasts]: [Notification[], (toasts: Notification[]) => void] = useState<Notification[]>([]);
-    const [bookings, setBookings]: [ConfirmedBooking[], (bookings: ConfirmedBooking[]) => void] = useState<ConfirmedBooking[]>([]);
-    const [announcements, setAnnouncements]: [Announcement[], (announcements: Announcement[]) => void] = useState<Announcement[]>([]);
-    const [selectedBooking, setSelectedBooking]: [ConfirmedBooking | null, (booking: ConfirmedBooking | null) => void] = useState<ConfirmedBooking | null>(null);
-    const [loading, setLoading]: [boolean, (loading: boolean) => void] = useState<boolean>(true);
-    const [theme, setTheme]: [Theme, (theme: Theme) => void] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
-    const [accentColor, setAccentColor]: [AccentColor, (color: AccentColor) => void] = useState<AccentColor>(() => (localStorage.getItem('accentColor') as AccentColor) || 'green');
-    const [isPremiumModalOpen, setIsPremiumModalOpen]: [boolean, (isOpen: boolean) => void] = useState<boolean>(false);
-    const [animationClass, setAnimationClass]: [string, (animationClass: string) => void] = useState<string>('animate-fade-in');
-    const [viewKey, setViewKey]: [number, (key: number | ((prev: number) => number)) => void] = useState<number>(0);
-    const [rewardInfo, setRewardInfo]: [{ field: SoccerField } | null, (info: { field: SoccerField } | null) => void] = useState<{ field: SoccerField } | null>(null);
-    const [ratingInfo, setRatingInfo]: [{ field: SoccerField } | null, (info: { field: SoccerField } | null) => void] = useState<{ field: SoccerField } | null>(null);
-    const [isBookingLoading, setIsBookingLoading]: [boolean, (isLoading: boolean) => void] = useState<boolean>(false);
-    const [isRegisterLoading, setIsRegisterLoading]: [boolean, (isLoading: boolean) => void] = useState<boolean>(false);
-    const [isOwnerRegisterLoading, setIsOwnerRegisterLoading]: [boolean, (isLoading: boolean) => void] = useState<boolean>(false);
-    const [isSearchingLocation, setIsSearchingLocation]: [boolean, (isLoading: boolean) => void] = useState<boolean>(false);
+    // FIX: Remove incorrect explicit typings on useState hooks to allow TypeScript to correctly infer setter types.
+    const [fields, setFields] = useState<SoccerField[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
+    const [allBookings, setAllBookings] = useState<ConfirmedBooking[]>([]);
+    const [view, setView] = useState<View>(View.HOME);
+    const [activeTab, setActiveTab] = useState<Tab>('explore');
+    const [user, setUser] = useState<User | null>(null);
+    const [selectedField, setSelectedField] = useState<SoccerField | null>(null);
+    const [searchResults, setSearchResults] = useState<SoccerField[]>([]);
+    const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+    const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [toasts, setToasts] = useState<Notification[]>([]);
+    const [bookings, setBookings] = useState<ConfirmedBooking[]>([]);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [selectedBooking, setSelectedBooking] = useState<ConfirmedBooking | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+    const [accentColor, setAccentColor] = useState<AccentColor>(() => (localStorage.getItem('accentColor') as AccentColor) || 'green');
+    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState<boolean>(false);
+    const [animationClass, setAnimationClass] = useState<string>('animate-fade-in');
+    const [viewKey, setViewKey] = useState<number>(0);
+    const [rewardInfo, setRewardInfo] = useState<{ field: SoccerField } | null>(null);
+    const [ratingInfo, setRatingInfo] = useState<{ field: SoccerField } | null>(null);
+    const [isBookingLoading, setIsBookingLoading] = useState<boolean>(false);
+    const [isRegisterLoading, setIsRegisterLoading] = useState<boolean>(false);
+    const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState<boolean>(false);
+    const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
 
     // Solicitar permiso para notificaciones al cargar la app
     useEffect(() => {
@@ -173,7 +172,8 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            console.error("Error al reproducir sonido de notificación:", error);
+            // FIX: Cast 'error' to 'any' in console.error to handle unknown error type from catch block.
+            console.error("Error al reproducir sonido de notificación:", error as any);
         }
     }, []);
 
@@ -194,8 +194,7 @@ const App = () => {
             read: false, 
         };
         
-        // FIX: Explicitly type 'prev' to 'Notification[]' to resolve TypeScript error.
-        setNotifications((prev: Notification[]) => [newNotification, ...prev]);
+        setNotifications(prev => [newNotification, ...prev]);
     
         if (user && isFirebaseConfigured) {
             try {
@@ -206,10 +205,8 @@ const App = () => {
                 
                 const updatedUser = { ...user, notifications: notificationsToSave };
                 setUser(updatedUser);
-                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error saving notification to database:', error as any);
             }
         }
@@ -221,8 +218,7 @@ const App = () => {
             id: Date.now(),
             timestamp: new Date()
         };
-        // FIX: Explicitly type 'prev' to 'Notification[]' to resolve TypeScript error.
-        setToasts((prev: Notification[]) => [newToast, ...prev]);
+        setToasts(prev => [newToast, ...prev]);
     }, []);
     
     // Simulate push notifications for favorite fields
@@ -276,10 +272,8 @@ const App = () => {
                 
                 const updatedUser = { ...user, notifications: updatedNotifications };
                 setUser(updatedUser);
-                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error deleting notification from database:', error as any);
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -304,10 +298,8 @@ const App = () => {
                 await db.updateUser(user.id, { notifications: updatedNotifications });
                 const updatedUser = { ...user, notifications: updatedNotifications };
                 setUser(updatedUser);
-                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error marking notifications as read:', error as any);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -325,10 +317,8 @@ const App = () => {
                 await db.updateUser(user.id, { notifications: [] });
                 const updatedUser = { ...user, notifications: [] };
                 setUser(updatedUser);
-                // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-                setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Cast error to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Error clearing notifications:', error as any);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -336,8 +326,7 @@ const App = () => {
     };
 
     const dismissToast = (id: number) => {
-        // FIX: Explicitly type 'prev' to 'Notification[]' to resolve TypeScript error.
-        setToasts((prev: Notification[]) => prev.filter(t => t.id !== id));
+        setToasts(prev => prev.filter(t => t.id !== id));
     };
     
     // Reminder notification checker
@@ -384,8 +373,7 @@ const App = () => {
             }
     
             if (bookingsToUpdate.length > 0) {
-                // FIX: Explicitly type 'prevAllBookings' to 'ConfirmedBooking[]' to resolve TypeScript error.
-                setAllBookings((prevAllBookings: ConfirmedBooking[]) => {
+                setAllBookings(prevAllBookings => {
                     const updatedMap = new Map(bookingsToUpdate.map(b => [b.id, b]));
                     return prevAllBookings.map(b => updatedMap.get(b.id) || b);
                 });
@@ -453,16 +441,14 @@ const App = () => {
                     await db.updateUser(user.id, { loyalty: newLoyalty });
                     const updatedUser = { ...user, loyalty: newLoyalty };
                     setUser(updatedUser);
-                    // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-                    setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
     
                 const playedBookingIds = new Set(playedBookings.map(b => b.id));
                 for (const bookingId of playedBookingIds) {
                     await db.updateBooking(bookingId, { loyaltyApplied: true });
                 }
-                // FIX: Explicitly type 'prevBookings' to 'ConfirmedBooking[]' to resolve TypeScript error.
-                setAllBookings((prevBookings: ConfirmedBooking[]) => 
+                setAllBookings(prevBookings => 
                     prevBookings.map(b => 
                         playedBookingIds.has(b.id) ? { ...b, loyaltyApplied: true } : b
                     )
@@ -542,8 +528,7 @@ const App = () => {
             };
             const createdUser = await db.addUser(newUser);
             setUser(createdUser);
-            // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-            setAllUsers((prev: User[]) => [...prev, createdUser]);
+            setAllUsers(prev => [...prev, createdUser]);
             handleNavigate(View.HOME);
             showToast({
                 type: 'success',
@@ -563,7 +548,6 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Registration error:', error as any);
             }
         } finally {
@@ -594,10 +578,8 @@ const App = () => {
 
             const newApplication = await db.addOwnerApplication(newApplicationData);
 
-            // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-            setAllUsers((prev: User[]) => [...prev, newUser]);
-            // FIX: Explicitly type 'prev' to 'OwnerApplication[]' to resolve TypeScript error.
-            setOwnerApplications((prev: OwnerApplication[]) => [...prev, newApplication]);
+            setAllUsers(prev => [...prev, newUser]);
+            setOwnerApplications(prev => [...prev, newApplication]);
 
             addPersistentNotification({
                 type: 'success',
@@ -619,7 +601,6 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
                 console.error('Owner registration error:', error as any);
             }
         } finally {
@@ -715,6 +696,20 @@ const App = () => {
         setIsSearchingLocation(true);
     
         try {
+            if (navigator.permissions) {
+                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+    
+                if (permissionStatus.state === 'denied') {
+                    showToast({
+                        type: 'error',
+                        title: 'Permiso de Ubicación Denegado',
+                        message: 'Para usar esta función, activa el permiso de ubicación para "Cancheo" en los ajustes de tu celular.'
+                    });
+                    setIsSearchingLocation(false);
+                    return;
+                }
+            }
+    
             const position = await getCurrentPosition({ timeout: 20000, maximumAge: 60000, enableHighAccuracy: false });
             const { latitude, longitude } = position.coords;
     
@@ -729,7 +724,6 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
             console.error("Error getting location:", error as any);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
@@ -779,8 +773,7 @@ const App = () => {
                     await db.updateUser(user.id, { loyalty: updatedLoyalty });
                     const updatedUser = { ...user, loyalty: updatedLoyalty };
                     setUser(updatedUser);
-                    // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-                    setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
             }
             
@@ -794,12 +787,10 @@ const App = () => {
             };
             const newBooking = await db.addBooking(bookingData);
             setConfirmedBooking(newBooking);
-            // FIX: Explicitly type 'prev' to 'ConfirmedBooking[]' to resolve TypeScript error.
-            setAllBookings((prev: ConfirmedBooking[]) => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setAllBookings(prev => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
             console.error('Booking confirmation error:', error as any);
             showToast({
                 type: 'error',
@@ -821,8 +812,7 @@ const App = () => {
         await db.updateUser(user.id, { favoriteFields: newFavorites });
         const updatedUser = { ...user, favoriteFields: newFavorites };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
 
         const complexField = fields.find(f => (f.complexId || f.id) === complexId);
         const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
@@ -843,8 +833,7 @@ const App = () => {
         const bookingToCancel = bookings.find(b => b.id === bookingId);
         if (bookingToCancel) {
             await db.updateBooking(bookingId, { status: 'cancelled' });
-            // FIX: Explicitly type 'prev' to 'ConfirmedBooking[]' to resolve TypeScript error.
-            setAllBookings((prev: ConfirmedBooking[]) => prev.map(b => 
+            setAllBookings(prev => prev.map(b => 
                 b.id === bookingId ? { ...b, status: 'cancelled' } : b
             ));
             
@@ -866,8 +855,7 @@ const App = () => {
         await db.updateUser(user.id, { profilePicture: imageDataUrl });
         const updatedUser = { ...user, profilePicture: imageDataUrl };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
     };
     
@@ -877,8 +865,7 @@ const App = () => {
         const { profilePicture, ...rest } = user;
         const updatedUser = rest;
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
     };
     
@@ -887,8 +874,7 @@ const App = () => {
         await db.updateUser(user.id, updatedInfo);
         const updatedUser = { ...user, ...updatedInfo };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
     };
     
@@ -909,8 +895,7 @@ const App = () => {
             
             const updatedUser = { ...user, password: newPassword };
             setUser(updatedUser);
-            // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-            setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
 
             showToast({
                 type: 'success',
@@ -918,7 +903,6 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
             console.error('Error updating password:', error as any);
             showToast({
                 type: 'error',
@@ -933,8 +917,7 @@ const App = () => {
         await db.updateUser(user.id, { notificationPreferences: prefs });
         const updatedUser = { ...user, notificationPreferences: prefs };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
     };
     
@@ -952,8 +935,7 @@ const App = () => {
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
         const updatedUser = { ...user, paymentMethods: updatedMethods };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
     };
 
@@ -963,8 +945,7 @@ const App = () => {
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
         const updatedUser = { ...user, paymentMethods: updatedMethods };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
     };
 
@@ -974,8 +955,7 @@ const App = () => {
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
         const updatedUser = { ...user, paymentMethods: updatedMethods };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
     };
 
@@ -984,8 +964,7 @@ const App = () => {
         await db.updateUser(user.id, { playerProfile: updatedProfile });
         const updatedUser = { ...user, playerProfile: updatedProfile };
         setUser(updatedUser);
-        // FIX: Explicitly type 'prev' to 'User[]' to resolve TypeScript error.
-        setAllUsers((prev: User[]) => prev.map(u => u.id === user.id ? updatedUser : u));
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
         handleNavigate(View.SOCIAL);
     };
@@ -1000,8 +979,7 @@ const App = () => {
         const newReview: Review = { id: `r${Date.now()}`, author: user.name, rating, comment, timestamp: new Date() };
         await db.addReviewToField(fieldId, newReview);
         
-        // FIX: Explicitly type 'prevFields' to 'SoccerField[]' to resolve TypeScript error.
-        setFields((prevFields: SoccerField[]) => {
+        setFields(prevFields => {
             return prevFields.map(field => {
                 if (field.id === fieldId) {
                     const newTotalReviews = field.reviews.length + 1;
