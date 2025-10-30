@@ -75,7 +75,7 @@ const AdminSettingsView: React.FC<{
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
             // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
             // @ts-ignore
-            console.error('Error al actualizar la contraseña:', error);
+            console.error('Error al actualizar la contraseña:', error as any);
         }
     };
 
@@ -115,7 +115,7 @@ const AdminSettingsView: React.FC<{
             }
             // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
             // @ts-ignore
-            console.error('Error al crear usuario:', error);
+            console.error('Error al crear usuario:', error as any);
         } finally {
             setIsCreatingUser(false);
         }

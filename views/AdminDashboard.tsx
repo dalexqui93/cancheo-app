@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -142,6 +140,8 @@ const ComplexEditorModal: React.FC<{
         description: complex?.description || '',
         images: complex?.images || [],
         services: complex?.services.map(s => s.name) || [],
+        latitude: complex?.fields[0]?.latitude || null,
+        longitude: complex?.fields[0]?.longitude || null,
         subFields: complex?.fields.map(f => ({
             id: f.id,
             name: f.name.includes(' - ') ? f.name.split(' - ').slice(1).join(' - ') : f.name,
@@ -208,10 +208,12 @@ const ComplexEditorModal: React.FC<{
                 ...prev,
                 address: `${road} ${house_number}`.trim(),
                 city: city,
-                department: department
+                department: department,
+                latitude,
+                longitude
             }));
     
-            addNotification({ type: 'success', title: 'Ubicación Encontrada', message: 'Campos de dirección actualizados.' });
+            addNotification({ type: 'success', title: 'Ubicación Encontrada', message: 'Campos de dirección y coordenadas actualizados.' });
     
         } catch (err) {
             console.error("Error getting location:", err as any);
@@ -300,57 +302,55 @@ const ComplexEditorModal: React.FC<{
         e.preventDefault();
         
         setFormErrors({});
+        let currentErrors: any = {};
 
-        if (!formData.name.trim()) {
-            setFormErrors({ name: 'El nombre del complejo es obligatorio.' });
-            return;
-        }
-
-        const hasImages = formData.images.length > 0;
-        const hasSubFields = formData.subFields.length > 0;
-        if (!hasImages || !hasSubFields) {
-            setFormErrors({
-                ...(!hasImages && { images: 'Debe cargar al menos una imagen.' }),
-                ...(!hasSubFields && { subFields: 'Debe haber al menos un campo individual.' })
-            });
-            return;
-        }
-
+        if (!formData.name.trim()) currentErrors.name = 'El nombre del complejo es obligatorio.';
+        if (formData.images.length === 0) currentErrors.images = 'Debe cargar al menos una imagen.';
+        if (formData.subFields.length === 0) currentErrors.subFields = 'Debe haber al menos un campo individual.';
+        
         for (let i = 0; i < formData.subFields.length; i++) {
             const subField = formData.subFields[i];
-
-            if (!subField.name.trim()) {
-                setFormErrors({ subFields: 'El nombre del campo es obligatorio.', subFieldErrorIndex: i, subFieldErrorField: 'name' });
-                setOpenSubFieldIndex(i);
-                return;
-            }
-
-            if (!subField.pricePerHour || subField.pricePerHour <= 0) {
-                setFormErrors({ subFields: 'El precio por hora es obligatorio y debe ser mayor que 0.', subFieldErrorIndex: i, subFieldErrorField: 'price' });
-                setOpenSubFieldIndex(i);
-                return;
-            }
-
-            if (subField.loyaltyEnabled && (!subField.loyaltyGoal || subField.loyaltyGoal <= 0)) {
-                setFormErrors({ subFields: 'El número de partidos para la recompensa es obligatorio y debe ser mayor que 0.', subFieldErrorIndex: i, subFieldErrorField: 'loyalty' });
-                setOpenSubFieldIndex(i);
-                return;
-            }
-            
+            if (!subField.name.trim()) { currentErrors = { ...currentErrors, subFields: 'El nombre del campo es obligatorio.', subFieldErrorIndex: i, subFieldErrorField: 'name' }; break; }
+            if (!subField.pricePerHour || subField.pricePerHour <= 0) { currentErrors = { ...currentErrors, subFields: 'El precio por hora es obligatorio y debe ser mayor que 0.', subFieldErrorIndex: i, subFieldErrorField: 'price' }; break; }
+            if (subField.loyaltyEnabled && (!subField.loyaltyGoal || subField.loyaltyGoal <= 0)) { currentErrors = { ...currentErrors, subFields: 'El número de partidos para la recompensa es obligatorio.', subFieldErrorIndex: i, subFieldErrorField: 'loyalty' }; break; }
             const { mañana, tarde, noche } = subField.availableSlots;
-            if (mañana.length === 0 && tarde.length === 0 && noche.length === 0) {
-                setFormErrors({ subFields: 'Cada campo individual debe tener al menos un horario seleccionado.', subFieldErrorIndex: i, subFieldErrorField: 'slots' });
-                setOpenSubFieldIndex(i);
-                return;
-            }
+            if (mañana.length === 0 && tarde.length === 0 && noche.length === 0) { currentErrors = { ...currentErrors, subFields: 'Cada campo debe tener al menos un horario.', subFieldErrorIndex: i, subFieldErrorField: 'slots' }; break; }
+        }
+        
+        if (Object.keys(currentErrors).length > 0) {
+            setFormErrors(currentErrors);
+            if (currentErrors.subFieldErrorIndex !== undefined) setOpenSubFieldIndex(currentErrors.subFieldErrorIndex);
+            return;
         }
 
+        setIsSaving(true);
+        let finalCoordinates = { latitude: formData.latitude, longitude: formData.longitude };
+        
+        // If coordinates are missing, geocode the address
+        if (!finalCoordinates.latitude || !finalCoordinates.longitude) {
+            try {
+                const query = encodeURIComponent(`${formData.address}, ${formData.city}, ${formData.department}`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`);
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    finalCoordinates = { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+                } else {
+                    addNotification({type: 'error', title: 'Dirección no encontrada', message: 'No se pudo encontrar la dirección en el mapa. Por favor, verifica los datos.'});
+                    setIsSaving(false);
+                    return;
+                }
+            } catch (error) {
+                 addNotification({type: 'error', title: 'Error de Geocodificación', message: 'No se pudo verificar la dirección. Inténtalo de nuevo.'});
+                 setIsSaving(false);
+                 return;
+            }
+        }
+        
         setFormErrors({});
         const mappedServices = formData.services.map(name => availableServices.find(s => s.name === name)!).filter(Boolean);
         
-        setIsSaving(true);
         try {
-            await onSave({ ...formData, services: mappedServices });
+            await onSave({ ...formData, services: mappedServices, ...finalCoordinates });
         } finally {
             setIsSaving(false);
         }
@@ -374,24 +374,24 @@ const ComplexEditorModal: React.FC<{
                         {/* Shared Fields */}
                         <div>
                             <label className="font-semibold block mb-1 text-xs uppercase">Nombre del Complejo <span className="text-red-500">*</span></label>
-                            <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className={`w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 ${formErrors.name ? 'border-red-500' : ''}`}/>
+                            <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value, latitude: null, longitude: null})} required className={`w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 ${formErrors.name ? 'border-red-500' : ''}`}/>
                             {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="font-semibold block mb-1 text-xs uppercase">Ciudad <span className="text-red-500">*</span></label>
-                                <input type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                                <input type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value, latitude: null, longitude: null})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
                             </div>
                             <div>
                                 <label className="font-semibold block mb-1 text-xs uppercase">Departamento <span className="text-red-500">*</span></label>
-                                <input type="text" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                                <input type="text" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value, latitude: null, longitude: null})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
                             </div>
                         </div>
 
                         <div>
                             <label className="font-semibold block mb-1 text-xs uppercase">Dirección <span className="text-red-500">*</span></label>
-                            <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                            <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value, latitude: null, longitude: null})} required className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
                         </div>
 
                          <div>
@@ -931,6 +931,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                     description: data.description,
                     images: data.images,
                     services: data.services,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
                 };
                 const originalField = props.allFields.find(f => f.id === subField.id);
                 const fieldData = {
@@ -943,8 +945,6 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                     availableSlots: subField.availableSlots,
                     rating: originalField?.rating || 0,
                     reviews: originalField?.reviews || [],
-                    latitude: originalField?.latitude || 4.6097, // Placeholder
-                    longitude: originalField?.longitude || -74.0817, // Placeholder
                 };
     
                 if (subField.id.startsWith('new-')) {
