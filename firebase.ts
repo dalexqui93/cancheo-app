@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 /**
  * =============================================================================
@@ -247,7 +248,7 @@ if (isFirebaseConfigured) {
         }
     } catch (e) {
         // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-        console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts:', e as any);
+        console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts:', e);
     }
 } else {
     console.warn("ATENCIÓN: Firebase no está configurado. La aplicación se ejecutará en modo de demostración con datos locales. Edita el archivo 'firebase.ts' con tus credenciales para habilitar la persistencia.");
@@ -332,7 +333,7 @@ export const seedDatabase = async () => {
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
         // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-        console.error('Error poblando la base de datos:', error as any);
+        console.error('Error poblando la base de datos:', error);
     }
 };
 

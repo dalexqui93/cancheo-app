@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication } from './types';
 import { View } from './types';
@@ -175,7 +173,7 @@ const App: React.FC = () => {
             } catch (error) {
                 
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Error saving notification to database:', error as any);
+                console.error('Error saving notification to database:', error);
             }
         }
     }, [user]);
@@ -244,7 +242,7 @@ const App: React.FC = () => {
             } catch (error) {
                 
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Error deleting notification from database:', error as any);
+                console.error('Error deleting notification from database:', error);
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -272,7 +270,7 @@ const App: React.FC = () => {
             } catch (error) {
                 
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Error marking notifications as read:', error as any);
+                console.error('Error marking notifications as read:', error);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -293,7 +291,7 @@ const App: React.FC = () => {
             } catch (error) {
                 
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Error clearing notifications:', error as any);
+                console.error('Error clearing notifications:', error);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -467,7 +465,8 @@ const App: React.FC = () => {
 
             setUser(loggedInUser);
             // Fix: Replaced unsafe type assertion `as unknown as string` with a safer `as string | Date` to handle potential runtime type inconsistencies of notification timestamps, preventing a TypeScript error.
-            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp as string | Date).getTime())).sort((a, b) => new Date(b.timestamp as string | Date).getTime() - new Date(a.timestamp as string | Date).getTime());
+            // Fix: Removed incorrect type assertions. `new Date()` can handle Date objects and date strings, which are the possible types for the timestamp property.
+            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setNotifications(sortedNotifications);
             showToast({
                 type: 'success',
@@ -524,7 +523,7 @@ const App: React.FC = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Registration error:', error as any);
+                console.error('Registration error:', error);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -578,7 +577,7 @@ const App: React.FC = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-                console.error('Owner registration error:', error as any);
+                console.error('Owner registration error:', error);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -665,7 +664,7 @@ const App: React.FC = () => {
             showToast({
                 type: 'error',
                 title: 'Geolocalización no soportada',
-                message: 'Tu navegador no soporta esta función.'
+                message: 'Tu dispositivo no soporta esta función.'
             });
             return;
         }
@@ -687,13 +686,13 @@ const App: React.FC = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            console.error("Error getting location:", error as any);
-            let message = 'No se pudo obtener tu ubicación. Por favor, activa los permisos de geolocalización en tu navegador y en los ajustes de tu celular.';
+            console.error("Error getting location:", error);
+            let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === error.PERMISSION_DENIED) {
-                    message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu navegador para usar esta función.';
+                    message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu celular para usar esta función.';
                 } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    message = 'La información de ubicación no está disponible en este momento. Revisa que el GPS de tu celular esté activado.';
+                    message = 'La información de ubicación no está disponible. Revisa que el GPS de tu celular esté activado.';
                 } else if (error.code === error.TIMEOUT) {
                     message = 'Se agotó el tiempo de espera para obtener la ubicación. Intenta de nuevo en un lugar con mejor señal.';
                 }
@@ -755,7 +754,7 @@ const App: React.FC = () => {
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
             // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Booking confirmation error:', error as any);
+            console.error('Booking confirmation error:', error);
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -868,7 +867,7 @@ const App: React.FC = () => {
             });
         } catch (error) {
             // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Error updating password:', error as any);
+            console.error('Error updating password:', error);
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',
