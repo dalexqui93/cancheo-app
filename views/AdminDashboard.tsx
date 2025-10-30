@@ -16,6 +16,8 @@ import { PhoneIcon } from '../components/icons/PhoneIcon';
 import { WhatsappIcon } from '../components/icons/WhatsappIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { IdentificationIcon } from '../components/icons/IdentificationIcon';
+import * as db from '../firebase';
+import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 
 interface OwnerDashboardProps {
     user: User;
@@ -25,9 +27,10 @@ interface OwnerDashboardProps {
     setBookings: React.Dispatch<React.SetStateAction<ConfirmedBooking[]>>;
     announcements: Announcement[];
     setAnnouncements: React.Dispatch<React.SetStateAction<Announcement[]>>;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onLogout: () => void;
     allUsers: User[];
+    allFields: SoccerField[];
 }
 
 type OwnerView = 'dashboard' | 'fields' | 'bookings' | 'announcements';
@@ -121,9 +124,10 @@ const ComplexEditorModal: React.FC<{
         fields: SoccerField[];
     } | null; 
     onClose: () => void; 
-    onSave: (data: any) => void 
+    onSave: (data: any) => Promise<void>; 
 }> = ({ complex, onClose, onSave }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
         complexId: complex?.complexId || `complex-${Date.now()}`,
         name: complex?.name || '',
@@ -193,10 +197,38 @@ const ComplexEditorModal: React.FC<{
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const imageDataUrl = e.target?.result as string;
-                if (imageDataUrl) {
-                    setFormData(prev => ({...prev, images: [...prev.images, imageDataUrl]}));
-                    setFormErrors(prev => ({ ...prev, images: undefined }));
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1024;
+                    const MAX_HEIGHT = 768;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Using JPEG for better compression, quality 0.8
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        setFormData(prev => ({...prev, images: [...prev.images, dataUrl]}));
+                        setFormErrors(prev => ({ ...prev, images: undefined }));
+                    }
+                };
+                if (typeof e.target?.result === 'string') {
+                    img.src = e.target.result;
                 }
             };
             reader.readAsDataURL(file);
@@ -207,7 +239,7 @@ const ComplexEditorModal: React.FC<{
         setFormData(prev => ({...prev, images: prev.images.filter((_, i) => i !== index)}));
     };
 
-    const handleSaveSubmit = (e: React.FormEvent) => {
+    const handleSaveSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         setFormErrors({});
@@ -258,7 +290,13 @@ const ComplexEditorModal: React.FC<{
 
         setFormErrors({});
         const mappedServices = formData.services.map(name => availableServices.find(s => s.name === name)!).filter(Boolean);
-        onSave({ ...formData, services: mappedServices });
+        
+        setIsSaving(true);
+        try {
+            await onSave({ ...formData, services: mappedServices });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -393,12 +431,14 @@ const ComplexEditorModal: React.FC<{
                         </div>
                     </div>
                     <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700 flex justify-end gap-3 flex-shrink-0">
-                        <button type="button" onClick={onClose} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">Cancelar</button>
-                        <button type="submit" className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">Guardar Cambios</button>
+                        <button type="button" onClick={onClose} disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50">Cancelar</button>
+                        <button type="submit" disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm w-36 flex justify-center items-center disabled:bg-gray-400">
+                            {isSaving ? <SpinnerIcon className="w-5 h-5"/> : 'Guardar Cambios'}
+                        </button>
                     </div>
                 </form>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
             </div>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
         </div>
     );
 };
@@ -459,14 +499,20 @@ const OwnerBookingsView: React.FC<{ bookings: ConfirmedBooking[] }> = ({ booking
    );
 };
 
-const AnnouncementEditorModal: React.FC<{ onClose: () => void; onSave: (data: {title: string, message: string, type: 'news' | 'offer'}) => void }> = ({ onClose, onSave }) => {
+const AnnouncementEditorModal: React.FC<{ onClose: () => void; onSave: (data: {title: string, message: string, type: 'news' | 'offer'}) => Promise<void> }> = ({ onClose, onSave }) => {
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
     const [type, setType] = useState<'news' | 'offer'>('news');
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSaveClick = () => {
+    const handleSaveClick = async () => {
         if(!title.trim() || !message.trim()) return;
-        onSave({ title, message, type });
+        setIsSaving(true);
+        try {
+            await onSave({ title, message, type });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -485,35 +531,50 @@ const AnnouncementEditorModal: React.FC<{ onClose: () => void; onSave: (data: {t
                     </select>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700 flex justify-end gap-3">
-                    <button onClick={onClose} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">Cancelar</button>
-                    <button onClick={handleSaveClick} className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">Publicar</button>
+                    <button onClick={onClose} disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50">Cancelar</button>
+                    <button onClick={handleSaveClick} disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm w-28 flex justify-center items-center disabled:bg-gray-400">
+                        {isSaving ? <SpinnerIcon className="w-5 h-5"/> : 'Publicar'}
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-const AnnouncementsView: React.FC<{ announcements: Announcement[], setAnnouncements: React.Dispatch<React.SetStateAction<Announcement[]>> }> = ({ announcements, setAnnouncements }) => (
-    <div className="space-y-4">
-        {announcements.map(item => (
-            <div key={item.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 flex justify-between items-center">
-                <div>
-                    <p className={`text-xs font-bold uppercase ${item.type === 'offer' ? 'text-yellow-500' : 'text-blue-500'}`}>{item.type}</p>
-                    <p className="font-bold text-gray-800 dark:text-gray-100">{item.title}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.message}</p>
+const AnnouncementsView: React.FC<{ announcements: Announcement[], onDelete: (id: string) => Promise<void> }> = ({ announcements, onDelete }) => {
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const handleDelete = async (id: string) => {
+        setDeletingId(id);
+        await onDelete(id);
+        setDeletingId(null);
+    };
+    
+    return (
+        <div className="space-y-4">
+            {announcements.map(item => (
+                <div key={item.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 flex justify-between items-center">
+                    <div>
+                        <p className={`text-xs font-bold uppercase ${item.type === 'offer' ? 'text-yellow-500' : 'text-blue-500'}`}>{item.type}</p>
+                        <p className="font-bold text-gray-800 dark:text-gray-100">{item.title}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{item.message}</p>
+                    </div>
+                     <button onClick={() => handleDelete(item.id)} disabled={deletingId === item.id} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 w-9 h-9 flex items-center justify-center">
+                        {deletingId === item.id ? <SpinnerIcon className="w-5 h-5"/> : <TrashIcon className="w-5 h-5"/>}
+                    </button>
                 </div>
-                 <button onClick={() => setAnnouncements(prev => prev.filter(a => a.id !== item.id))} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><TrashIcon className="w-5 h-5"/></button>
-            </div>
-        ))}
-    </div>
-);
+            ))}
+        </div>
+    );
+};
 
 const BookingCreatorModal: React.FC<{
     fields: SoccerField[];
     allUsers: User[];
     onClose: () => void;
-    onSave: (bookings: ConfirmedBooking[]) => void;
+    onSave: (bookings: Omit<ConfirmedBooking, 'id'>[]) => Promise<void>;
 }> = ({ fields, allUsers, onClose, onSave }) => {
+    const [isSaving, setIsSaving] = useState(false);
     const [bookingType, setBookingType] = useState<'single' | 'recurring'>('single');
     const [fieldId, setFieldId] = useState<string>(fields[0]?.id || '');
     const [userId, setUserId] = useState('');
@@ -590,14 +651,14 @@ const BookingCreatorModal: React.FC<{
         setRecurringDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if ((bookingType === 'recurring' && !userId) || !userName || !fieldId || !time || !userPhone) {
              alert('Por favor, completa todos los campos requeridos.');
              return;
         }
 
-        const baseBookingInfo = {
+        const baseBookingInfo: Omit<ConfirmedBooking, 'id' | 'date'> = {
             field: selectedField!,
             time,
             extras: { balls: 0, vests: 0 },
@@ -609,12 +670,11 @@ const BookingCreatorModal: React.FC<{
             userPhone: userPhone
         };
 
-        let newBookings: ConfirmedBooking[] = [];
+        let newBookings: Omit<ConfirmedBooking, 'id'>[] = [];
 
         if (bookingType === 'single') {
             newBookings.push({
                 ...baseBookingInfo,
-                id: `b-${Date.now()}`,
                 date: new Date(`${date}T00:00:00`),
             });
         } else {
@@ -628,14 +688,19 @@ const BookingCreatorModal: React.FC<{
                 if (recurringDays.includes(dayName)) {
                     newBookings.push({
                         ...baseBookingInfo,
-                        id: `b-${currentDate.getTime()}-${Math.random()}`,
                         date: new Date(currentDate)
                     });
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         }
-        onSave(newBookings);
+        
+        setIsSaving(true);
+        try {
+            await onSave(newBookings);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -755,8 +820,10 @@ const BookingCreatorModal: React.FC<{
                         )}
                     </div>
                      <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">Cancelar</button>
-                        <button type="submit" className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">Guardar Reserva(s)</button>
+                        <button type="button" onClick={onClose} disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50">Cancelar</button>
+                        <button type="submit" disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm w-44 flex justify-center items-center disabled:bg-gray-400">
+                           {isSaving ? <SpinnerIcon className="w-5 h-5"/> : 'Guardar Reserva(s)'}
+                        </button>
                     </div>
                 </form>
             </div>
@@ -773,98 +840,137 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
     const [isAnnouncementEditorOpen, setIsAnnouncementEditorOpen] = useState(false);
     const [fieldToDelete, setFieldToDelete] = useState<SoccerField | null>(null);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-
-    const handleSaveComplex = (data: any) => {
-        props.setFields(prevFields => {
+    const [isDeletingField, setIsDeletingField] = useState(false);
+    
+    const handleSaveComplex = async (data: any) => {
+        try {
             const complexId = data.complexId;
-            const originalFieldsInComplex = prevFields.filter(f => f.complexId === complexId);
+            const originalFieldsInComplex = props.fields.filter(f => f.complexId === complexId);
             const savedSubFieldIds = new Set(data.subFields.map((sf: any) => sf.id).filter((id: string) => !id.startsWith('new-')));
-
-            // 1. Delete fields that were removed from the complex
+    
             const fieldsToDelete = originalFieldsInComplex.filter(f => !savedSubFieldIds.has(f.id));
-            const fieldsToDeleteIds = new Set(fieldsToDelete.map(f => f.id));
-            let updatedFields = prevFields.filter(f => !fieldsToDeleteIds.has(f.id));
-
-            // 2. Update existing fields and add new ones
-            const newOrUpdatedFields: SoccerField[] = data.subFields.map((subField: any): SoccerField => {
+            const deletePromises = fieldsToDelete.map(f => db.deleteField(f.id));
+    
+            const updateAndAddPromises = data.subFields.map((subField: any) => {
                 const sharedProps = {
                     complexId,
+                    ownerId: props.user.id,
                     address: data.address,
                     city: data.city,
                     description: data.description,
                     images: data.images,
                     services: data.services,
-                    latitude: 0, // Should be set properly
-                    longitude: 0, // Should be set properly
-                    reviews: [],
-                    rating: 0,
                 };
-                
-                const originalField = prevFields.find(f => f.id === subField.id);
-                return {
+                const originalField = props.allFields.find(f => f.id === subField.id);
+                const fieldData = {
                     ...sharedProps,
-                    id: subField.id.startsWith('new-') ? `field-${Date.now()}-${Math.random()}` : subField.id,
                     name: `${data.name} - ${subField.name}`,
                     size: subField.size,
                     pricePerHour: subField.pricePerHour,
                     loyaltyEnabled: subField.loyaltyEnabled,
                     loyaltyGoal: subField.loyaltyGoal,
                     availableSlots: subField.availableSlots,
-                    // Preserve these from original field if it exists
                     rating: originalField?.rating || 0,
                     reviews: originalField?.reviews || [],
-                    latitude: originalField?.latitude || 0,
-                    longitude: originalField?.longitude || 0,
+                    latitude: originalField?.latitude || 4.6097, // Placeholder
+                    longitude: originalField?.longitude || -74.0817, // Placeholder
                 };
+    
+                if (subField.id.startsWith('new-')) {
+                    return db.addField(fieldData as Omit<SoccerField, 'id'>);
+                } else {
+                    return db.updateField(subField.id, fieldData).then(() => ({ ...originalField, ...fieldData, id: subField.id } as SoccerField));
+                }
             });
-
-            // Replace updated fields and add new ones
-            const existingIds = new Set(newOrUpdatedFields.map(f => f.id));
-            updatedFields = updatedFields.filter(f => !existingIds.has(f.id));
-            updatedFields.push(...newOrUpdatedFields);
-            
-            // This is a simplified update logic. A more robust one would merge instead of replacing all.
-            // For now, let's just find and replace/add
-            const finalFields = [...prevFields.filter(f => f.complexId !== complexId), ...newOrUpdatedFields];
-
-            return finalFields;
-        });
-
-        setIsComplexEditorOpen(false);
-        setEditingComplex(null);
-        props.addNotification({ type: 'success', title: 'Complejo Guardado', message: 'Los cambios se han guardado exitosamente.' });
+    
+            await Promise.all(deletePromises);
+            const newAndUpdatedFields = await Promise.all(updateAndAddPromises);
+    
+            props.setFields(prev => {
+                const fieldsToDeleteIds = new Set(fieldsToDelete.map(f => f.id));
+                const newAndUpdatedIds = new Set(newAndUpdatedFields.map(f => f.id));
+                const remainingFields = prev.filter(f => !fieldsToDeleteIds.has(f.id) && !newAndUpdatedIds.has(f.id));
+                return [...remainingFields, ...newAndUpdatedFields];
+            });
+    
+            props.addNotification({ type: 'success', title: 'Complejo Guardado', message: 'Los cambios se han guardado exitosamente.' });
+            setIsComplexEditorOpen(false);
+            setEditingComplex(null);
+        } catch (error) {
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error saving complex:', error as any);
+            props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo guardar el complejo.' });
+        }
     };
 
 
-    const confirmDeleteField = () => {
+    const confirmDeleteField = async () => {
         if (!fieldToDelete) return;
-        props.setFields(prev => prev.filter(f => f.id !== fieldToDelete.id));
-        props.addNotification({
-            type: 'success',
-            title: 'Cancha Eliminada',
-            message: `La cancha "${fieldToDelete.name}" ha sido eliminada.`,
-        });
-        setFieldToDelete(null);
+        setIsDeletingField(true);
+        try {
+            await db.deleteField(fieldToDelete.id);
+            props.setFields(prev => prev.filter(f => f.id !== fieldToDelete.id));
+            props.addNotification({
+                type: 'success',
+                title: 'Cancha Eliminada',
+                message: `La cancha "${fieldToDelete.name}" ha sido eliminada.`,
+            });
+        } catch (error) {
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error deleting field:', error as any);
+            props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar la cancha.' });
+        } finally {
+            setFieldToDelete(null);
+            setIsDeletingField(false);
+        }
     };
     
-    const handleCreateAnnouncement = (data: {title: string, message: string, type: 'news' | 'offer'}) => {
+    const handleCreateAnnouncement = async (data: {title: string, message: string, type: 'news' | 'offer'}) => {
         const complexName = props.fields.length > 0 ? (props.fields[0].name.split(' - ')[0] || props.fields[0].name) : 'Tu complejo';
-        const newAnnouncement: Announcement = { 
-            id: `ann-${Date.now()}`, 
+        const newAnnouncementData: Omit<Announcement, 'id'> = { 
             ...data, 
             createdAt: new Date(),
             ownerId: props.user.id,
             complexName: complexName
         };
-        props.setAnnouncements(prev => [newAnnouncement, ...prev]);
-        props.addNotification({type: 'success', title: 'Anuncio Creado', message: 'El anuncio ahora es visible para los usuarios.'});
-        setIsAnnouncementEditorOpen(false);
+        try {
+            const newAnnouncement = await db.addAnnouncement(newAnnouncementData);
+            props.setAnnouncements(prev => [newAnnouncement, ...prev]);
+            props.addNotification({type: 'success', title: 'Anuncio Creado', message: 'El anuncio ahora es visible para los usuarios.'});
+            setIsAnnouncementEditorOpen(false);
+        } catch (error) {
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error creating announcement:', error as any);
+            props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo crear el anuncio.' });
+            setIsAnnouncementEditorOpen(false);
+        }
     };
 
-    const handleSaveBookings = (newBookings: ConfirmedBooking[]) => {
-        props.setBookings(prev => [...prev, ...newBookings].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        setIsBookingModalOpen(false);
-        props.addNotification({ type: 'success', title: 'Reserva(s) Creada(s)', message: `Se han creado ${newBookings.length} nueva(s) reserva(s).` });
+    const handleDeleteAnnouncement = async (announcementId: string) => {
+        try {
+            await db.deleteAnnouncement(announcementId);
+            props.setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
+            props.addNotification({ type: 'info', title: 'Anuncio Eliminado', message: 'El anuncio ha sido eliminado.' });
+        } catch (error) {
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error deleting announcement:', error as any);
+            props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el anuncio.' });
+        }
+    };
+
+
+    const handleSaveBookings = async (newBookingsData: Omit<ConfirmedBooking, 'id'>[]) => {
+        try {
+            const addedBookings = await Promise.all(newBookingsData.map(b => db.addBooking(b)));
+            props.setBookings(prev => [...prev, ...addedBookings].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setIsBookingModalOpen(false);
+            props.addNotification({ type: 'success', title: 'Reserva(s) Creada(s)', message: `Se han creado ${newBookingsData.length} nueva(s) reserva(s).` });
+        } catch (error) {
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error creating bookings:', error as any);
+            props.addNotification({ type: 'error', title: 'Error', message: 'No se pudieron crear las reservas.' });
+            setIsBookingModalOpen(false);
+        }
     };
 
     const openComplexEditor = (field: SoccerField | null) => {
@@ -872,7 +978,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setEditingComplex(null); // This will signal a new complex
         } else {
             const complexId = field.complexId || field.id;
-            const fieldsInComplex = props.fields.filter(f => f.complexId === complexId);
+            const fieldsInComplex = props.fields.filter(f => (f.complexId || f.id) === complexId);
             
             // If no fields found by complexId, it means it's a legacy field. Treat it as a complex of one.
             const targetFields = fieldsInComplex.length > 0 ? fieldsInComplex : [field];
@@ -924,7 +1030,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 {activeTab === 'dashboard' && <DashboardHome bookings={props.bookings} fields={props.fields} />}
                 {activeTab === 'fields' && <MyFieldsView fields={props.fields} openEditor={openComplexEditor} onDelete={(field) => setFieldToDelete(field)} />}
                 {activeTab === 'bookings' && <OwnerBookingsView bookings={props.bookings} />}
-                {activeTab === 'announcements' && <AnnouncementsView announcements={props.announcements} setAnnouncements={props.setAnnouncements} />}
+                {activeTab === 'announcements' && <AnnouncementsView announcements={props.announcements} onDelete={handleDeleteAnnouncement} />}
             </main>
             
             {['fields', 'announcements', 'bookings'].includes(activeTab) && (
@@ -957,6 +1063,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                     title="Confirmar Eliminación"
                     message={`¿Estás seguro de que quieres eliminar la cancha "${fieldToDelete.name}"? Esta acción no se puede deshacer.`}
                     confirmButtonText="Sí, eliminar"
+                    isConfirming={isDeletingField}
                 />
             )}
         </div>

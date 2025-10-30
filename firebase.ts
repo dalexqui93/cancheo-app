@@ -213,7 +213,7 @@ interface ForumCommentTable {
 interface ReactionTable {
     // Campo `reactions: { emoji: string, userIds: string[] }[]` en el documento correspondiente.
 }
-import type { SoccerField, User, BookingDetails, ConfirmedBooking, OwnerApplication, Review } from './types';
+import type { SoccerField, User, BookingDetails, ConfirmedBooking, OwnerApplication, Review, Announcement } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -246,8 +246,8 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // Fix: Use format specifier to correctly log the error object.
-        console.error("Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: %o", e);
+        // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+        console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts:', e as any);
     }
 } else {
     console.warn("ATENCIÓN: Firebase no está configurado. La aplicación se ejecutará en modo de demostración con datos locales. Edita el archivo 'firebase.ts' con tus credenciales para habilitar la persistencia.");
@@ -331,8 +331,8 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // Fix: Use format specifier to correctly log the error object.
-        console.error("Error poblando la base de datos: %o", error);
+        // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+        console.error('Error poblando la base de datos:', error as any);
     }
 };
 
@@ -387,6 +387,13 @@ export const getAllBookings = async (): Promise<ConfirmedBooking[]> => {
     const snapshot = await db.collection('bookings').orderBy('date', 'desc').get();
     return snapshot.docs.map(fromFirestore<ConfirmedBooking>);
 }
+
+export const getAnnouncements = async (): Promise<Announcement[]> => {
+    if (!db) return Promise.resolve([]);
+    const snapshot = await db.collection('announcements').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(fromFirestore<Announcement>);
+};
+
 
 export const addUser = async (userData: Omit<User, 'id'>): Promise<User> => {
     if (!db) {
@@ -473,4 +480,36 @@ export const addReviewToField = async (fieldId: string, review: Review): Promise
             rating: parseFloat(newAverageRating.toFixed(1))
         });
     });
+};
+
+// --- Funciones para el Dashboard del Propietario ---
+export const addField = async (fieldData: Omit<SoccerField, 'id'>): Promise<SoccerField> => {
+    if (!db) return Promise.reject(new Error("Firebase no configurado"));
+    const docRef = await db.collection('fields').add(fieldData);
+    return { ...fieldData, id: docRef.id };
+};
+
+export const updateField = async (fieldId: string, data: Partial<SoccerField>): Promise<void> => {
+    if (!db) return Promise.resolve();
+    await db.collection('fields').doc(fieldId).update(data);
+};
+
+export const deleteField = async (fieldId: string): Promise<void> => {
+    if (!db) return Promise.resolve();
+    await db.collection('fields').doc(fieldId).delete();
+};
+
+export const addAnnouncement = async (announcementData: Omit<Announcement, 'id'>): Promise<Announcement> => {
+    if (!db) return Promise.reject(new Error("Firebase no configurado"));
+     const dataToSave = {
+        ...announcementData,
+        createdAt: firebase.firestore.Timestamp.fromDate(announcementData.createdAt),
+    };
+    const docRef = await db.collection('announcements').add(dataToSave);
+    return { ...announcementData, id: docRef.id };
+};
+
+export const deleteAnnouncement = async (announcementId: string): Promise<void> => {
+    if (!db) return Promise.resolve();
+    await db.collection('announcements').doc(announcementId).delete();
 };

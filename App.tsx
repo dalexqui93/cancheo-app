@@ -1,4 +1,9 @@
 
+
+
+
+
+
 // Fix: Implemented the main App component to manage state and routing.
 // Fix: Corrected the React import to include useState, useEffect, and useCallback hooks.
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -86,17 +91,19 @@ const App: React.FC = () => {
                 await db.seedDatabase();
             }
 
-            const [fieldsData, usersData, applicationsData, bookingsData] = await Promise.all([
+            const [fieldsData, usersData, applicationsData, bookingsData, announcementsData] = await Promise.all([
                 db.getFields(),
                 db.getUsers(),
                 db.getOwnerApplications(),
                 db.getAllBookings(),
+                db.getAnnouncements(),
             ]);
 
             setFields(fieldsData);
             setAllUsers(usersData);
             setOwnerApplications(applicationsData);
             setAllBookings(bookingsData);
+            setAnnouncements(announcementsData);
             setLoading(false);
         };
         loadData();
@@ -170,8 +177,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Use format specifier to correctly log the unknown error object.
-                console.error("Error saving notification to database: %o", error);
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Error saving notification to database:', error as any);
             }
         }
     }, [user]);
@@ -239,8 +246,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Use format specifier to correctly log the unknown error object.
-                console.error("Error deleting notification from database: %o", error);
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Error deleting notification from database:', error as any);
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -267,8 +274,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Use format specifier to correctly log the unknown error object.
-                console.error("Error marking notifications as read: %o", error);
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Error marking notifications as read:', error as any);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -288,8 +295,8 @@ const App: React.FC = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 
-                // Fix: Use format specifier to correctly log the unknown error object.
-                console.error("Error clearing notifications: %o", error);
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Error clearing notifications:', error as any);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -517,8 +524,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Use format specifier to correctly log the unknown error object.
-                console.error('Registration error: %o', error);
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Registration error:', error as any);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -571,8 +578,8 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Use format specifier to correctly log the unknown error object.
-                console.error('Owner registration error: %o', error);
+                // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+                console.error('Owner registration error:', error as any);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -700,8 +707,8 @@ const App: React.FC = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // Fix: Use format specifier to correctly log the unknown error object.
-            console.error('Booking confirmation error: %o', error);
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Booking confirmation error:', error as any);
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -813,8 +820,8 @@ const App: React.FC = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // Fix: Use format specifier to correctly log the unknown error object.
-            console.error("Error updating password: %o", error);
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error updating password:', error as any);
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',
@@ -980,9 +987,10 @@ const App: React.FC = () => {
                                     setBookings={setAllBookings}
                                     announcements={announcements}
                                     setAnnouncements={setAnnouncements}
-                                    addNotification={addPersistentNotification}
+                                    addNotification={showToast}
                                     onLogout={handleLogout}
                                     allUsers={allUsers}
+                                    allFields={fields}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;

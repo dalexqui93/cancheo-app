@@ -213,7 +213,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
             </button>
 
             <div className="w-full aspect-video lg:aspect-[2.4/1] -mx-4 md:mx-0 md:mt-2">
-                <div className="relative group h-full w-full md:rounded-2xl md:overflow-hidden shadow-lg">
+                <div className="relative group h-full w-full md:rounded-2xl md:overflow-hidden shadow-lg flex items-center justify-center bg-gray-200 dark:bg-gray-800">
                     {complex.images.length > 0 && <img key={complex.images[activeImageIndex]} src={complex.images[activeImageIndex]} alt={`${complex.name} - Imagen ${activeImageIndex + 1}`} className="w-full h-full object-cover transition-opacity duration-300" />}
                     {complex.images.length > 1 && (
                         <>
@@ -223,8 +223,33 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                     )}
                 </div>
             </div>
+            
+            {complex.images.length > 1 && (
+                <div className="mt-2 -mx-4 md:mx-0">
+                    <div className="flex space-x-2 overflow-x-auto scrollbar-hide px-4 md:px-0 py-2">
+                        {complex.images.map((image, index) => (
+                            <button
+                                key={index}
+                                onClick={() => setActiveImageIndex(index)}
+                                className={`flex-shrink-0 rounded-lg overflow-hidden transition-all duration-300 border-2 ${
+                                    activeImageIndex === index
+                                        ? 'border-[var(--color-primary-500)] shadow-md'
+                                        : 'border-transparent opacity-60 hover:opacity-100'
+                                }`}
+                                aria-label={`Ver imagen ${index + 1}`}
+                            >
+                                <img
+                                    src={image}
+                                    alt={`Miniatura ${index + 1}`}
+                                    className="h-16 w-24 object-cover"
+                                />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-            <div className="mt-6">
+            <div className="mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                     <div className="lg:col-span-2 space-y-10">
                         <div className="flex justify-between items-start gap-4">

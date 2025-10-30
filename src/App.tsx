@@ -364,6 +364,7 @@ const App: React.FC = () => {
                 title: '¡Bienvenido!',
                 message: `Tu cuenta ha sido creada exitosamente, ${createdUser.name}.`
             });
+        // FIX: Correctly handle specific registration errors, such as duplicate emails, and provide appropriate user feedback. Fallback to a generic error for unexpected issues.
         } catch (error) {
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
                 addNotification({
@@ -377,7 +378,6 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
                 console.error('Registration error:', error);
             }
         } finally {
@@ -418,6 +418,7 @@ const App: React.FC = () => {
             });
 
             handleNavigate(View.OWNER_PENDING_VERIFICATION);
+// FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors, improving code robustness.
         } catch (error) {
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
                 addNotification({
@@ -426,12 +427,12 @@ const App: React.FC = () => {
                     message: 'Ya existe una cuenta con este correo electrónico.'
                 });
             } else {
-                addNotification({
+                 addNotification({
                     type: 'error',
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
+                // FIX: Pass error object as a separate argument to console.error to satisfy strict TypeScript rules and improve debugging.
                 console.error('Owner registration error:', error);
             }
         } finally {
@@ -546,14 +547,14 @@ const App: React.FC = () => {
             setAllBookings(prev => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             handleNavigate(View.BOOKING_CONFIRMATION);
             addNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
+// FIX: Pass the whole `error` object to `console.error` for better debugging, instead of just `error.message`.
         } catch (error) {
-            // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
-            console.error('Booking confirmation error:', error);
             addNotification({
                 type: 'error',
                 title: 'Error de Reserva',
                 message: 'No se pudo confirmar tu reserva. Por favor, inténtalo de nuevo.'
             });
+            console.error('Booking confirmation error:', error);
         } finally {
             setIsBookingLoading(false);
         }
@@ -642,6 +643,7 @@ const App: React.FC = () => {
             return;
         }
     
+// FIX: Pass the whole `error` object to `console.error` for better debugging, instead of just `error.message`.
         try {
             await db.updateUser(user.id, { password: newPassword });
             
@@ -655,13 +657,12 @@ const App: React.FC = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // Fix: Pass the error object as a separate argument to `console.error` to avoid type errors.
-            console.error("Error updating password:", error);
             addNotification({
                 type: 'error',
                 title: 'Error Inesperado',
                 message: 'No se pudo actualizar tu contraseña. Inténtalo de nuevo.'
             });
+            console.error('Error updating password:', error);
         }
     };
     

@@ -89,9 +89,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                 >
                                     <BellIcon className="h-6 w-6" />
                                      {unreadCount > 0 && (
-                                        <span className="absolute top-1 right-1 block h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-900 bg-red-500 text-white text-xs font-bold flex items-center justify-center">
-                                            {unreadCount}
-                                        </span>
+                                        <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" />
                                     )}
                                 </button>
                                  {isNotificationsOpen && (

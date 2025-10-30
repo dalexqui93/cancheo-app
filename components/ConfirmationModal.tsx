@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExclamationTriangleIcon } from './icons/ExclamationTriangleIcon';
 import { XIcon } from './icons/XIcon';
+import { SpinnerIcon } from './icons/SpinnerIcon';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface ConfirmationModalProps {
     confirmButtonText?: string;
     cancelButtonText?: string;
     confirmButtonColor?: string;
+    isConfirming?: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -21,7 +23,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     message,
     confirmButtonText = 'Confirmar',
     cancelButtonText = 'Cancelar',
-    confirmButtonColor = 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+    confirmButtonColor = 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+    isConfirming = false,
 }) => {
     if (!isOpen) return null;
 
@@ -48,15 +51,24 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                     <button
                         type="button"
-                        className={`inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${confirmButtonColor}`}
-                        onClick={() => { onConfirm(); onClose(); }}
+                        className={`inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-70 disabled:cursor-not-allowed ${confirmButtonColor}`}
+                        onClick={onConfirm}
+                        disabled={isConfirming}
                     >
-                        {confirmButtonText}
+                        {isConfirming ? (
+                            <>
+                                <SpinnerIcon className="w-5 h-5 mr-2" />
+                                Procesando...
+                            </>
+                        ) : (
+                            confirmButtonText
+                        )}
                     </button>
                     <button
                         type="button"
-                        className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-base font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
+                        className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-base font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50"
                         onClick={onClose}
+                        disabled={isConfirming}
                     >
                         {cancelButtonText}
                     </button>

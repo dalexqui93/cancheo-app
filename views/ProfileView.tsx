@@ -23,6 +23,7 @@ import LoyaltyStatus from '../components/LoyaltyStatus';
 import FieldCard from '../components/FieldCard';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
+import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 
 interface ProfileViewProps {
     user: User;
@@ -67,9 +68,37 @@ const ProfilePicture: React.FC<{
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const result = e.target?.result;
-                if (typeof result === 'string') {
-                    onUpdate(result);
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 256;
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Maintain aspect ratio
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 90% quality for profile pic
+                        onUpdate(dataUrl);
+                    }
+                };
+                if (typeof e.target?.result === 'string') {
+                    img.src = e.target.result;
                 }
             };
             reader.readAsDataURL(file);
@@ -122,11 +151,13 @@ const ProfilePicture: React.FC<{
 interface PersonalInfoEditorProps {
     user: User;
     onBack: () => void;
-    onUpdateUser: (data: { name: string; phone?: string }) => void;
-    onChangePassword: (current: string, newPass: string) => void;
+    onUpdateUser: (data: { name: string; phone?: string }) => Promise<void>;
+    onChangePassword: (current: string, newPass: string) => Promise<void>;
 }
 
 const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({ user, onBack, onUpdateUser, onChangePassword }) => {
+    const [isSavingInfo, setIsSavingInfo] = useState(false);
+    const [isSavingPassword, setIsSavingPassword] = useState(false);
     const [name, setName] = useState(user.name);
     const [phone, setPhone] = useState(user.phone || '');
     const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
@@ -137,12 +168,17 @@ const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({ user, onBack, o
     
     const isUserInfoChanged = name !== user.name || phone !== (user.phone || '');
 
-    const handleInfoSubmit = (e: React.FormEvent) => {
+    const handleInfoSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onUpdateUser({ name, phone });
+        setIsSavingInfo(true);
+        try {
+            await onUpdateUser({ name, phone });
+        } finally {
+            setIsSavingInfo(false);
+        }
     };
 
-    const handlePasswordSubmit = (e: React.FormEvent) => {
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: { new?: string; confirm?: string } = {};
 
@@ -156,8 +192,13 @@ const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({ user, onBack, o
         setErrors(newErrors);
 
         if (Object.keys(newErrors).length === 0) {
-            onChangePassword(passwordData.current, passwordData.new);
-            setPasswordData({ current: '', new: '', confirm: '' });
+            setIsSavingPassword(true);
+            try {
+                await onChangePassword(passwordData.current, passwordData.new);
+                setPasswordData({ current: '', new: '', confirm: '' });
+            } finally {
+                setIsSavingPassword(false);
+            }
         }
     };
 
@@ -199,8 +240,8 @@ const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({ user, onBack, o
                     </div>
                 </div>
                 <div className="flex justify-end">
-                    <button type="submit" disabled={!isUserInfoChanged} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
-                        Guardar Cambios
+                    <button type="submit" disabled={!isUserInfoChanged || isSavingInfo} className="w-36 flex justify-center items-center bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        {isSavingInfo ? <SpinnerIcon className="w-5 h-5"/> : 'Guardar Cambios'}
                     </button>
                 </div>
             </form>
@@ -241,8 +282,8 @@ const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({ user, onBack, o
                     {errors.confirm && <p className="text-red-600 text-sm mt-1">{errors.confirm}</p>}
                  </div>
                  <div className="flex justify-end">
-                    <button type="submit" className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400">
-                        Actualizar Contraseña
+                    <button type="submit" disabled={isSavingPassword} className="w-48 flex justify-center items-center bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400">
+                        {isSavingPassword ? <SpinnerIcon className="w-5 h-5"/> : 'Actualizar Contraseña'}
                     </button>
                 </div>
              </form>
@@ -253,16 +294,22 @@ const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({ user, onBack, o
 const NotificationPreferences: React.FC<{
     user: User;
     onBack: () => void;
-    onUpdate: (prefs: { newAvailability: boolean; specialDiscounts: boolean; importantNews: boolean; }) => void;
+    onUpdate: (prefs: { newAvailability: boolean; specialDiscounts: boolean; importantNews: boolean; }) => Promise<void>;
 }> = ({ user, onBack, onUpdate }) => {
+    const [isSaving, setIsSaving] = useState(false);
     const [prefs, setPrefs] = useState(user.notificationPreferences || { newAvailability: false, specialDiscounts: false, importantNews: false });
 
     const handleToggle = (key: 'newAvailability' | 'specialDiscounts' | 'importantNews') => {
         setPrefs(current => ({ ...current, [key]: !current[key] }));
     };
 
-    const handleSave = () => {
-        onUpdate(prefs);
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onUpdate(prefs);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const isChanged = JSON.stringify(prefs) !== JSON.stringify(user.notificationPreferences || { newAvailability: false, specialDiscounts: false, importantNews: false });
@@ -275,8 +322,8 @@ const NotificationPreferences: React.FC<{
             </button>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Preferencias de Notificaciones</h1>
-                 <button onClick={handleSave} disabled={!isChanged} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    Guardar
+                 <button onClick={handleSave} disabled={!isChanged || isSaving} className="w-24 flex justify-center items-center bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    {isSaving ? <SpinnerIcon className="w-5 h-5"/> : 'Guardar'}
                 </button>
             </div>
             
@@ -322,8 +369,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout, allFields, on
             <PersonalInfoEditor
                 user={user}
                 onBack={() => setMode('main')}
-                onUpdateUser={(data) => {
-                    onUpdateUser(data);
+                onUpdateUser={async (data) => {
+                    await onUpdateUser(data);
                 }}
                 onChangePassword={onChangePassword}
             />
@@ -335,8 +382,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout, allFields, on
             <NotificationPreferences
                 user={user}
                 onBack={() => setMode('main')}
-                onUpdate={(newPrefs) => {
-                    onUpdateNotificationPreferences(newPrefs);
+                onUpdate={async (newPrefs) => {
+                    await onUpdateNotificationPreferences(newPrefs);
                     setMode('main');
                 }}
             />

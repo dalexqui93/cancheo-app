@@ -71,8 +71,8 @@ const AdminSettingsView: React.FC<{
             onLogout();
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-            // Fix: Use format specifier to correctly log the unknown error object.
-            console.error("Error al actualizar la contraseña: %o", error);
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error al actualizar la contraseña:', error as any);
         }
     };
 
@@ -110,8 +110,8 @@ const AdminSettingsView: React.FC<{
             } else {
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
-            // Fix: Use format specifier to correctly log the unknown error object.
-            console.error("Error al crear usuario: %o", error);
+            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
+            console.error('Error al crear usuario:', error as any);
         } finally {
             setIsCreatingUser(false);
         }
