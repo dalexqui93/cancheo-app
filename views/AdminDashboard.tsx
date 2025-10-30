@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -898,8 +899,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setIsComplexEditorOpen(false);
             setEditingComplex(null);
         } catch (error) {
-            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Error saving complex:', error);
+            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+            console.error('Error saving complex:', error as any);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo guardar el complejo.' });
         }
     };
@@ -917,8 +918,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 message: `La cancha "${fieldToDelete.name}" ha sido eliminada.`,
             });
         } catch (error) {
-            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Error deleting field:', error);
+            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+            console.error('Error deleting field:', error as any);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar la cancha.' });
         } finally {
             setFieldToDelete(null);
@@ -940,8 +941,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             props.addNotification({type: 'success', title: 'Anuncio Creado', message: 'El anuncio ahora es visible para los usuarios.'});
             setIsAnnouncementEditorOpen(false);
         } catch (error) {
-            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Error creating announcement:', error);
+            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+            console.error('Error creating announcement:', error as any);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo crear el anuncio.' });
             setIsAnnouncementEditorOpen(false);
         }
@@ -953,8 +954,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             props.setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
             props.addNotification({ type: 'info', title: 'Anuncio Eliminado', message: 'El anuncio ha sido eliminado.' });
         } catch (error) {
-            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Error deleting announcement:', error);
+            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+            console.error('Error deleting announcement:', error as any);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el anuncio.' });
         }
     };
@@ -967,8 +968,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setIsBookingModalOpen(false);
             props.addNotification({ type: 'success', title: 'Reserva(s) Creada(s)', message: `Se han creado ${newBookingsData.length} nueva(s) reserva(s).` });
         } catch (error) {
-            // Fix: Cast unknown error to any to satisfy strict TypeScript rule.
-            console.error('Error creating bookings:', error);
+            // FIX: Cast 'error' to 'any' to satisfy strict TypeScript rule for console.error.
+            console.error('Error creating bookings:', error as any);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudieron crear las reservas.' });
             setIsBookingModalOpen(false);
         }

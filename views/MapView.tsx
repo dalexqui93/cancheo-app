@@ -25,8 +25,8 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
         if (!mapRef.current) {
             mapRef.current = L.map(mapContainerRef.current).setView([4.6097, -74.0817], 6); // Center on Colombia
 
-            tileLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             }).addTo(mapRef.current);
             
             // Use a single event listener on the map for all popups
@@ -103,13 +103,13 @@ const MapView: React.FC<MapViewProps> = ({ fields, onSelectField, className = ''
 
         const updateTileLayer = () => {
             const isDark = theme === 'dark' || (theme === 'system' && mediaQuery.matches);
+            
+            // Use CARTO tiles for both light and dark themes to comply with usage policies.
             const newUrl = isDark
                 ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             
-            const newAttribution = isDark
-                ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+            const newAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
             if (tileLayerRef.current._url !== newUrl) {
                 tileLayerRef.current.setUrl(newUrl);
