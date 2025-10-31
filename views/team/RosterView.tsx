@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { Team, Player } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -84,7 +83,7 @@ const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, o
     const availablePlayers = allPlayers.filter(p => !team.players.some(tp => tp.id === p.id));
     
     return (
-        <div>
+        <div className="pb-24 md:pb-4">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver al Panel

@@ -357,7 +357,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
 
     const renderContent = () => {
         if (!user.playerProfile) {
-            return <div className="p-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
+            return <div className="p-4 pb-24 md:pb-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
         }
 
         switch (section) {

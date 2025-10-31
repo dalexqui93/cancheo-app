@@ -153,7 +153,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, onBack, onUpdateTeam })
     const benchPlayers = team.players.filter(p => !playersOnPitchIds.includes(p.id));
 
     return (
-        <div onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <div onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} className="pb-24 md:pb-4">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver al Panel
