@@ -421,7 +421,7 @@ const TournamentsView: React.FC<{
     user: User;
 }> = ({ tournaments, onBack, addNotification, user }) => {
     return (
-        <div className="p-4">
+        <div className="p-4 pb-24 md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
                 <TrophyIcon className="mx-auto h-16 w-16 text-gray-400" />
@@ -526,7 +526,7 @@ const ChallengeView: React.FC<{ teams: Team[], onBack: () => void, addNotificati
     }
 
     return (
-        <div className="p-4">
+        <div className="p-4 pb-24 md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight mb-6">Retar Equipos</h1>
              <div className="relative mb-6">
@@ -573,7 +573,7 @@ const FindPlayersView: React.FC<{
     onViewProfile: (player: Player) => void 
 }> = ({ players, onBack, onRecruit, onViewProfile }) => {
     return (
-        <div className="p-4">
+        <div className="p-4 pb-24 md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight mb-6">Buscar Jugadores</h1>
             <div className="space-y-4">

@@ -52,7 +52,7 @@ const StatBar: React.FC<{ icon: React.ReactNode; label: string; value: number; m
 
 const PlayerProfileDetailView: React.FC<PlayerProfileDetailViewProps> = ({ player, onBack, onRecruit }) => {
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in pb-24 md:pb-4">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver a Buscar Jugadores

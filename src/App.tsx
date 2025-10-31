@@ -215,7 +215,6 @@ const App: React.FC = () => {
     }, [accentColor]);
 
 
-    // Fix: Corrected function to include timestamp when creating a notification to match the Notification type.
     const addNotification = useCallback((notif: Omit<Notification, 'id' | 'timestamp'>) => {
         const newNotification: Notification = {
             ...notif,
@@ -443,7 +442,6 @@ const App: React.FC = () => {
                 message: `Tu cuenta ha sido creada exitosamente, ${createdUser.name}.`
             });
         } catch (error) {
-            // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors.
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
                 addNotification({
                     type: 'error',
@@ -456,7 +454,6 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Consolidated console.error arguments into a single string to fix type error.
                 console.error(`Registration error: ${String(error)}`);
             }
         } finally {
@@ -498,7 +495,6 @@ const App: React.FC = () => {
 
             handleNavigate(View.OWNER_PENDING_VERIFICATION);
         } catch (error) {
-            // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors.
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
                 addNotification({
                     type: 'error',
@@ -511,7 +507,6 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: The console.error was receiving multiple arguments, which can cause issues. It has been consolidated into a single string.
                 console.error(`Owner registration error: ${String(error)}`);
             }
         } finally {
@@ -618,7 +613,6 @@ const App: React.FC = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error getting location: ${String(error)}`);
             addNotification({
                 type: 'error',
@@ -655,7 +649,6 @@ const App: React.FC = () => {
                 const updatedLoyalty = { ...user.loyalty };
                 if (updatedLoyalty[fieldId]) {
                     updatedLoyalty[fieldId].freeTickets -= 1;
-                    // FIX: Corrected typo from `updatedLoy` to `updatedLoyalty`.
                     await db.updateUser(user.id, { loyalty: updatedLoyalty });
                     setUser(prevUser => prevUser ? { ...prevUser, loyalty: updatedLoyalty } : null);
                 }
@@ -675,7 +668,6 @@ const App: React.FC = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Booking confirmation error: ${String(error)}`);
             addNotification({
                 type: 'error',
@@ -707,7 +699,6 @@ const App: React.FC = () => {
                 addNotification({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
             }
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error updating favorites: ${String(error)}`);
              addNotification({type: 'error', title: 'Error', message: 'No se pudo actualizar tus favoritos.'});
         }
@@ -746,7 +737,6 @@ const App: React.FC = () => {
             setUser(prev => prev ? { ...prev, profilePicture: imageDataUrl } : null);
             addNotification({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error updating profile picture: ${String(error)}`);
         }
     };
@@ -759,7 +749,6 @@ const App: React.FC = () => {
             setUser(rest);
             addNotification({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error removing profile picture: ${String(error)}`);
         }
     };
@@ -771,7 +760,6 @@ const App: React.FC = () => {
             setUser(prev => prev ? { ...prev, ...updatedInfo } : null);
             addNotification({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error updating user info: ${String(error)}`);
         }
     };
@@ -797,7 +785,6 @@ const App: React.FC = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error updating password: ${String(error)}`);
             addNotification({
                 type: 'error',
@@ -814,7 +801,6 @@ const App: React.FC = () => {
             setUser(prev => prev ? { ...prev, notificationPreferences: prefs } : null);
             addNotification({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
             console.error(`Error updating notification preferences: ${String(error)}`);
         }
     };
