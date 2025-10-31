@@ -1,84 +1,79 @@
-import type { HourlyData, WeatherCondition, Favorability } from '../types';
+import type { WeatherCondition, HourlyData, Favorability } from '../types';
 
-/**
- * Maps WMO Weather interpretation codes to a simplified condition and icon name.
- * https://open-meteo.com/en/docs
- */
 export function mapWmoCodeToIcon(code: number): WeatherCondition {
-    if ([0, 1].includes(code)) return 'sunny';
-    if ([2].includes(code)) return 'partly-cloudy';
-    if ([3].includes(code)) return 'cloudy';
-    if ([45, 48].includes(code)) return 'foggy';
-    if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'rainy';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'rainy'; // Snow mapped to rain for now
-    if ([95, 96, 99].includes(code)) return 'stormy';
+    if (code === 0) return 'sunny';
+    if (code >= 1 && code <= 2) return 'partly-cloudy';
+    if (code === 3) return 'cloudy';
+    if (code === 45 || code === 48) return 'foggy';
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rainy';
+    if (code >= 95 && code <= 99) return 'stormy';
     return 'unknown';
 }
 
-export function getWeatherDescription(code: number): string {
-    const descriptions: { [key: number]: string } = {
-        0: 'Despejado', 1: 'Principalmente despejado', 2: 'Parcialmente nublado', 3: 'Nublado',
-        45: 'Niebla', 48: 'Niebla con escarcha',
-        51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna densa',
-        61: 'Lluvia ligera', 63: 'Lluvia moderada', 65: 'Lluvia fuerte',
-        80: 'Chubascos ligeros', 81: 'Chubascos moderados', 82: 'Chubascos violentos',
-        95: 'Tormenta', 96: 'Tormenta con granizo ligero', 99: 'Tormenta con granizo fuerte',
+export function getFavorability(data: HourlyData): Favorability {
+    if (data.weatherCode >= 95) {
+         return {
+            status: 'Desfavorable',
+            reason: 'Se esperan tormentas eléctricas.'
+        };
+    }
+    if (data.precipitationProbability > 60 || data.windSpeed > 30) {
+        return {
+            status: 'Desfavorable',
+            reason: `Alta probabilidad de lluvia (${data.precipitationProbability}%) o vientos fuertes (${Math.round(data.windSpeed)} km/h).`
+        };
+    }
+    if (data.precipitationProbability > 25) {
+        return {
+            status: 'Condicional',
+            reason: `Posibilidad de lluvia (${data.precipitationProbability}%).`
+        };
+    }
+    if (data.weatherCode === 45 || data.weatherCode === 48) {
+         return {
+            status: 'Condicional',
+            reason: 'Presencia de niebla.'
+        };
+    }
+
+    return {
+        status: 'Favorable',
+        reason: 'Buenas condiciones para jugar.'
     };
-    return descriptions[code] || 'Condición desconocida';
 }
-
-
-export function getFavorability(hour: HourlyData): Favorability {
-    const { precipitationProbability, windSpeed, temperature } = hour;
+// FIX: Add and export the missing 'findBestPlayingTimes' function.
+export function findBestPlayingTimes(hourlyData: HourlyData[]): string[] {
+    const now = new Date();
+    // Filter to show from the current hour up to 24 hours ahead
+    const relevantHours = hourlyData.filter(h => h.time >= now).slice(0, 24);
     
-    // Unfavorable conditions (deal-breakers)
-    if (precipitationProbability > 50) {
-        return { status: 'Desfavorable', reason: `Probabilidad de lluvia alta (${precipitationProbability}%)` };
-    }
-    if (windSpeed > 40) {
-        return { status: 'Desfavorable', reason: `Viento muy fuerte (${windSpeed.toFixed(0)} km/h)` };
-    }
-    if (temperature < 5 || temperature > 35) {
-        return { status: 'Desfavorable', reason: `Temperatura extrema (${temperature.toFixed(0)}°C)` };
+    const favorableSlots: number[] = [];
+    relevantHours.forEach(hour => {
+        if (getFavorability(hour).status === 'Favorable') {
+            favorableSlots.push(hour.time.getHours());
+        }
+    });
+
+    if (favorableSlots.length === 0) {
+        return [];
     }
 
-    // Conditional conditions (may affect play)
-    if (precipitationProbability > 20) {
-        return { status: 'Condicional', reason: `Posibilidad de lluvia (${precipitationProbability}%)` };
-    }
-    if (windSpeed > 25) {
-        return { status: 'Condicional', reason: `Viento moderado (${windSpeed.toFixed(0)} km/h)` };
-    }
-    if (temperature < 10 || temperature > 28) {
-        return { status: 'Condicional', reason: `Temperatura fría/cálida (${temperature.toFixed(0)}°C)` };
+    const periods: string[] = [];
+    let startHour = favorableSlots[0];
+    
+    for (let i = 1; i <= favorableSlots.length; i++) { // Loop one past the end
+        if (i === favorableSlots.length || favorableSlots[i] !== favorableSlots[i - 1] + 1) {
+            const endHour = favorableSlots[i - 1];
+            if (startHour === endHour) {
+                periods.push(`${String(startHour).padStart(2, '0')}:00`);
+            } else {
+                periods.push(`${String(startHour).padStart(2, '0')}:00 - ${String(endHour + 1).padStart(2, '0')}:00`);
+            }
+            if (i < favorableSlots.length) {
+                startHour = favorableSlots[i];
+            }
+        }
     }
 
-    // Favorable
-    return { status: 'Favorable', reason: 'Condiciones ideales para jugar.' };
-}
-
-export function timeSince(date: Date): string {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-
-    let interval = seconds / 31536000;
-    if (interval > 1) {
-        return `hace ${Math.floor(interval)} años`;
-    }
-    interval = seconds / 2592000;
-    if (interval > 1) {
-        return `hace ${Math.floor(interval)} meses`;
-    }
-    interval = seconds / 86400;
-    if (interval > 1) {
-        return `hace ${Math.floor(interval)} días`;
-    }
-    interval = seconds / 3600;
-    if (interval > 1) {
-        return `hace ${Math.floor(interval)} horas`;
-    }
-    interval = seconds / 60;
-    if (interval > 1) {
-        return `hace ${Math.floor(interval)} minutos`;
-    }
-    return `hace ${Math.floor(seconds)} segundos`;
+    return periods;
 }

@@ -1,7 +1,7 @@
 // Fix: Implemented the main App component to manage state and routing.
 // Fix: Corrected the React import to include useState, useEffect, and useCallback hooks.
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication } from './types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData } from './types';
 import { View } from './types';
 import Header from './components/Header';
 import Home from './views/Home';
@@ -31,6 +31,7 @@ import OwnerPendingVerificationView from './views/OwnerPendingVerificationView';
 import SuperAdminDashboard from './views/SuperAdminDashboard';
 import * as db from './firebase';
 import { isFirebaseConfigured } from './firebase';
+import { getCurrentPosition, calculateDistance } from './utils/geolocation';
 
 const FirebaseWarningBanner: React.FC = () => {
     if (isFirebaseConfigured) {
@@ -60,6 +61,7 @@ const App: React.FC = () => {
     const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
     const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [toasts, setToasts] = useState<Notification[]>([]);
     const [bookings, setBookings] = useState<ConfirmedBooking[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [selectedBooking, setSelectedBooking] = useState<ConfirmedBooking | null>(null);
@@ -74,25 +76,98 @@ const App: React.FC = () => {
     const [isBookingLoading, setIsBookingLoading] = useState(false);
     const [isRegisterLoading, setIsRegisterLoading] = useState(false);
     const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState(false);
+    const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
+
+    // Weather State
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
+    const [weatherError, setWeatherError] = useState<string | null>(null);
 
     
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
-            const [fieldsData, usersData, applicationsData, bookingsData] = await Promise.all([
+
+            if (isFirebaseConfigured) {
+                await db.seedDatabase();
+            }
+
+            const [fieldsData, usersData, applicationsData, bookingsData, announcementsData] = await Promise.all([
                 db.getFields(),
                 db.getUsers(),
                 db.getOwnerApplications(),
                 db.getAllBookings(),
+                db.getAnnouncements(),
             ]);
+
             setFields(fieldsData);
             setAllUsers(usersData);
             setOwnerApplications(applicationsData);
             setAllBookings(bookingsData);
+            setAnnouncements(announcementsData);
             setLoading(false);
         };
         loadData();
     }, []);
+
+    const fetchWeather = useCallback(async () => {
+        setIsWeatherLoading(true);
+        setWeatherError(null);
+
+        const processWeatherData = (data: any): WeatherData => {
+            const now = new Date();
+            const currentHourIndex = data.hourly.time.findIndex((t: string) => new Date(t) >= now);
+            
+            const hourlyData = data.hourly.time.map((t: string, i: number) => ({
+                time: new Date(t),
+                temperature: data.hourly.temperature_2m[i],
+                apparentTemperature: data.hourly.apparent_temperature[i],
+                precipitationProbability: data.hourly.precipitation_probability[i],
+                windSpeed: data.hourly.windspeed_10m[i],
+                weatherCode: data.hourly.weathercode[i],
+            }));
+
+            return {
+                latitude: data.latitude,
+                longitude: data.longitude,
+                timezone: data.timezone,
+                lastUpdated: new Date(),
+                current: hourlyData[currentHourIndex] || hourlyData[0],
+                hourly: hourlyData,
+            };
+        };
+
+        try {
+            const position = await getCurrentPosition({ timeout: 5000, maximumAge: 3600000 });
+            const { latitude, longitude } = position.coords;
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            const processedData = processWeatherData(data);
+            setWeatherData(processedData);
+            localStorage.setItem('weatherCache', JSON.stringify(processedData));
+        } catch (error) {
+            console.warn(`Error fetching weather, using fallback/cache: ${String(error)}`);
+            const cachedData = localStorage.getItem('weatherCache');
+            if (cachedData) {
+                const parsedData = JSON.parse(cachedData);
+                // Make sure date strings are converted back to Date objects
+                parsedData.lastUpdated = new Date(parsedData.lastUpdated);
+                parsedData.current.time = new Date(parsedData.current.time);
+                parsedData.hourly = parsedData.hourly.map((h: any) => ({...h, time: new Date(h.time)}));
+                setWeatherData(parsedData);
+            } else {
+                setWeatherError("No se pudo cargar el pronóstico del tiempo.");
+            }
+        } finally {
+            setIsWeatherLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchWeather();
+    }, [fetchWeather]);
 
     // Load user-specific data when user logs in or allBookings change
     useEffect(() => {
@@ -142,7 +217,12 @@ const App: React.FC = () => {
 
     // Fix: Corrected function to include timestamp when creating a notification to match the Notification type.
     const addNotification = useCallback((notif: Omit<Notification, 'id' | 'timestamp'>) => {
-        setNotifications(prev => [{ ...notif, id: Date.now(), timestamp: new Date() }, ...prev]);
+        const newNotification: Notification = {
+            ...notif,
+            id: Date.now(),
+            timestamp: new Date()
+        };
+        setNotifications(prev => [newNotification, ...prev]);
     }, []);
     
     // Simulate push notifications for favorite fields
@@ -262,9 +342,7 @@ const App: React.FC = () => {
     
             if (playedBookings.length > 0) {
                 const newLoyalty: UserLoyalty = {};
-                
                 if (user.loyalty) {
-                    
                     for (const key in user.loyalty) {
                         if (Object.prototype.hasOwnProperty.call(user.loyalty, key)) {
                             const value = user.loyalty[key];
@@ -364,7 +442,6 @@ const App: React.FC = () => {
                 title: '¡Bienvenido!',
                 message: `Tu cuenta ha sido creada exitosamente, ${createdUser.name}.`
             });
-        // FIX: Correctly handle specific registration errors, such as duplicate emails, and provide appropriate user feedback. Fallback to a generic error for unexpected issues.
         } catch (error) {
             // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors.
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
@@ -420,7 +497,6 @@ const App: React.FC = () => {
             });
 
             handleNavigate(View.OWNER_PENDING_VERIFICATION);
-// FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors, improving code robustness.
         } catch (error) {
             // FIX: Added type guard `instanceof Error` to safely access `error.message` and prevent potential runtime errors.
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
@@ -435,7 +511,6 @@ const App: React.FC = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Consolidated console.error arguments into a single string.
                 // FIX: The console.error was receiving multiple arguments, which can cause issues. It has been consolidated into a single string.
                 console.error(`Owner registration error: ${String(error)}`);
             }
@@ -479,6 +554,14 @@ const App: React.FC = () => {
             case 'explore':
                 handleNavigate(View.HOME, navOptions);
                 break;
+            case 'community':
+                if (!user) {
+                    handleNavigate(View.LOGIN);
+                    addNotification({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para acceder a DaviPlay.' });
+                } else {
+                    handleNavigate(View.SOCIAL, navOptions);
+                }
+                break;
             case 'bookings':
                 if (!user) {
                     handleNavigate(View.LOGIN);
@@ -508,6 +591,45 @@ const App: React.FC = () => {
         handleNavigate(View.SEARCH_RESULTS);
     };
 
+    const handleSearchByLocation = async () => {
+        if (!navigator.geolocation) {
+            addNotification({
+                type: 'error',
+                title: 'Geolocalización no soportada',
+                message: 'Tu dispositivo no soporta esta función.'
+            });
+            return;
+        }
+    
+        setIsSearchingLocation(true);
+    
+        try {
+            const position = await getCurrentPosition();
+            const { latitude, longitude } = position.coords;
+    
+            const fieldsWithDistance = fields.map(field => {
+                const distance = calculateDistance(latitude, longitude, field.latitude, field.longitude);
+                return { ...field, distance };
+            });
+            
+            fieldsWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    
+            setSearchResults(fieldsWithDistance);
+            handleNavigate(View.SEARCH_RESULTS);
+            
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error getting location: ${String(error)}`);
+            addNotification({
+                type: 'error',
+                title: 'Error de Ubicación',
+                message: 'No se pudo obtener tu ubicación. Por favor, revisa los permisos.'
+            });
+        } finally {
+            setIsSearchingLocation(false);
+        }
+    };
+
     const handleSelectField = (field: SoccerField) => {
         setSelectedField(field);
         handleNavigate(View.FIELD_DETAIL);
@@ -533,6 +655,7 @@ const App: React.FC = () => {
                 const updatedLoyalty = { ...user.loyalty };
                 if (updatedLoyalty[fieldId]) {
                     updatedLoyalty[fieldId].freeTickets -= 1;
+                    // FIX: Corrected typo from `updatedLoy` to `updatedLoyalty`.
                     await db.updateUser(user.id, { loyalty: updatedLoyalty });
                     setUser(prevUser => prevUser ? { ...prevUser, loyalty: updatedLoyalty } : null);
                 }
@@ -551,15 +674,14 @@ const App: React.FC = () => {
             setAllBookings(prev => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             handleNavigate(View.BOOKING_CONFIRMATION);
             addNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
-// FIX: Pass the whole `error` object to `console.error` for better debugging, instead of just `error.message`.
         } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Booking confirmation error: ${String(error)}`);
             addNotification({
                 type: 'error',
                 title: 'Error de Reserva',
                 message: 'No se pudo confirmar tu reserva. Por favor, inténtalo de nuevo.'
             });
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
-            console.error(`Booking confirmation error: ${String(error)}`);
         } finally {
             setIsBookingLoading(false);
         }
@@ -572,16 +694,22 @@ const App: React.FC = () => {
             ? user.favoriteFields.filter(id => id !== complexId)
             : [...user.favoriteFields, complexId];
         
-        await db.updateUser(user.id, { favoriteFields: newFavorites });
-        setUser(prevUser => prevUser ? { ...prevUser, favoriteFields: newFavorites } : null);
+        try {
+            await db.updateUser(user.id, { favoriteFields: newFavorites });
+            setUser(prevUser => prevUser ? { ...prevUser, favoriteFields: newFavorites } : null);
 
-        const complexField = fields.find(f => (f.complexId || f.id) === complexId);
-        const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
+            const complexField = fields.find(f => (f.complexId || f.id) === complexId);
+            const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
 
-        if (isCurrentlyFavorite) {
-            addNotification({type: 'info', title: 'Favorito eliminado', message: `${complexName} fue eliminado de tus favoritos.`});
-        } else {
-             addNotification({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
+            if (isCurrentlyFavorite) {
+                addNotification({type: 'info', title: 'Favorito eliminado', message: `${complexName} fue eliminado de tus favoritos.`});
+            } else {
+                addNotification({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
+            }
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error updating favorites: ${String(error)}`);
+             addNotification({type: 'error', title: 'Error', message: 'No se pudo actualizar tus favoritos.'});
         }
     };
     
@@ -613,24 +741,39 @@ const App: React.FC = () => {
 
     const handleUpdateProfilePicture = async (imageDataUrl: string) => {
         if (!user) return;
-        await db.updateUser(user.id, { profilePicture: imageDataUrl });
-        setUser(prevUser => prevUser ? { ...prevUser, profilePicture: imageDataUrl } : null);
-        addNotification({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
+        try {
+            await db.updateUser(user.id, { profilePicture: imageDataUrl });
+            setUser(prev => prev ? { ...prev, profilePicture: imageDataUrl } : null);
+            addNotification({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error updating profile picture: ${String(error)}`);
+        }
     };
     
     const handleRemoveProfilePicture = async () => {
         if (!user) return;
-        await db.removeUserField(user.id, 'profilePicture');
-        const { profilePicture, ...rest } = user;
-        setUser(rest);
-        addNotification({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
+        try {
+            await db.removeUserField(user.id, 'profilePicture');
+            const { profilePicture, ...rest } = user;
+            setUser(rest);
+            addNotification({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error removing profile picture: ${String(error)}`);
+        }
     };
     
     const handleUpdateUserInfo = async (updatedInfo: { name: string; phone?: string }) => {
         if (!user) return;
-        await db.updateUser(user.id, updatedInfo);
-        setUser(prevUser => prevUser ? { ...prevUser, ...updatedInfo } : null);
-        addNotification({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
+        try {
+            await db.updateUser(user.id, updatedInfo);
+            setUser(prev => prev ? { ...prev, ...updatedInfo } : null);
+            addNotification({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error updating user info: ${String(error)}`);
+        }
     };
     
     const handleChangePassword = async (currentPassword: string, newPassword: string) => {
@@ -645,20 +788,35 @@ const App: React.FC = () => {
             return;
         }
     
-        await db.updateUser(user.id, { password: newPassword });
-        setUser(prevUser => prevUser ? { ...prevUser, password: newPassword } : null);
-        addNotification({
-            type: 'success',
-            title: 'Contraseña Actualizada',
-            message: 'Tu contraseña ha sido cambiada exitosamente.'
-        });
+        try {
+            await db.updateUser(user.id, { password: newPassword });
+            setUser(prev => prev ? { ...prev, password: newPassword } : null);
+            addNotification({
+                type: 'success',
+                title: 'Contraseña Actualizada',
+                message: 'Tu contraseña ha sido cambiada exitosamente.'
+            });
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error updating password: ${String(error)}`);
+            addNotification({
+                type: 'error',
+                title: 'Error Inesperado',
+                message: 'No se pudo actualizar tu contraseña. Inténtalo de nuevo.'
+            });
+        }
     };
     
     const handleUpdateNotificationPreferences = async (prefs: { newAvailability: boolean; specialDiscounts: boolean; importantNews: boolean; }) => {
         if (!user) return;
-        await db.updateUser(user.id, { notificationPreferences: prefs });
-        setUser(prevUser => prevUser ? { ...prevUser, notificationPreferences: prefs } : null);
-        addNotification({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
+        try {
+            await db.updateUser(user.id, { notificationPreferences: prefs });
+            setUser(prev => prev ? { ...prev, notificationPreferences: prefs } : null);
+            addNotification({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
+        } catch (error) {
+            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            console.error(`Error updating notification preferences: ${String(error)}`);
+        }
     };
     
     const handleUpdateTheme = (newTheme: Theme) => setTheme(newTheme);
@@ -673,7 +831,7 @@ const App: React.FC = () => {
             if (cardIndex !== -1) (updatedMethods[cardIndex] as CardPaymentMethod).isDefault = true;
         }
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
-        setUser(prevUser => prevUser ? { ...prevUser, paymentMethods: updatedMethods } : null);
+        setUser(prev => prev ? { ...prev, paymentMethods: updatedMethods } : null);
         addNotification({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
     };
 
@@ -681,7 +839,7 @@ const App: React.FC = () => {
         if (!user) return;
         const updatedMethods = user.paymentMethods?.filter(m => m.id !== methodId) || [];
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
-        setUser(prevUser => prevUser ? { ...prevUser, paymentMethods: updatedMethods } : null);
+        setUser(prev => prev ? { ...prev, paymentMethods: updatedMethods } : null);
         addNotification({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
     };
 
@@ -689,14 +847,14 @@ const App: React.FC = () => {
         if (!user || !user.paymentMethods) return;
         const updatedMethods: PaymentMethod[] = user.paymentMethods.map(m => ({ ...m, isDefault: m.id === methodId }));
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
-        setUser(prevUser => prevUser ? { ...prevUser, paymentMethods: updatedMethods } : null);
+        setUser(prev => prev ? { ...prev, paymentMethods: updatedMethods } : null);
         addNotification({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
     };
 
     const handleUpdatePlayerProfile = async (updatedProfile: Player) => {
         if (!user) return;
         await db.updateUser(user.id, { playerProfile: updatedProfile });
-        setUser(prevUser => prevUser ? { ...prevUser, playerProfile: updatedProfile } : null);
+        setUser(prev => prev ? { ...prev, playerProfile: updatedProfile } : null);
         addNotification({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
         handleNavigate(View.SOCIAL);
     };
@@ -732,19 +890,19 @@ const App: React.FC = () => {
         }
         return [];
     }, [user, fields]);
-    const ownerFieldIds = useMemo(() => new Set(ownerFields.map(f => f.id)), [ownerFields]);
 
     const ownerBookings = useMemo(() => {
         if (user?.isOwner) {
+            const ownerFieldIds = new Set(ownerFields.map(f => f.id));
             return allBookings.filter(b => ownerFieldIds.has(b.field.id));
         }
         return [];
-    }, [user, allBookings, ownerFieldIds]);
+    }, [user, allBookings, ownerFields]);
     
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
-        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} />;
+        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} weatherData={weatherData} isWeatherLoading={isWeatherLoading} />;
         
         const viewElement = (() => {
             switch (view) {
@@ -760,7 +918,7 @@ const App: React.FC = () => {
                             description: selectedField.description,
                             images: selectedField.images,
                             services: selectedField.services,
-                            fields: complexFields.length > 0 ? complexFields : [selectedField] // Fallback for fields without complexId
+                            fields: complexFields
                         };
                         return <FieldDetail 
                                     complex={complexObject} 
@@ -770,6 +928,7 @@ const App: React.FC = () => {
                                     favoriteFields={user?.favoriteFields || []} 
                                     onToggleFavorite={handleToggleFavorite}
                                     allBookings={allBookings}
+                                    weatherData={weatherData}
                                 />;
                     }
                     return homeComponent;
@@ -780,7 +939,7 @@ const App: React.FC = () => {
                     return homeComponent;
                 case View.BOOKING_CONFIRMATION:
                     if(confirmedBooking) {
-                        return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} />;
+                        return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} weatherData={weatherData} />;
                     }
                     return homeComponent;
                 case View.LOGIN:
@@ -874,7 +1033,7 @@ const App: React.FC = () => {
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.BOOKING_DETAIL:
                     if(user && selectedBooking){
-                        return <BookingDetailView booking={selectedBooking} onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} onCancelBooking={handleCancelBooking} />;
+                        return <BookingDetailView booking={selectedBooking} onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} onCancelBooking={handleCancelBooking} weatherData={weatherData} />;
                     }
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:
@@ -910,8 +1069,7 @@ const App: React.FC = () => {
     return (
         <div className="bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
             <FirebaseWarningBanner />
-            {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={()=>{}} onClearAll={()=>{}}/>}
-            {/* FIX: The return statement was corrupted. Replaced the malformed JSX with the correct structure for rendering the main content and modals. */}
+            {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={() => {}} onClearAll={() => {}} />}
             <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''}`}>
                  {renderView()}
             </main>
