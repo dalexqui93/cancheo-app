@@ -1,6 +1,9 @@
 
 
 
+
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData } from './types';
 import { View } from './types';
@@ -797,15 +800,16 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
+// FIX: Consolidated console.error call to use a single template string argument, preventing a type error with the 'unknown' error object.
             console.error(`Error getting location: ${String(error)}`);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
-                if (error.code === error.PERMISSION_DENIED) {
+                // FIX: Compare error codes with literal numbers instead of properties on the error object for better robustness.
+                if (error.code === 1) { // PERMISSION_DENIED
                     message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu celular para usar esta función.';
-                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                } else if (error.code === 2) { // POSITION_UNAVAILABLE
                     message = 'La información de ubicación no está disponible. Revisa que el GPS de tu celular esté activado.';
-                } else if (error.code === error.TIMEOUT) {
+                } else if (error.code === 3) { // TIMEOUT
                     message = 'Se agotó el tiempo de espera para obtener la ubicación. Intenta de nuevo en un lugar con mejor señal.';
                 }
             }
