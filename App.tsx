@@ -89,8 +89,9 @@ const App = () => {
     // Solicitar permiso para notificaciones al cargar la app
     useEffect(() => {
         if ('Notification' in window) {
-            if (Notification.permission === 'default') {
-                Notification.requestPermission().then(permission => {
+            // FIX: Use window.Notification to avoid name clash with imported Notification type
+            if (window.Notification.permission === 'default') {
+                window.Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
                         console.log('Permiso para notificaciones concedido.');
                     } else {
@@ -167,7 +168,8 @@ const App = () => {
                     locationName = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.state;
                 }
             } catch (geoError) {
-                console.warn('No se pudo obtener el nombre de la ubicación para el clima: ' + String(geoError));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.warn('No se pudo obtener el nombre de la ubicación para el clima: ', String(geoError));
             }
 
             const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
@@ -184,7 +186,8 @@ const App = () => {
             setWeatherData(finalWeatherData);
             localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
-            console.warn('Error al obtener el clima, usando fallback/cache: ' + String(error));
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.warn('Error al obtener el clima, usando fallback/cache: ', String(error));
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
@@ -262,14 +265,16 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            console.error('Error al reproducir sonido de notificación: ' + String(error));
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Error al reproducir sonido de notificación: ', String(error));
         }
     }, []);
 
     const addPersistentNotification = useCallback(async (notif: Omit<Notification, 'id' | 'timestamp'>) => {
         // Mostrar notificación nativa si la app está en segundo plano
-        if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-            new Notification(notif.title, {
+        // FIX: Use window.Notification to avoid name clash with imported Notification type
+        if ('Notification' in window && window.Notification.permission === 'granted' && document.hidden) {
+            new window.Notification(notif.title, {
                 body: notif.message,
                 icon: 'https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q'
             });
@@ -296,7 +301,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error saving notification to database: ' + String(error));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error saving notification to database: ', String(error));
             }
         }
     }, [user, playNotificationSound]);
@@ -363,7 +369,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error deleting notification from database: ' + String(error));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error deleting notification from database: ', String(error));
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -389,7 +396,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error marking notifications as read: ' + String(error));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error marking notifications as read: ', String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -408,7 +416,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error('Error clearing notifications: ' + String(error));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error clearing notifications: ', String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -638,7 +647,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error('Registration error: ' + String(error));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Registration error: ', String(error));
             }
         } finally {
             setIsRegisterLoading(false);
@@ -691,7 +701,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error('Owner registration error: ' + String(error));
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Owner registration error: ', String(error));
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -814,8 +825,8 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // Fix: Pass error object directly to console.error for better logging and to avoid potential type errors with string concatenation.
-            console.error('Error getting location:', error);
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Error getting location:', String(error));
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === 1) { // PERMISSION_DENIED
@@ -882,7 +893,8 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            console.error('Booking confirmation error: ' + String(error));
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Booking confirmation error: ', String(error));
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -943,8 +955,24 @@ const App = () => {
 
     const handleUpdateProfilePicture = async (imageDataUrl: string) => {
         if (!user) return;
-        await db.updateUser(user.id, { profilePicture: imageDataUrl });
-        const updatedUser = { ...user, profilePicture: imageDataUrl };
+    
+        const updates: { profilePicture: string; 'playerProfile.profilePicture'?: string } = {
+            profilePicture: imageDataUrl,
+        };
+        if (user.playerProfile) {
+            updates['playerProfile.profilePicture'] = imageDataUrl;
+        }
+    
+        await db.updateUser(user.id, updates);
+    
+        const updatedUser = { 
+            ...user, 
+            profilePicture: imageDataUrl,
+            ...(user.playerProfile && { 
+                playerProfile: { ...user.playerProfile, profilePicture: imageDataUrl } 
+            })
+        };
+        
         setUser(updatedUser);
         setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
@@ -952,9 +980,22 @@ const App = () => {
     
     const handleRemoveProfilePicture = async () => {
         if (!user) return;
-        await db.removeUserField(user.id, 'profilePicture');
-        const { profilePicture, ...rest } = user;
-        const updatedUser = rest as User;
+    
+        const fieldsToRemove: (keyof User | string)[] = ['profilePicture'];
+        if (user.playerProfile) {
+            fieldsToRemove.push('playerProfile.profilePicture');
+        }
+        await db.removeUserField(user.id, fieldsToRemove);
+    
+        const { profilePicture, ...restOfUser } = user;
+        let updatedUser: User = restOfUser as User;
+    
+        if (updatedUser.playerProfile) {
+            // Create a new player profile object without the profilePicture
+            const { profilePicture: playerPP, ...restOfPlayerProfile } = updatedUser.playerProfile;
+            updatedUser = { ...updatedUser, playerProfile: restOfPlayerProfile as Player };
+        }
+    
         setUser(updatedUser);
         setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
@@ -994,7 +1035,8 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            console.error('Error updating password: ' + String(error));
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Error updating password: ', String(error));
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',

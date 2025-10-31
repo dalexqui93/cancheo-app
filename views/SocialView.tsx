@@ -285,7 +285,7 @@ const HubNavigation: React.FC<{ onNavigate: (section: SocialSection) => void }> 
 const PlayerHub: React.FC<{ user: User; onSectionNavigate: (section: SocialSection) => void; onNavigateToCreator: () => void; }> = ({ user, onSectionNavigate, onNavigateToCreator }) => {
     if (!user.playerProfile) return null;
     return (
-        <div className="p-4 sm:p-6 pb-28 relative z-10">
+        <div className="p-4 sm:p-6 pb-[6.5rem] relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                     <PlayerCardComponent player={user.playerProfile} onNavigateToCreator={onNavigateToCreator} />
@@ -305,6 +305,51 @@ const PlayerHub: React.FC<{ user: User; onSectionNavigate: (section: SocialSecti
 };
 
 // --- Main Social View ---
+
+// FIX: Add BackButton component used in sub-views
+const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, text }) => (
+    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+        <ChevronLeftIcon className="h-5 w-5" />
+        {text}
+    </button>
+);
+
+// FIX: Add placeholder component for ChallengeView
+const ChallengeView: React.FC<{
+    teams: Team[];
+    onBack: () => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
+}> = ({ teams, onBack, addNotification }) => (
+    <div className="p-4 pb-[5.5rem] md:pb-4">
+        <BackButton onClick={onBack} text="Volver a DaviPlay" />
+        <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
+            <SwordsIcon className="mx-auto h-16 w-16 text-gray-400" />
+            <h2 className="mt-4 text-2xl font-bold tracking-tight">Próximamente: Retar Equipos</h2>
+            <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">
+                Esta función para desafiar a otros equipos estará disponible pronto.
+            </p>
+        </div>
+    </div>
+);
+
+// FIX: Add placeholder component for FindPlayersView
+const FindPlayersView: React.FC<{
+    players: Player[];
+    onBack: () => void;
+    onRecruit: (player: Player) => void;
+    onViewProfile: (player: Player) => void;
+}> = ({ players, onBack, onRecruit, onViewProfile }) => (
+    <div className="p-4 pb-[5.5rem] md:pb-4">
+        <BackButton onClick={onBack} text="Volver a DaviPlay" />
+        <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
+            <UserPlusIcon className="mx-auto h-16 w-16 text-gray-400" />
+            <h2 className="mt-4 text-2xl font-bold tracking-tight">Próximamente: Fichajes</h2>
+            <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">
+                El mercado de fichajes para encontrar y reclutar nuevos jugadores para tu equipo estará disponible pronto.
+            </p>
+        </div>
+    </div>
+);
 
 const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNavigate, setIsPremiumModalOpen }) => {
     const [section, setSection] = useState<SocialSection>('hub');
@@ -357,7 +402,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
 
     const renderContent = () => {
         if (!user.playerProfile) {
-            return <div className="p-4 pb-24 md:pb-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
+            return <div className="p-4 pb-[5.5rem] md:pb-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
         }
 
         switch (section) {
@@ -407,13 +452,6 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
 
 // --- SUB-VIEWS ---
 
-const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, text }) => (
-    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
-        <ChevronLeftIcon className="h-5 w-5" />
-        {text}
-    </button>
-);
-
 const TournamentsView: React.FC<{
     tournaments: Tournament[];
     onBack: () => void;
@@ -421,7 +459,7 @@ const TournamentsView: React.FC<{
     user: User;
 }> = ({ tournaments, onBack, addNotification, user }) => {
     return (
-        <div className="p-4 pb-24 md:pb-4">
+        <div className="p-4 pb-[5.5rem] md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
                 <TrophyIcon className="mx-auto h-16 w-16 text-gray-400" />
@@ -487,18 +525,18 @@ const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, o
                                 }
                                 
                                 return (
-                                    <div key={match.id} className="bg-gray-700/50 p-3 rounded-lg flex items-center gap-4">
+                                    <div key={match.id} className="bg-white/5 p-3 rounded-lg flex items-center gap-4">
                                         <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-black text-lg ${resultColor}`}>{result}</div>
                                         <div className="flex-grow">
                                             <p className="font-semibold">vs. {opponentName}</p>
-                                            <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                            <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
                                         </div>
                                         <div className="font-bold text-lg">{scoreUs} - {scoreThem}</div>
                                     </div>
-                                );
+                                )
                             })
                         ) : (
-                            <p className="text-center py-4 text-gray-400">Este equipo aún no ha jugado partidos.</p>
+                            <p className="text-center text-sm text-gray-500">No hay partidos registrados.</p>
                         )}
                      </div>
                  </div>
@@ -507,99 +545,5 @@ const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, o
     );
 };
 
-const ChallengeView: React.FC<{ teams: Team[], onBack: () => void, addNotification: (notif: Omit<Notification, 'id'>) => void }> = ({ teams, onBack, addNotification }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-    
-    const handleChallenge = (team: Team) => {
-        addNotification({
-            type: 'info',
-            title: 'Reto Enviado',
-            message: `Se ha enviado una solicitud de partido a ${team.name}.`
-        });
-    };
-
-    const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    if (selectedTeam) {
-        return <TeamProfileView team={selectedTeam} onBack={() => setSelectedTeam(null)} />;
-    }
-
-    return (
-        <div className="p-4 pb-24 md:pb-4">
-            <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <h1 className="text-3xl font-bold tracking-tight mb-6">Retar Equipos</h1>
-             <div className="relative mb-6">
-                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
-                <input
-                    type="text"
-                    placeholder="Busca un equipo por su nombre..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full py-3 pl-12 pr-4 border-white/20 bg-black/20 rounded-full focus:ring-2 focus:ring-[var(--color-primary-400)] text-white placeholder-gray-400 shadow-sm"
-                />
-            </div>
-            <div className="space-y-4">
-                {filteredTeams.length > 0 ? filteredTeams.map(team => (
-                    <div key={team.id} className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                            {team.logo ? <img src={team.logo} alt="logo" className="w-10 h-10 rounded-full object-cover" /> : <ShieldIcon className="w-10 h-10 text-gray-400"/>}
-                            <div>
-                                <p className="font-bold text-lg">{team.name}</p>
-                                <p className="text-sm text-gray-400">{team.level} - {team.players.length} jugadores</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                             <button onClick={() => setSelectedTeam(team)} className="bg-gray-700 text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
-                                Ver Perfil
-                            </button>
-                            <button onClick={() => handleChallenge(team)} className="bg-[var(--color-primary-900)]/50 text-[var(--color-primary-400)] font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-900)]/80 transition-colors text-sm">
-                                Retar
-                            </button>
-                        </div>
-                    </div>
-                )) : (
-                    <p className="text-center py-10 text-gray-400">No se encontraron equipos con ese nombre.</p>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const FindPlayersView: React.FC<{ 
-    players: Player[], 
-    onBack: () => void, 
-    onRecruit: (player: Player) => void, 
-    onViewProfile: (player: Player) => void 
-}> = ({ players, onBack, onRecruit, onViewProfile }) => {
-    return (
-        <div className="p-4 pb-24 md:pb-4">
-            <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <h1 className="text-3xl font-bold tracking-tight mb-6">Buscar Jugadores</h1>
-            <div className="space-y-4">
-                {players.map(player => (
-                    <div key={player.id} className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-gray-400"/>}
-                            </div>
-                            <div>
-                                <p className="font-bold text-lg">{player.name}</p>
-                                <p className="text-sm text-gray-400">{player.position} - Nivel: {player.level}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => onViewProfile(player)} className="bg-gray-700 text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
-                                Ver Perfil
-                            </button>
-                            <button onClick={() => onRecruit(player)} className="bg-[var(--color-primary-900)]/50 text-[var(--color-primary-400)] font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-900)]/80 transition-colors text-sm">
-                                Reclutar
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
+// FIX: Add default export to fix module resolution error
 export default SocialView;

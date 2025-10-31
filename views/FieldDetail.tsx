@@ -262,7 +262,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
 
             <div className="mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                    <div className="lg:col-span-2 space-y-10 pb-40 lg:pb-0">
+                    <div className="lg:col-span-2 space-y-10 pb-[9.5rem] lg:pb-0">
                         <div className="flex justify-between items-start gap-4">
                             <div>
                                 <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-1">{complex.name}</h1>

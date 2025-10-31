@@ -47,8 +47,10 @@ const FirebaseWarningBanner: React.FC = () => {
     );
 };
 
+// Sonido de notificación en formato Base64 para ser auto-contenido
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
-const App: React.FC = () => {
+const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
@@ -65,17 +67,17 @@ const App: React.FC = () => {
     const [bookings, setBookings] = useState<ConfirmedBooking[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [selectedBooking, setSelectedBooking] = useState<ConfirmedBooking | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState<boolean>(true);
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
     const [accentColor, setAccentColor] = useState<AccentColor>(() => (localStorage.getItem('accentColor') as AccentColor) || 'green');
-    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
-    const [animationClass, setAnimationClass] = useState('animate-fade-in');
-    const [viewKey, setViewKey] = useState(0);
+    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState<boolean>(false);
+    const [animationClass, setAnimationClass] = useState<string>('animate-fade-in');
+    const [viewKey, setViewKey] = useState<number>(0);
     const [rewardInfo, setRewardInfo] = useState<{ field: SoccerField } | null>(null);
     const [ratingInfo, setRatingInfo] = useState<{ field: SoccerField } | null>(null);
-    const [isBookingLoading, setIsBookingLoading] = useState(false);
-    const [isRegisterLoading, setIsRegisterLoading] = useState(false);
-    const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState(false);
+    const [isBookingLoading, setIsBookingLoading] = useState<boolean>(false);
+    const [isRegisterLoading, setIsRegisterLoading] = useState<boolean>(false);
+    const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState<boolean>(false);
     const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
 
     // Weather State
@@ -83,6 +85,22 @@ const App: React.FC = () => {
     const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
     const [weatherError, setWeatherError] = useState<string | null>(null);
 
+
+    // Solicitar permiso para notificaciones al cargar la app
+    useEffect(() => {
+        if ('Notification' in window) {
+            // FIX: Use window.Notification to avoid name clash with imported Notification type
+            if (window.Notification.permission === 'default') {
+                window.Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Permiso para notificaciones concedido.');
+                    } else {
+                        console.log('Permiso para notificaciones denegado.');
+                    }
+                });
+            }
+        }
+    }, []);
     
     useEffect(() => {
         const loadData = async () => {
@@ -114,7 +132,7 @@ const App: React.FC = () => {
         setIsWeatherLoading(true);
         setWeatherError(null);
 
-        const processWeatherData = (data: any): WeatherData => {
+        const processWeatherData = (data: any): Omit<WeatherData, 'locationName'> => {
             const now = new Date();
             const currentHourIndex = data.hourly.time.findIndex((t: string) => new Date(t) >= now);
             
@@ -138,21 +156,44 @@ const App: React.FC = () => {
         };
 
         try {
-            const position = await getCurrentPosition({ timeout: 5000, maximumAge: 3600000 });
+            const position = await getCurrentPosition({ timeout: 10000, maximumAge: 3600000 });
             const { latitude, longitude } = position.coords;
+
+            // Fetch location name
+            let locationName: string | undefined;
+            try {
+                const geoResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+                if (geoResponse.ok) {
+                    const geoData = await geoResponse.json();
+                    locationName = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.state;
+                }
+            } catch (geoError) {
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.warn('No se pudo obtener el nombre de la ubicación para el clima:', String(geoError));
+            }
+
             const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
             const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error('La respuesta de la red no fue correcta');
             const data = await response.json();
             const processedData = processWeatherData(data);
-            setWeatherData(processedData);
-            localStorage.setItem('weatherCache', JSON.stringify(processedData));
+
+            const finalWeatherData: WeatherData = {
+                ...processedData,
+                locationName,
+            };
+
+            setWeatherData(finalWeatherData);
+            localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
-            console.warn(`Error fetching weather, using fallback/cache: ${String(error)}`);
+            // FIX: Use comma-separated arguments for better logging of different types.
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.warn('Error al obtener el clima, usando fallback/cache:', String(error));
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
-                // Make sure date strings are converted back to Date objects
+                // Asegúrate de que las cadenas de fecha se conviertan de nuevo en objetos Date
                 parsedData.lastUpdated = new Date(parsedData.lastUpdated);
                 parsedData.current.time = new Date(parsedData.current.time);
                 parsedData.hourly = parsedData.hourly.map((h: any) => ({...h, time: new Date(h.time)}));
@@ -167,6 +208,12 @@ const App: React.FC = () => {
 
     useEffect(() => {
         fetchWeather();
+        // Configurar un intervalo para actualizar el clima cada 30 minutos
+        const weatherInterval = setInterval(fetchWeather, 30 * 60 * 1000);
+
+        return () => {
+            clearInterval(weatherInterval);
+        };
     }, [fetchWeather]);
 
     // Load user-specific data when user logs in or allBookings change
@@ -215,13 +262,62 @@ const App: React.FC = () => {
     }, [accentColor]);
 
 
-    const addNotification = useCallback((notif: Omit<Notification, 'id' | 'timestamp'>) => {
-        const newNotification: Notification = {
+    const playNotificationSound = useCallback(() => {
+        try {
+            const audio = new Audio(notificationSound);
+            audio.play();
+        } catch (error) {
+            // FIX: Use comma-separated arguments for better logging of different types.
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Error al reproducir sonido de notificación:', String(error));
+        }
+    }, []);
+
+    const addPersistentNotification = useCallback(async (notif: Omit<Notification, 'id' | 'timestamp'>) => {
+        // Mostrar notificación nativa si la app está en segundo plano
+        // FIX: Use window.Notification to avoid name clash with imported Notification type
+        if ('Notification' in window && window.Notification.permission === 'granted' && document.hidden) {
+            new window.Notification(notif.title, {
+                body: notif.message,
+                icon: 'https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q'
+            });
+            playNotificationSound();
+        }
+
+        const newNotification: Notification = { 
+            ...notif, 
+            id: Date.now(), 
+            timestamp: new Date(),
+            read: false, 
+        };
+        
+        setNotifications(prev => [newNotification, ...prev]);
+    
+        if (user && isFirebaseConfigured) {
+            try {
+                const updatedNotifications = [newNotification, ...(user.notifications || [])];
+                const notificationsToSave = updatedNotifications.slice(0, 50);
+
+                await db.updateUser(user.id, { notifications: notificationsToSave });
+                
+                const updatedUser = { ...user, notifications: notificationsToSave };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error saving notification to database:', String(error));
+            }
+        }
+    }, [user, playNotificationSound]);
+
+    const showToast = useCallback((notif: Omit<Notification, 'id' | 'timestamp'>) => {
+        const newToast: Notification = {
             ...notif,
             id: Date.now(),
             timestamp: new Date()
         };
-        setNotifications(prev => [newNotification, ...prev]);
+        setToasts(prev => [newToast, ...prev]);
     }, []);
     
     // Simulate push notifications for favorite fields
@@ -240,19 +336,19 @@ const App: React.FC = () => {
             const notificationType = Math.random(); // 0 to 1
 
             if (notificationType < 0.33 && user.notificationPreferences?.importantNews) {
-                addNotification({
+                addPersistentNotification({
                     type: 'info',
                     title: 'Anuncio Importante',
                     message: `${field.name.split(' - ')[0]} anuncia un torneo de verano. ¡Inscripciones abiertas!`
                 });
             } else if (notificationType < 0.66 && user.notificationPreferences?.specialDiscounts) {
-                addNotification({
+                addPersistentNotification({
                     type: 'info',
                     title: '¡Oferta Especial!',
                     message: `¡${field.name.split(' - ')[0]} tiene un 15% de descuento en reservas nocturnas esta semana!`
                 });
             } else if (user.notificationPreferences?.newAvailability) {
-                addNotification({
+                addPersistentNotification({
                     type: 'info',
                     title: '¡Nueva Disponibilidad!',
                     message: `Se ha abierto un nuevo horario a las 20:00 en ${field.name.split(' - ')[0]} para mañana.`
@@ -262,12 +358,82 @@ const App: React.FC = () => {
         }, 20000); // Check every 20 seconds
 
         return () => clearInterval(notificationSimulator);
-    }, [user, fields, addNotification]);
+    }, [user, fields, addPersistentNotification]);
 
-    const dismissNotification = (id: number) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+    const dismissNotification = useCallback(async (id: number) => {
+        const originalNotifications = notifications;
+        const updatedNotifications = originalNotifications.filter(n => n.id !== id);
+        setNotifications(updatedNotifications);
+    
+        if (user && isFirebaseConfigured) {
+            try {
+                await db.updateUser(user.id, { notifications: updatedNotifications });
+                
+                const updatedUser = { ...user, notifications: updatedNotifications };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error deleting notification from database:', String(error));
+                // Revert state on failure
+                setNotifications(originalNotifications);
+                showToast({
+                    type: 'error',
+                    title: 'Error de Sincronización',
+                    message: 'No se pudo eliminar la notificación. Inténtalo de nuevo.'
+                });
+            }
+        }
+    }, [user, notifications, showToast]);
+
+    const handleMarkAllNotificationsAsRead = async () => {
+        if (!user || !notifications.some(n => !n.read)) return;
+    
+        const originalNotifications = notifications;
+        const updatedNotifications = originalNotifications.map(n => ({ ...n, read: true }));
+        setNotifications(updatedNotifications);
+    
+        if (isFirebaseConfigured) {
+            try {
+                await db.updateUser(user.id, { notifications: updatedNotifications });
+                const updatedUser = { ...user, notifications: updatedNotifications };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error marking notifications as read:', String(error));
+                setNotifications(originalNotifications); // Revert on error
+            }
+        }
+    };
+    
+    const handleClearNotifications = async () => {
+        if (!user || notifications.length === 0) return;
+    
+        const originalNotifications = notifications;
+        setNotifications([]);
+    
+        if (isFirebaseConfigured) {
+            try {
+                await db.updateUser(user.id, { notifications: [] });
+                const updatedUser = { ...user, notifications: [] };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Error clearing notifications:', String(error));
+                setNotifications(originalNotifications); // Revert on error
+            }
+        }
     };
 
+    const dismissToast = (id: number) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    };
+    
     // Reminder notification checker
     useEffect(() => {
         const checkBookingReminders = async () => {
@@ -294,13 +460,13 @@ const App: React.FC = () => {
                 }
     
                 if (hoursUntil > 1 && hoursUntil <= 24 && !updatedBooking.remindersSent.twentyFourHour) {
-                    addNotification({ type: 'info', title: 'Recordatorio de Reserva', message: `Tu partido en ${booking.field.name} es mañana a las ${booking.time}.` });
+                    addPersistentNotification({ type: 'info', title: 'Recordatorio de Reserva', message: `Tu partido en ${booking.field.name} es mañana a las ${booking.time}.` });
                     updatedBooking.remindersSent.twentyFourHour = true;
                     reminderSent = true;
                 }
     
                 if (hoursUntil > 0 && hoursUntil <= 1 && !updatedBooking.remindersSent.oneHour) {
-                    addNotification({ type: 'info', title: '¡Tu partido es pronto!', message: `Tu reserva en ${booking.field.name} es en aproximadamente una hora.` });
+                    addPersistentNotification({ type: 'info', title: '¡Tu partido es pronto!', message: `Tu reserva en ${booking.field.name} es en aproximadamente una hora.` });
                     updatedBooking.remindersSent.oneHour = true;
                     reminderSent = true;
                 }
@@ -323,7 +489,7 @@ const App: React.FC = () => {
         checkBookingReminders();
     
         return () => clearInterval(intervalId);
-    }, [bookings, addNotification]);
+    }, [bookings, addPersistentNotification]);
     
 
     // Loyalty Program Check
@@ -368,7 +534,7 @@ const App: React.FC = () => {
                         newLoyalty[fieldId].progress = 0;
                         newLoyalty[fieldId].freeTickets++;
                         setRewardInfo({ field: booking.field });
-                        addNotification({
+                        addPersistentNotification({
                             type: 'success',
                             title: '¡Cancha Gratis!',
                             message: `¡Completaste ${loyaltyGoal} reservas en ${booking.field.name}! Acabas de ganar un ticket para una cancha gratis en este lugar.`
@@ -378,7 +544,9 @@ const App: React.FC = () => {
                 
                 if (loyaltyWasUpdated) {
                     await db.updateUser(user.id, { loyalty: newLoyalty });
-                    setUser(prevUser => prevUser ? { ...prevUser, loyalty: newLoyalty } : null);
+                    const updatedUser = { ...user, loyalty: newLoyalty };
+                    setUser(updatedUser);
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
     
                 const playedBookingIds = new Set(playedBookings.map(b => b.id));
@@ -394,18 +562,49 @@ const App: React.FC = () => {
         };
     
         checkLoyalty();
-    }, [bookings, user, loading, addNotification]);
+    }, [bookings, user, loading, addPersistentNotification]);
 
-    const handleLogin = (email: string, password: string) => {
+    // Check for remembered user on app load
+    useEffect(() => {
+        if (loading || user) return; // Don't run if data is loading or a user is already logged in
+
+        const rememberedUserId = localStorage.getItem('rememberedUserId');
+        if (rememberedUserId && allUsers.length > 0) {
+            const rememberedUser = allUsers.find(u => u.id === rememberedUserId);
+            if (rememberedUser) {
+                setUser(rememberedUser);
+                setNotifications(rememberedUser.notifications?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) || []);
+                showToast({
+                    type: 'info',
+                    title: 'Sesión Restaurada',
+                    message: `¡Hola de nuevo, ${rememberedUser.name}!`
+                });
+            } else {
+                // Clean up if the user ID is invalid
+                localStorage.removeItem('rememberedUserId');
+            }
+        }
+    }, [allUsers, loading, user, showToast]);
+
+    const handleLogin = (email: string, password: string, rememberMe: boolean) => {
         const loggedInUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     
         if (loggedInUser) {
+            if (rememberMe) {
+                localStorage.setItem('rememberedUserId', loggedInUser.id);
+            } else {
+                localStorage.removeItem('rememberedUserId');
+            }
+
             setUser(loggedInUser);
-            addNotification({
+            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            setNotifications(sortedNotifications);
+            showToast({
                 type: 'success',
                 title: 'Inicio de sesión exitoso',
                 message: `¡Bienvenido, ${loggedInUser.name}!`
             });
+
             if (loggedInUser.isAdmin) {
                 handleNavigate(View.SUPER_ADMIN_DASHBOARD);
             } else if (loggedInUser.isOwner && loggedInUser.ownerStatus === 'approved') {
@@ -414,7 +613,7 @@ const App: React.FC = () => {
                 handleNavigate(View.HOME);
             }
         } else {
-             addNotification({
+             showToast({
                 type: 'error',
                 title: 'Error de inicio de sesión',
                 message: `Correo o contraseña incorrectos.`
@@ -431,30 +630,33 @@ const App: React.FC = () => {
                 isAdmin: false,
                 isPremium: false,
                 favoriteFields: [],
+                cancheoCoins: 100, // Starting bonus
             };
             const createdUser = await db.addUser(newUser);
             setUser(createdUser);
             setAllUsers(prev => [...prev, createdUser]);
             handleNavigate(View.HOME);
-            addNotification({
+            showToast({
                 type: 'success',
                 title: '¡Bienvenido!',
                 message: `Tu cuenta ha sido creada exitosamente, ${createdUser.name}.`
             });
         } catch (error) {
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
-                addNotification({
+                showToast({
                     type: 'error',
                     title: 'Error de Registro',
                     message: 'Ya existe una cuenta con este correo electrónico.'
                 });
             } else {
-                addNotification({
+                showToast({
                     type: 'error',
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error(`Registration error: ${String(error)}`);
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Registration error:', String(error));
             }
         } finally {
             setIsRegisterLoading(false);
@@ -487,7 +689,7 @@ const App: React.FC = () => {
             setAllUsers(prev => [...prev, newUser]);
             setOwnerApplications(prev => [...prev, newApplication]);
 
-            addNotification({
+            addPersistentNotification({
                 type: 'success',
                 title: 'Solicitud Recibida',
                 message: `Gracias ${newUser.name}, hemos recibido tu solicitud y la revisaremos pronto.`,
@@ -496,18 +698,20 @@ const App: React.FC = () => {
             handleNavigate(View.OWNER_PENDING_VERIFICATION);
         } catch (error) {
             if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
-                addNotification({
+                showToast({
                     type: 'error',
                     title: 'Error de Registro',
                     message: 'Ya existe una cuenta con este correo electrónico.'
                 });
             } else {
-                 addNotification({
+                showToast({
                     type: 'error',
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                console.error(`Owner registration error: ${String(error)}`);
+                // FIX: Use comma-separated arguments for better logging of different types.
+                // FIX: Explicitly cast 'unknown' error to string for safe logging.
+                console.error('Owner registration error:', String(error));
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -515,7 +719,9 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
+        localStorage.removeItem('rememberedUserId');
         setUser(null);
+        setNotifications([]);
         handleNavigate(View.HOME);
     };
 
@@ -538,6 +744,7 @@ const App: React.FC = () => {
         } else {
              if ([View.HOME, View.SEARCH_RESULTS, View.FIELD_DETAIL].includes(newView)) setActiveTab('explore');
             else if ([View.BOOKINGS, View.BOOKING_DETAIL].includes(newView)) setActiveTab('bookings');
+            else if ([View.SOCIAL, View.PLAYER_PROFILE_CREATOR].includes(newView)) setActiveTab('community');
             else if ([View.PROFILE, View.APPEARANCE, View.HELP_SUPPORT, View.PAYMENT_METHODS].includes(newView)) setActiveTab('profile');
         }
     };
@@ -552,7 +759,7 @@ const App: React.FC = () => {
             case 'community':
                 if (!user) {
                     handleNavigate(View.LOGIN);
-                    addNotification({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para acceder a DaviPlay.' });
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para acceder a DaviPlay.' });
                 } else {
                     handleNavigate(View.SOCIAL, navOptions);
                 }
@@ -560,7 +767,7 @@ const App: React.FC = () => {
             case 'bookings':
                 if (!user) {
                     handleNavigate(View.LOGIN);
-                    addNotification({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para ver tus reservas.' });
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para ver tus reservas.' });
                 } else {
                     handleNavigate(View.BOOKINGS, navOptions);
                 }
@@ -568,7 +775,7 @@ const App: React.FC = () => {
             case 'profile':
                  if (!user) {
                     handleNavigate(View.LOGIN);
-                    addNotification({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para ver tu perfil.' });
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para ver tu perfil.' });
                 } else {
                     handleNavigate(View.PROFILE, navOptions);
                 }
@@ -588,7 +795,7 @@ const App: React.FC = () => {
 
     const handleSearchByLocation = async () => {
         if (!navigator.geolocation) {
-            addNotification({
+            showToast({
                 type: 'error',
                 title: 'Geolocalización no soportada',
                 message: 'Tu dispositivo no soporta esta función.'
@@ -599,7 +806,21 @@ const App: React.FC = () => {
         setIsSearchingLocation(true);
     
         try {
-            const position = await getCurrentPosition();
+            if (navigator.permissions) {
+                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+    
+                if (permissionStatus.state === 'denied') {
+                    showToast({
+                        type: 'error',
+                        title: 'Permiso de Ubicación Denegado',
+                        message: 'Para usar esta función, activa el permiso de ubicación para "Cancheo" en los ajustes de tu celular.'
+                    });
+                    setIsSearchingLocation(false);
+                    return;
+                }
+            }
+    
+            const position = await getCurrentPosition({ timeout: 20000, maximumAge: 60000, enableHighAccuracy: false });
             const { latitude, longitude } = position.coords;
     
             const fieldsWithDistance = fields.map(field => {
@@ -613,11 +834,23 @@ const App: React.FC = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            console.error(`Error getting location: ${String(error)}`);
-            addNotification({
+            // FIX: Use comma-separated arguments for better logging of different types.
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Error getting location:', String(error));
+            let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
+            if (error instanceof GeolocationPositionError) {
+                if (error.code === 1) { // PERMISSION_DENIED
+                    message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu celular para usar esta función.';
+                } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                    message = 'La información de ubicación no está disponible. Revisa que el GPS de tu celular esté activado.';
+                } else if (error.code === 3) { // TIMEOUT
+                    message = 'Se agotó el tiempo de espera para obtener la ubicación. Intenta de nuevo en un lugar con mejor señal.';
+                }
+            }
+            showToast({
                 type: 'error',
                 title: 'Error de Ubicación',
-                message: 'No se pudo obtener tu ubicación. Por favor, revisa los permisos.'
+                message: message
             });
         } finally {
             setIsSearchingLocation(false);
@@ -632,7 +865,7 @@ const App: React.FC = () => {
     const handleBookNow = (field: SoccerField, time: string, date: Date) => {
         if (!user) {
             handleNavigate(View.LOGIN);
-            addNotification({type: 'info', title: 'Inicia sesión para reservar', message: 'Debes tener una cuenta para poder reservar una cancha.'});
+            showToast({type: 'info', title: 'Inicia sesión para reservar', message: 'Debes tener una cuenta para poder reservar una cancha.'});
             return;
         }
         setBookingDetails({ field, time, date });
@@ -650,7 +883,9 @@ const App: React.FC = () => {
                 if (updatedLoyalty[fieldId]) {
                     updatedLoyalty[fieldId].freeTickets -= 1;
                     await db.updateUser(user.id, { loyalty: updatedLoyalty });
-                    setUser(prevUser => prevUser ? { ...prevUser, loyalty: updatedLoyalty } : null);
+                    const updatedUser = { ...user, loyalty: updatedLoyalty };
+                    setUser(updatedUser);
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
             }
             
@@ -666,10 +901,12 @@ const App: React.FC = () => {
             setConfirmedBooking(newBooking);
             setAllBookings(prev => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             handleNavigate(View.BOOKING_CONFIRMATION);
-            addNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
+            addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            console.error(`Booking confirmation error: ${String(error)}`);
-            addNotification({
+            // FIX: Use comma-separated arguments for better logging of different types.
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Booking confirmation error:', String(error));
+            showToast({
                 type: 'error',
                 title: 'Error de Reserva',
                 message: 'No se pudo confirmar tu reserva. Por favor, inténtalo de nuevo.'
@@ -686,21 +923,18 @@ const App: React.FC = () => {
             ? user.favoriteFields.filter(id => id !== complexId)
             : [...user.favoriteFields, complexId];
         
-        try {
-            await db.updateUser(user.id, { favoriteFields: newFavorites });
-            setUser(prevUser => prevUser ? { ...prevUser, favoriteFields: newFavorites } : null);
+        await db.updateUser(user.id, { favoriteFields: newFavorites });
+        const updatedUser = { ...user, favoriteFields: newFavorites };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
 
-            const complexField = fields.find(f => (f.complexId || f.id) === complexId);
-            const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
+        const complexField = fields.find(f => (f.complexId || f.id) === complexId);
+        const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
 
-            if (isCurrentlyFavorite) {
-                addNotification({type: 'info', title: 'Favorito eliminado', message: `${complexName} fue eliminado de tus favoritos.`});
-            } else {
-                addNotification({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
-            }
-        } catch (error) {
-            console.error(`Error updating favorites: ${String(error)}`);
-             addNotification({type: 'error', title: 'Error', message: 'No se pudo actualizar tus favoritos.'});
+        if (isCurrentlyFavorite) {
+            showToast({type: 'info', title: 'Favorito eliminado', message: `${complexName} fue eliminado de tus favoritos.`});
+        } else {
+             showToast({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
         }
     };
     
@@ -722,7 +956,7 @@ const App: React.FC = () => {
             }
 
             handleNavigate(View.BOOKINGS, { isBack: true });
-            addNotification({
+            addPersistentNotification({
                 type: 'success',
                 title: 'Reserva Cancelada',
                 message: `Tu reserva en ${bookingToCancel.field.name} ha sido cancelada.`
@@ -732,43 +966,37 @@ const App: React.FC = () => {
 
     const handleUpdateProfilePicture = async (imageDataUrl: string) => {
         if (!user) return;
-        try {
-            await db.updateUser(user.id, { profilePicture: imageDataUrl });
-            setUser(prev => prev ? { ...prev, profilePicture: imageDataUrl } : null);
-            addNotification({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
-        } catch (error) {
-            console.error(`Error updating profile picture: ${String(error)}`);
-        }
+        await db.updateUser(user.id, { profilePicture: imageDataUrl });
+        const updatedUser = { ...user, profilePicture: imageDataUrl };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
     };
     
     const handleRemoveProfilePicture = async () => {
         if (!user) return;
-        try {
-            await db.removeUserField(user.id, 'profilePicture');
-            const { profilePicture, ...rest } = user;
-            setUser(rest);
-            addNotification({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
-        } catch (error) {
-            console.error(`Error removing profile picture: ${String(error)}`);
-        }
+        await db.removeUserField(user.id, 'profilePicture');
+        const { profilePicture, ...rest } = user;
+        const updatedUser = rest as User;
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
     };
     
     const handleUpdateUserInfo = async (updatedInfo: { name: string; phone?: string }) => {
         if (!user) return;
-        try {
-            await db.updateUser(user.id, updatedInfo);
-            setUser(prev => prev ? { ...prev, ...updatedInfo } : null);
-            addNotification({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
-        } catch (error) {
-            console.error(`Error updating user info: ${String(error)}`);
-        }
+        await db.updateUser(user.id, updatedInfo);
+        const updatedUser = { ...user, ...updatedInfo };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
     };
     
     const handleChangePassword = async (currentPassword: string, newPassword: string) => {
         if (!user) return;
     
         if (user.password !== currentPassword) {
-            addNotification({
+            showToast({
                 type: 'error',
                 title: 'Error de Contraseña',
                 message: 'La contraseña actual es incorrecta.'
@@ -778,15 +1006,21 @@ const App: React.FC = () => {
     
         try {
             await db.updateUser(user.id, { password: newPassword });
-            setUser(prev => prev ? { ...prev, password: newPassword } : null);
-            addNotification({
+            
+            const updatedUser = { ...user, password: newPassword };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+
+            showToast({
                 type: 'success',
                 title: 'Contraseña Actualizada',
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            console.error(`Error updating password: ${String(error)}`);
-            addNotification({
+            // FIX: Use comma-separated arguments for better logging of different types.
+            // FIX: Explicitly cast 'unknown' error to string for safe logging.
+            console.error('Error updating password:', String(error));
+            showToast({
                 type: 'error',
                 title: 'Error Inesperado',
                 message: 'No se pudo actualizar tu contraseña. Inténtalo de nuevo.'
@@ -796,13 +1030,11 @@ const App: React.FC = () => {
     
     const handleUpdateNotificationPreferences = async (prefs: { newAvailability: boolean; specialDiscounts: boolean; importantNews: boolean; }) => {
         if (!user) return;
-        try {
-            await db.updateUser(user.id, { notificationPreferences: prefs });
-            setUser(prev => prev ? { ...prev, notificationPreferences: prefs } : null);
-            addNotification({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
-        } catch (error) {
-            console.error(`Error updating notification preferences: ${String(error)}`);
-        }
+        await db.updateUser(user.id, { notificationPreferences: prefs });
+        const updatedUser = { ...user, notificationPreferences: prefs };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
     };
     
     const handleUpdateTheme = (newTheme: Theme) => setTheme(newTheme);
@@ -817,31 +1049,39 @@ const App: React.FC = () => {
             if (cardIndex !== -1) (updatedMethods[cardIndex] as CardPaymentMethod).isDefault = true;
         }
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
-        setUser(prev => prev ? { ...prev, paymentMethods: updatedMethods } : null);
-        addNotification({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
+        const updatedUser = { ...user, paymentMethods: updatedMethods };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
     };
 
     const handleDeletePaymentMethod = async (methodId: string) => {
         if (!user) return;
         const updatedMethods = user.paymentMethods?.filter(m => m.id !== methodId) || [];
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
-        setUser(prev => prev ? { ...prev, paymentMethods: updatedMethods } : null);
-        addNotification({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
+        const updatedUser = { ...user, paymentMethods: updatedMethods };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
     };
 
     const handleSetDefaultPaymentMethod = async (methodId: string) => {
         if (!user || !user.paymentMethods) return;
         const updatedMethods: PaymentMethod[] = user.paymentMethods.map(m => ({ ...m, isDefault: m.id === methodId }));
         await db.updateUser(user.id, { paymentMethods: updatedMethods });
-        setUser(prev => prev ? { ...prev, paymentMethods: updatedMethods } : null);
-        addNotification({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
+        const updatedUser = { ...user, paymentMethods: updatedMethods };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
     };
 
     const handleUpdatePlayerProfile = async (updatedProfile: Player) => {
         if (!user) return;
         await db.updateUser(user.id, { playerProfile: updatedProfile });
-        setUser(prev => prev ? { ...prev, playerProfile: updatedProfile } : null);
-        addNotification({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
+        const updatedUser = { ...user, playerProfile: updatedProfile };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
         handleNavigate(View.SOCIAL);
     };
 
@@ -867,7 +1107,7 @@ const App: React.FC = () => {
         });
 
         setRatingInfo(null);
-        addNotification({ type: 'success', title: '¡Gracias por tu opinión!', message: 'Tu calificación nos ayuda a mejorar.' });
+        showToast({ type: 'success', title: '¡Gracias por tu opinión!', message: 'Tu calificación nos ayuda a mejorar.' });
     };
 
     const ownerFields = useMemo(() => {
@@ -876,24 +1116,24 @@ const App: React.FC = () => {
         }
         return [];
     }, [user, fields]);
+    const ownerFieldIds = useMemo(() => new Set(ownerFields.map(f => f.id)), [ownerFields]);
 
     const ownerBookings = useMemo(() => {
         if (user?.isOwner) {
-            const ownerFieldIds = new Set(ownerFields.map(f => f.id));
             return allBookings.filter(b => ownerFieldIds.has(b.field.id));
         }
         return [];
-    }, [user, allBookings, ownerFields]);
+    }, [user, allBookings, ownerFieldIds]);
     
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
-        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} weatherData={weatherData} isWeatherLoading={isWeatherLoading} />;
+        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={fetchWeather} />;
         
         const viewElement = (() => {
             switch (view) {
                 case View.SEARCH_RESULTS:
-                    return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} />;
+                    return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} loading={isSearchingLocation} />;
                 case View.FIELD_DETAIL:
                     if (selectedField) {
                         const complexFields = fields.filter(f => f.complexId === selectedField.complexId);
@@ -904,7 +1144,7 @@ const App: React.FC = () => {
                             description: selectedField.description,
                             images: selectedField.images,
                             services: selectedField.services,
-                            fields: complexFields
+                            fields: complexFields.length > 0 ? complexFields : [selectedField] // Fallback for fields without complexId
                         };
                         return <FieldDetail 
                                     complex={complexObject} 
@@ -937,7 +1177,7 @@ const App: React.FC = () => {
                 case View.OWNER_PENDING_VERIFICATION:
                     return <OwnerPendingVerificationView onNavigate={handleNavigate} />;
                 case View.FORGOT_PASSWORD:
-                    return <ForgotPasswordView onNavigate={handleNavigate} addNotification={addNotification} />;
+                    return <ForgotPasswordView onNavigate={handleNavigate} addNotification={showToast} />;
                 case View.OWNER_DASHBOARD:
                     if (user) {
                         return <OwnerDashboard 
@@ -948,7 +1188,7 @@ const App: React.FC = () => {
                                     setBookings={setAllBookings}
                                     announcements={announcements}
                                     setAnnouncements={setAnnouncements}
-                                    addNotification={addNotification}
+                                    addNotification={showToast}
                                     onLogout={handleLogout}
                                     allUsers={allUsers}
                                     allFields={fields}
@@ -964,7 +1204,7 @@ const App: React.FC = () => {
                                 setFields={setFields}
                                 ownerApplications={ownerApplications}
                                 setOwnerApplications={setOwnerApplications}
-                                addNotification={addNotification}
+                                addNotification={showToast}
                                 onLogout={handleLogout}
                             />;
                 case View.PROFILE:
@@ -1024,7 +1264,7 @@ const App: React.FC = () => {
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:
                     if (user) {
-                        return <SocialView user={user} addNotification={addNotification} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
+                        return <SocialView user={user} addNotification={showToast} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                  case View.PLAYER_PROFILE_CREATOR:
@@ -1049,32 +1289,36 @@ const App: React.FC = () => {
         );
     };
     
-    const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
+    const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
     const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR].includes(view);
+    const isSocialView = view === View.SOCIAL;
 
     return (
-        <div className="bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
-            <FirebaseWarningBanner />
-            {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={() => {}} onClearAll={() => {}} />}
-            <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''}`}>
-                 {renderView()}
-            </main>
-            {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
-            <NotificationContainer notifications={notifications} onDismiss={dismissNotification} />
-            {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
-            {rewardInfo && (
-                <RewardAnimation 
-                    field={rewardInfo.field}
-                    onAnimationEnd={() => handleRewardAnimationEnd(rewardInfo.field)}
-                />
-            )}
-            {ratingInfo && (
-                <RatingModal 
-                    field={ratingInfo.field}
-                    onClose={() => setRatingInfo(null)}
-                    onSubmit={handleRatingSubmit}
-                />
-            )}
+        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${isSocialView ? 'daviplay-hub-bg' : ''}`}>
+             {isSocialView && <div className="absolute inset-0"></div>}
+            <div className="relative z-10">
+                <FirebaseWarningBanner />
+                {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications}/>}
+                <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-[6.5rem]' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
+                    {renderView()}
+                </main>
+                {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
+                <NotificationContainer notifications={toasts} onDismiss={dismissToast} />
+                {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
+                {rewardInfo && (
+                    <RewardAnimation 
+                        field={rewardInfo.field}
+                        onAnimationEnd={() => handleRewardAnimationEnd(rewardInfo.field)}
+                    />
+                )}
+                {ratingInfo && (
+                    <RatingModal 
+                        field={ratingInfo.field}
+                        onClose={() => setRatingInfo(null)}
+                        onSubmit={handleRatingSubmit}
+                    />
+                )}
+            </div>
         </div>
     );
 };

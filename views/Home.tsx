@@ -54,7 +54,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
     }, [groupedFields, favoriteFields]);
 
     return (
-        <div className="space-y-8 pb-24 md:pb-4">
+        <div className="space-y-8 pb-[5.5rem] md:pb-4">
             {/* Header and Search */}
             <header 
                 className="relative text-center space-y-6 p-8 sm:p-12 rounded-3xl overflow-hidden -mt-6 sm:-mt-8 -mx-4 sm:mx-0"

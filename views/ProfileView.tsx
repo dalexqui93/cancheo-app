@@ -95,6 +95,14 @@ const ProfilePicture: React.FC<{
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
+                    // Rellenar el fondo de blanco para manejar imágenes con transparencia (PNG)
+                    // y evitar que el fondo se vuelva negro al convertir a JPEG.
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+
+                    // Dibujar la imagen redimensionada en el canvas
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
                     // Comprimir la imagen a formato JPEG con una calidad del 70%
                     // para reducir significativamente el tamaño del archivo antes de subirlo.
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
@@ -397,7 +405,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout, allFields, on
 
     
     return (
-        <div className="pb-24 md:pb-4">
+        <div className="pb-[5.5rem] md:pb-4">
             <div className="bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-700)] dark:from-gray-800 dark:to-black text-white rounded-b-3xl -mt-6 sm:-mt-8 py-10 px-4 text-center shadow-lg">
                  <ProfilePicture 
                     user={user}

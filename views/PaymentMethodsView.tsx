@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { User, PaymentMethod, PaymentMethodType, CardBrand, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
@@ -134,7 +135,7 @@ const PaymentMethodsView: React.FC<PaymentMethodsViewProps> = ({ user, onBack, o
     };
 
     return (
-        <div className="space-y-8 pb-24 md:pb-4">
+        <div className="space-y-8 pb-[5.5rem] md:pb-4">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver al Perfil

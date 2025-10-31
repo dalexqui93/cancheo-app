@@ -246,7 +246,9 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        console.error(`Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: ${String(e)}`);
+        // FIX: Use comma-separated arguments for better logging of different types.
+        // FIX: Explicitly cast 'unknown' error to string for safe logging.
+        console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts:', String(e));
     }
 } else {
     console.warn("ATENCIÓN: Firebase no está configurado. La aplicación se ejecutará en modo de demostración con datos locales. Edita el archivo 'firebase.ts' con tus credenciales para habilitar la persistencia.");
@@ -335,7 +337,9 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        console.error(`Error poblando la base de datos: ${String(error)}`);
+        // FIX: Use comma-separated arguments for better logging of different types.
+        // FIX: Explicitly cast 'unknown' error to string for safe logging.
+        console.error('Error poblando la base de datos:', String(error));
     }
 };
 
@@ -456,11 +460,19 @@ export const updateUser = async (userId: string, data: Partial<User>): Promise<v
     await db.collection('users').doc(userId).update(data);
 };
 
-export const removeUserField = async (userId: string, field: keyof User): Promise<void> => {
+export const removeUserField = async (userId: string, field: keyof User | (keyof User | string)[]): Promise<void> => {
     if (!db) return Promise.resolve();
-    await db.collection('users').doc(userId).update({
-        [field]: firebase.firestore.FieldValue.delete()
-    });
+
+    const updates: { [key: string]: any } = {};
+    if (Array.isArray(field)) {
+        field.forEach(f => {
+            updates[f] = firebase.firestore.FieldValue.delete();
+        });
+    } else {
+        updates[field] = firebase.firestore.FieldValue.delete();
+    }
+
+    await db.collection('users').doc(userId).update(updates);
 };
 
 export const addReviewToField = async (fieldId: string, review: Review): Promise<void> => {

@@ -78,7 +78,7 @@ const BookingsView: React.FC<BookingsViewProps> = ({ bookings, onSelectBooking }
                     <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Cuando reserves una cancha, aparecerá aquí.</p>
                 </div>
             ) : (
-                <div className="space-y-4 pb-24 md:pb-4">
+                <div className="space-y-4 pb-[5.5rem] md:pb-4">
                     {bookingsToShow.length > 0 ? (
                         bookingsToShow.map(booking => (
                             <BookingCard key={booking.id} booking={booking} onClick={() => onSelectBooking(booking)} />

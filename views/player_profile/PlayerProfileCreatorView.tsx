@@ -48,6 +48,7 @@ const PlayerProfileCreatorView: React.FC<PlayerProfileCreatorViewProps> = ({ onB
     const [profile, setProfile] = useState<Player>(user.playerProfile || {
         id: user.id,
         name: user.name,
+        profilePicture: user.profilePicture,
         position: 'Cualquiera',
         level: 1,
         stats: {
