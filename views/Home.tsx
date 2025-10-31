@@ -86,7 +86,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                             type="button"
                             onClick={onSearchByLocation}
                             disabled={isSearchingLocation}
-                            className={`w-14 h-14 p-1 rounded-full shadow-sm transition-all duration-300 hover:scale-110 overflow-hidden ${isSearchingLocation ? 'animate-pulse-glow bg-white/20 border border-white/30 flex items-center justify-center' : 'bg-black/20 backdrop-blur-sm'}`}
+                            className={`w-14 h-14 p-2 rounded-full shadow-sm transition-all duration-300 hover:scale-110 overflow-hidden ${isSearchingLocation ? 'animate-pulse-glow bg-white/20 border border-white/30 flex items-center justify-center' : 'bg-black/20 backdrop-blur-sm'}`}
                             title="Buscar cerca de mí"
                         >
                             {isSearchingLocation ? <SpinnerIcon className="w-10 h-10 text-[var(--color-primary-500)]" /> : <img src="https://i.pinimg.com/736x/c5/76/ae/c576aeb1e92f668240e59401297409f3.jpg" alt="Buscar cerca de mí" className="w-full h-full object-cover rounded-full" />}

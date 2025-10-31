@@ -482,9 +482,8 @@ export const addReviewToField = async (fieldId: string, review: Review): Promise
     });
 };
 
-// --- Funciones para el Dashboard del Propietario ---
 export const addField = async (fieldData: Omit<SoccerField, 'id'>): Promise<SoccerField> => {
-    if (!db) return Promise.reject(new Error("Firebase no configurado"));
+    if (!db) return Promise.reject(new Error("Firebase not configured"));
     const docRef = await db.collection('fields').add(fieldData);
     return { ...fieldData, id: docRef.id };
 };
@@ -500,8 +499,8 @@ export const deleteField = async (fieldId: string): Promise<void> => {
 };
 
 export const addAnnouncement = async (announcementData: Omit<Announcement, 'id'>): Promise<Announcement> => {
-    if (!db) return Promise.reject(new Error("Firebase no configurado"));
-     const dataToSave = {
+    if (!db) return Promise.reject(new Error("Firebase not configured"));
+    const dataToSave = {
         ...announcementData,
         createdAt: firebase.firestore.Timestamp.fromDate(announcementData.createdAt),
     };
