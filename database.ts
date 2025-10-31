@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 /**
  * =============================================================================
@@ -246,7 +247,6 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // FIX: Consolidated console.error arguments into a single string.
         console.error(`Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: ${String(e)}`);
     }
 } else {
@@ -331,7 +331,6 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // FIX: Consolidated console.error arguments into a single string.
         console.error(`Error poblando la base de datos: ${String(error)}`);
     }
 };

@@ -49,7 +49,7 @@ const PlayerProfileCreatorView: React.FC<PlayerProfileCreatorViewProps> = ({ onB
         id: user.id,
         name: user.name,
         position: 'Cualquiera',
-        level: 'Casual',
+        level: 1,
         stats: {
             matchesPlayed: 0,
             goals: 0,
@@ -57,6 +57,8 @@ const PlayerProfileCreatorView: React.FC<PlayerProfileCreatorViewProps> = ({ onB
             yellowCards: 0,
             redCards: 0,
         },
+        xp: 0,
+        achievements: [],
     });
 
     const updateProfile = (updates: Partial<Player>) => {

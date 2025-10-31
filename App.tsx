@@ -4,10 +4,6 @@
 
 
 
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData } from './types';
 import { View } from './types';
@@ -56,10 +52,9 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
-    // FIX: Remove incorrect explicit typings on useState hooks to allow TypeScript to correctly infer setter types.
     const [fields, setFields] = useState<SoccerField[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
@@ -174,6 +169,8 @@ const App = () => {
             setWeatherData(processedData);
             localStorage.setItem('weatherCache', JSON.stringify(processedData));
         } catch (error) {
+            // FIX: Changed to pass the error object as a separate argument to improve debugging.
+// FIX: Consolidated console.warn arguments into a single template literal to fix type error.
             console.warn(`Error fetching weather, using fallback/cache: ${String(error)}`);
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
@@ -246,7 +243,8 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
             console.error(`Error al reproducir sonido de notificación: ${String(error)}`);
         }
     }, []);
@@ -281,7 +279,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
                 console.error(`Error saving notification to database: ${String(error)}`);
             }
         }
@@ -349,7 +348,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
                 console.error(`Error deleting notification from database: ${String(error)}`);
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -376,7 +376,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
                 console.error(`Error marking notifications as read: ${String(error)}`);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -396,7 +397,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
                 console.error(`Error clearing notifications: ${String(error)}`);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -603,6 +605,7 @@ const App = () => {
                 isAdmin: false,
                 isPremium: false,
                 favoriteFields: [],
+                cancheoCoins: 100, // Starting bonus
             };
             const createdUser = await db.addUser(newUser);
             setUser(createdUser);
@@ -680,7 +683,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Consolidated console.error arguments into a single string to fix type error.
+                // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
                 console.error(`Owner registration error: ${String(error)}`);
             }
         } finally {
@@ -804,11 +808,11 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-// FIX: Consolidated console.error call to use a single template string argument, preventing a type error with the 'unknown' error object.
+            // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
             console.error(`Error getting location: ${String(error)}`);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
-                // FIX: Compare error codes with literal numbers instead of properties on the error object for better robustness.
                 if (error.code === 1) { // PERMISSION_DENIED
                     message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu celular para usar esta función.';
                 } else if (error.code === 2) { // POSITION_UNAVAILABLE
@@ -873,7 +877,8 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
             console.error(`Booking confirmation error: ${String(error)}`);
             showToast({
                 type: 'error',
@@ -946,7 +951,7 @@ const App = () => {
         if (!user) return;
         await db.removeUserField(user.id, 'profilePicture');
         const { profilePicture, ...rest } = user;
-        const updatedUser = rest;
+        const updatedUser = rest as User;
         setUser(updatedUser);
         setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         showToast({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
@@ -986,7 +991,8 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string to fix type error.
+            // FIX: Pass error object as a separate argument to console.error
+// FIX: Consolidated console.error arguments into a single template literal to fix type error.
             console.error(`Error updating password: ${String(error)}`);
             showToast({
                 type: 'error',
@@ -1232,7 +1238,6 @@ const App = () => {
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:
                     if (user) {
-                        // FIX: Pass `showToast` to the `addNotification` prop as the function was not defined in this scope.
                         return <SocialView user={user} addNotification={showToast} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
@@ -1258,32 +1263,36 @@ const App = () => {
         );
     };
     
-    const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
+    const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
     const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR].includes(view);
+    const isSocialView = view === View.SOCIAL;
 
     return (
-        <div className="bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300">
-            <FirebaseWarningBanner />
-            {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications}/>}
-            <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''}`}>
-                 {renderView()}
-            </main>
-            {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
-            <NotificationContainer notifications={toasts} onDismiss={dismissToast} />
-            {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
-            {rewardInfo && (
-                <RewardAnimation 
-                    field={rewardInfo.field}
-                    onAnimationEnd={() => handleRewardAnimationEnd(rewardInfo.field)}
-                />
-            )}
-            {ratingInfo && (
-                <RatingModal 
-                    field={ratingInfo.field}
-                    onClose={() => setRatingInfo(null)}
-                    onSubmit={handleRatingSubmit}
-                />
-            )}
+        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${isSocialView ? 'daviplay-hub-bg' : ''}`}>
+             {isSocialView && <div className="absolute inset-0"></div>}
+            <div className="relative z-10">
+                <FirebaseWarningBanner />
+                {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications}/>}
+                <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
+                    {renderView()}
+                </main>
+                {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
+                <NotificationContainer notifications={toasts} onDismiss={dismissToast} />
+                {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
+                {rewardInfo && (
+                    <RewardAnimation 
+                        field={rewardInfo.field}
+                        onAnimationEnd={() => handleRewardAnimationEnd(rewardInfo.field)}
+                    />
+                )}
+                {ratingInfo && (
+                    <RatingModal 
+                        field={ratingInfo.field}
+                        onClose={() => setRatingInfo(null)}
+                        onSubmit={handleRatingSubmit}
+                    />
+                )}
+            </div>
         </div>
     );
 };

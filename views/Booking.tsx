@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod } from '../types';
@@ -23,12 +22,10 @@ interface BookingProps {
 }
 
 const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, selected: boolean, onSelect: () => void }> = ({ method, selected, onSelect }) => {
-    // Fix: Use type guards to correctly handle different payment method types and avoid property access errors.
     const renderIcon = () => {
         if (!('type' in method)) { // Handles { id: 'cash' }
             return <CashIcon className="h-8 w-8 text-gray-600 dark:text-gray-300" />;
         }
-        // It's a PaymentMethod
         switch (method.type) {
             case 'card':
                 return <CardBrandIcon brand={method.brand} className="h-8 w-auto" />;
@@ -44,11 +41,9 @@ const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, sele
     };
 
     const renderLabel = () => {
-        // Fix: Add a type guard for the 'cash' method to prevent runtime errors when accessing `method.type`.
         if (!('type' in method)) { // Handles { id: 'cash' }
             return { title: 'Pagar en el sitio', subtitle: 'Paga al llegar a la cancha' };
         }
-        // It's a PaymentMethod
         switch (method.type) {
             case 'card':
                 return { title: `${method.brand} **** ${method.last4}`, subtitle: `Vence ${method.expiryMonth}/${method.expiryYear}` };
@@ -105,9 +100,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, onConfirm, onBack, isB
     const totalExtras = (extras.balls * ballPrice) + (extras.vests * vestPrice);
     const totalPrice = useFreeTicket ? 0 : details.field.pricePerHour + totalExtras;
     
-    // FIX: Sanitize input value to remove non-digit characters for numeric fields.
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // FIX: Corrected object destructuring syntax from 'of' to '='.
         const { name, value } = e.target;
         if (name === 'cardNumber' || name === 'cvc') {
             const sanitizedValue = value.replace(/[^\d]/g, "");

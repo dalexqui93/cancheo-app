@@ -65,42 +65,47 @@ const ProfilePicture: React.FC<{
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 256;
-                    let width = img.width;
-                    let height = img.height;
+            if (file.size > 15 * 1024 * 1024) { // 15MB limit
+                alert("La imagen es demasiado grande. Por favor, elige una de menos de 15MB.");
+                event.target.value = '';
+                return;
+            }
 
-                    // Maintain aspect ratio
-                    if (width > height) {
-                        if (width > MAX_SIZE) {
-                            height *= MAX_SIZE / width;
-                            width = MAX_SIZE;
-                        }
-                    } else {
-                        if (height > MAX_SIZE) {
-                            width *= MAX_SIZE / height;
-                            height = MAX_SIZE;
-                        }
-                    }
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_SIZE = 256;
+                let width = img.width;
+                let height = img.height;
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 90% quality for profile pic
-                        onUpdate(dataUrl);
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
                     }
-                };
-                if (typeof e.target?.result === 'string') {
-                    img.src = e.target.result;
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
                 }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    onUpdate(dataUrl);
+                }
+                URL.revokeObjectURL(objectUrl);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                alert("No se pudo cargar el formato de imagen. Por favor, intenta con un archivo JPG o PNG.");
+            };
+            img.src = objectUrl;
         }
         event.target.value = '';
     };

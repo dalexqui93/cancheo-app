@@ -33,14 +33,39 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const result = e.target?.result;
-                if (typeof result === 'string') {
-                    setImagePreview(result);
+            if (file.size > 15 * 1024 * 1024) { // 15MB limit
+                alert("La imagen es demasiado grande. Por favor, elige una de menos de 15MB.");
+                event.target.value = '';
+                return;
+            }
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1280;
+                let width = img.width;
+                let height = img.height;
+    
+                if (width > MAX_WIDTH) {
+                    height = height * (MAX_WIDTH / width);
+                    width = MAX_WIDTH;
                 }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    setImagePreview(dataUrl);
+                }
+                URL.revokeObjectURL(objectUrl);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                alert("No se pudo cargar el formato de imagen. Intenta con JPG o PNG.");
+            };
+            img.src = objectUrl;
         }
     };
 

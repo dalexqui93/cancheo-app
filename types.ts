@@ -66,7 +66,7 @@ export interface Player {
     name: string;
     profilePicture?: string;
     position: 'Portero' | 'Defensa' | 'Medio' | 'Delantero' | 'Cualquiera';
-    level: 'Casual' | 'Intermedio' | 'Competitivo';
+    level: 'Casual' | 'Intermedio' | 'Competitivo' | number; // Can be a string or the new number level
     stats: PlayerStats;
     number?: number;
     // New fields for player profile
@@ -81,7 +81,13 @@ export interface Player {
     speed?: number; // 0-100
     stamina?: number; // 0-100
     specialSkills?: string[];
-    achievements?: string[];
+    achievements?: {
+        id: string;
+        name: string;
+        icon: string; // emoji
+        date: string; // ISO string
+    }[];
+    xp?: number; // 0-1000 per level
 }
 
 export interface TeamEvent {
@@ -221,6 +227,7 @@ export interface User {
     loyalty?: UserLoyalty;
     ownerStatus?: OwnerStatus;
     notifications?: Notification[];
+    cancheoCoins?: number;
 }
 
 export interface OwnerApplication {

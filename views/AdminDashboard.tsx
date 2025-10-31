@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -137,7 +133,7 @@ const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerFiel
                 acc[booking.userName] = (acc[booking.userName] || 0) + 1;
             }
             return acc;
-        }, {});
+        }, {} as Record<string, number>);
         return Object.entries(customerCounts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 3); // Top 3
@@ -261,7 +257,6 @@ const ComplexEditorModal: React.FC<{
             addNotification({ type: 'success', title: 'Ubicación Encontrada', message: 'Campos de dirección y coordenadas actualizados.' });
     
         } catch (err) {
-            // FIX: Consolidated console.error arguments into a single string.
             console.error(`Error getting location: ${String(err)}`);
             addNotification({ type: 'error', title: 'Error de Ubicación', message: 'No se pudo obtener la ubicación. Ingresa los datos manualmente.' });
         } finally {
@@ -300,43 +295,48 @@ const ComplexEditorModal: React.FC<{
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1024;
-                    const MAX_HEIGHT = 768;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
+            if (file.size > 15 * 1024 * 1024) { // 15MB limit
+                addNotification({ type: 'error', title: 'Archivo muy grande', message: 'Por favor, elige una imagen de menos de 15MB.' });
+                event.target.value = '';
+                return;
+            }
+    
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1024;
+                const MAX_HEIGHT = 768;
+                let width = img.width;
+                let height = img.height;
+    
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
                     }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        // Using JPEG for better compression, quality 0.8
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        setFormData(prev => ({...prev, images: [...prev.images, dataUrl]}));
-                        setFormErrors(prev => ({ ...prev, images: undefined }));
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
                     }
-                };
-                if (typeof e.target?.result === 'string') {
-                    img.src = e.target.result;
                 }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    setFormData(prev => ({...prev, images: [...prev.images, dataUrl]}));
+                    setFormErrors(prev => ({ ...prev, images: undefined }));
+                }
+                URL.revokeObjectURL(objectUrl);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                addNotification({ type: 'error', title: 'Error de imagen', message: 'No se pudo cargar el formato. Intenta con JPG o PNG.' });
+            };
+            img.src = objectUrl;
         }
     };
 
@@ -531,7 +531,7 @@ const ComplexEditorModal: React.FC<{
                                                                 <h4 className="font-semibold capitalize text-xs mb-1">{periodo}</h4>
                                                                 <div className="grid grid-cols-4 gap-2">
                                                                     {times.map(time => (
-                                                                        <button type="button" key={time} onClick={() => handleAddTimeToggle(index, periodo as any, time)} className={`py-1 px-2 rounded text-[10px] font-semibold ${subField.availableSlots[periodo as any]?.includes(time) ? 'bg-[var(--color-primary-600)] text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>{time}</button>
+                                                                        <button type="button" key={time} onClick={() => handleAddTimeToggle(index, periodo as any, time)} className={`py-1 px-2 rounded text-[10px] font-semibold ${subField.availableSlots[periodo as 'mañana' | 'tarde' | 'noche']?.includes(time) ? 'bg-[var(--color-primary-600)] text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>{time}</button>
                                                                     ))}
                                                                 </div>
                                                             </div>
@@ -1014,7 +1014,6 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setIsComplexEditorOpen(false);
             setEditingComplex(null);
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string.
             console.error(`Error saving complex: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo guardar el complejo.' });
         }
@@ -1033,7 +1032,6 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 message: `La cancha "${fieldToDelete.name}" ha sido eliminada.`,
             });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string.
             console.error(`Error deleting field: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar la cancha.' });
         } finally {
@@ -1056,7 +1054,6 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             props.addNotification({type: 'success', title: 'Anuncio Creado', message: 'El anuncio ahora es visible para los usuarios.'});
             setIsAnnouncementEditorOpen(false);
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string.
             console.error(`Error creating announcement: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo crear el anuncio.' });
             setIsAnnouncementEditorOpen(false);
@@ -1069,7 +1066,6 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             props.setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
             props.addNotification({ type: 'info', title: 'Anuncio Eliminado', message: 'El anuncio ha sido eliminado.' });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string.
             console.error(`Error deleting announcement: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el anuncio.' });
         }
@@ -1083,7 +1079,6 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
             setIsBookingModalOpen(false);
             props.addNotification({ type: 'success', title: 'Reserva(s) Creada(s)', message: `Se han creado ${newBookingsData.length} nueva(s) reserva(s).` });
         } catch (error) {
-            // FIX: Consolidated console.error arguments into a single string.
             console.error(`Error creating bookings: ${String(error)}`);
             props.addNotification({ type: 'error', title: 'Error', message: 'No se pudieron crear las reservas.' });
             setIsBookingModalOpen(false);

@@ -16,6 +16,17 @@ import PlayerProfileDetailView from './player_profile/PlayerProfileDetailView';
 import { TrophyIcon } from '../components/icons/TrophyIcon';
 import PremiumBadge from '../components/PremiumBadge';
 import { PlayerKickingBallIcon } from '../components/icons/PlayerKickingBallIcon';
+import { DumbbellIcon } from '../components/icons/DumbbellIcon';
+import { RunningIcon } from '../components/icons/RunningIcon';
+import { BatteryIcon } from '../components/icons/BatteryIcon';
+import { PencilIcon } from '../components/icons/PencilIcon';
+import { CalendarDaysIcon } from '../components/icons/CalendarDaysIcon';
+import { MedalIcon } from '../components/icons/MedalIcon';
+import { FireIcon } from '../components/icons/FireIcon';
+import { ForumIcon } from '../components/icons/ForumIcon';
+import { SwordsIcon } from '../components/icons/SwordsIcon';
+import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
+
 
 // --- MOCK DATA ---
 const mockPlayers: Player[] = [
@@ -117,22 +128,7 @@ interface SocialViewProps {
     setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
 
-type SocialSection = 'main' | 'tournaments' | 'my-team' | 'challenge' | 'find-players' | 'sports-forum';
-
-const SectionCard: React.FC<{ title: string; description: string; icon: React.ReactNode; onClick: () => void; isPremium?: boolean; isLocked?: boolean }> = ({ title, description, icon, onClick, isPremium = false, isLocked = false }) => (
-    <button onClick={onClick} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 text-left w-full hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex items-center gap-6">
-        <div className="flex-shrink-0 w-12 h-12 bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/50 rounded-lg flex items-center justify-center text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]">
-            {icon}
-        </div>
-        <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                {title}
-                {isPremium && isLocked && <PremiumBadge />}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">{description}</p>
-        </div>
-    </button>
-);
+type SocialSection = 'hub' | 'tournaments' | 'my-team' | 'challenge' | 'find-players' | 'sports-forum';
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
     return (
@@ -152,13 +148,170 @@ const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = 
     );
 };
 
+// --- Player Hub Components ---
+const HubWidget: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, icon, children, className = '' }) => (
+    <div className={`bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4 ${className}`}>
+        <div className="flex items-center gap-3 mb-3">
+            <div className="text-[var(--color-primary-400)]">{icon}</div>
+            <h3 className="font-bold text-white/90">{title}</h3>
+        </div>
+        <div>{children}</div>
+    </div>
+);
+
+const PlayerCardComponent: React.FC<{ player: Player, onNavigateToCreator: () => void }> = ({ player, onNavigateToCreator }) => {
+    const xpPercentage = ((player.xp || 0) / 1000) * 100;
+
+    const Stat: React.FC<{ icon: React.ReactNode; label: string; value: number }> = ({ icon, label, value }) => (
+        <div className="text-center">
+            <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-1 text-[var(--color-primary-400)]">{icon}</div>
+            <p className="font-black text-2xl">{value}</p>
+            <p className="text-xs font-semibold text-white/70 uppercase">{label}</p>
+        </div>
+    );
+    
+    return (
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-lg border border-white/10 rounded-2xl p-6 relative holographic-shine h-full flex flex-col justify-between">
+            <div>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-sm font-bold text-white/70">NIVEL {player.level}</p>
+                        <h2 className="text-3xl font-black tracking-tight">{player.name}</h2>
+                        <p className="font-semibold text-[var(--color-primary-400)]">{player.position}</p>
+                    </div>
+                     <div className="w-20 h-20 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
+                        {player.profilePicture ? (
+                            <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <UserIcon className="w-10 h-10 text-white/70" />
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-6">
+                    <div className="flex justify-between items-center text-xs font-bold mb-1">
+                        <span className="text-white/70">PROGRESO</span>
+                        <span>{player.xp || 0} / 1000 XP</span>
+                    </div>
+                    <div className="w-full bg-black/30 rounded-full h-2.5">
+                        <div className="bg-[var(--color-primary-500)] h-2.5 rounded-full progress-bar-fill" style={{ width: `${xpPercentage}%` }}></div>
+                    </div>
+                </div>
+
+                <div className="mt-8 grid grid-cols-3 gap-4">
+                    <Stat icon={<DumbbellIcon className="w-6 h-6"/>} label="Fuerza" value={player.strength || 0} />
+                    <Stat icon={<RunningIcon className="w-6 h-6"/>} label="Velocidad" value={player.speed || 0} />
+                    <Stat icon={<BatteryIcon className="w-6 h-6"/>} label="Resistencia" value={player.stamina || 0} />
+                </div>
+            </div>
+             <button onClick={onNavigateToCreator} className="mt-6 w-full text-center bg-white/10 hover:bg-white/20 transition-colors font-bold py-3 px-5 rounded-lg flex items-center justify-center gap-2">
+                <PencilIcon className="w-5 h-5"/>
+                Editar Perfil
+            </button>
+        </div>
+    );
+};
+
+const UpcomingMatchWidget: React.FC = () => {
+    const nextMatch = mockSchedule.find(e => e.type === 'match' && e.date > new Date());
+    
+    if (!nextMatch) {
+        return <HubWidget title="Próximo Partido" icon={<CalendarDaysIcon className="w-5 h-5"/>}><p className="text-sm text-white/60">No hay partidos programados.</p></HubWidget>;
+    }
+
+    return (
+        <HubWidget title="Próximo Partido" icon={<CalendarDaysIcon className="w-5 h-5"/>}>
+            <p className="font-bold text-lg">{nextMatch.title}</p>
+            <p className="text-sm text-white/70">{nextMatch.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+            <p className="text-xs text-white/50">@{nextMatch.location}</p>
+        </HubWidget>
+    );
+};
+
+const DailyChallengesWidget: React.FC = () => (
+    <HubWidget title="Desafíos Diarios" icon={<TrophyIcon className="w-5 h-5"/>}>
+        <div className="space-y-2">
+            <div className="text-sm bg-black/20 p-2 rounded-md">
+                <p className="font-semibold">Juega 1 partido</p>
+                <p className="text-xs text-[var(--color-primary-400)] font-bold">+150 XP</p>
+            </div>
+            <div className="text-sm bg-black/20 p-2 rounded-md">
+                <p className="font-semibold">Reacciona a 3 posts en el foro</p>
+                <p className="text-xs text-[var(--color-primary-400)] font-bold">+50 XP</p>
+            </div>
+        </div>
+    </HubWidget>
+);
+
+const StreakWidget: React.FC = () => (
+    <HubWidget title="Mi Racha" icon={<FireIcon className="w-5 h-5"/>} className="text-center">
+        <p className="text-3xl font-black">3 <span className="text-lg">V</span></p>
+        <p className="text-xs text-white/60">Victorias seguidas</p>
+    </HubWidget>
+);
+
+const LatestAchievementWidget: React.FC = () => (
+    <HubWidget title="Último Logro" icon={<MedalIcon className="w-5 h-5"/>} className="text-center">
+        <p className="text-3xl">🏆</p>
+        <p className="text-xs text-white/60 font-semibold truncate">Goleador del Torneo</p>
+    </HubWidget>
+);
+
+
+const HubNavigation: React.FC<{ onNavigate: (section: SocialSection) => void }> = ({ onNavigate }) => {
+    const navItems = [
+        { section: 'sports-forum' as SocialSection, icon: <ForumIcon className="w-7 h-7" />, label: 'Foro' },
+        { section: 'my-team' as SocialSection, icon: <ShieldIcon className="w-7 h-7" />, label: 'Mi Equipo' },
+        { section: 'tournaments' as SocialSection, icon: <TrophyIcon className="w-7 h-7" />, label: 'Torneos' },
+        { section: 'challenge' as SocialSection, icon: <SwordsIcon className="w-7 h-7" />, label: 'Retar' },
+        { section: 'find-players' as SocialSection, icon: <UserPlusIcon className="w-7 h-7" />, label: 'Fichajes' },
+    ];
+    return (
+        <div className="mt-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {navItems.map(item => (
+                    <button key={item.section} onClick={() => onNavigate(item.section)} className="text-center p-3 rounded-lg hover:bg-white/10 transition-colors">
+                        <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center text-[var(--color-primary-400)] mb-1">
+                            {item.icon}
+                        </div>
+                        <p className="text-xs font-bold">{item.label}</p>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const PlayerHub: React.FC<{ user: User; onSectionNavigate: (section: SocialSection) => void; onNavigateToCreator: () => void; }> = ({ user, onSectionNavigate, onNavigateToCreator }) => {
+    if (!user.playerProfile) return null;
+    return (
+        <div className="p-4 sm:p-6 pb-28 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <PlayerCardComponent player={user.playerProfile} onNavigateToCreator={onNavigateToCreator} />
+                </div>
+                <div className="space-y-4">
+                    <UpcomingMatchWidget />
+                    <DailyChallengesWidget />
+                    <div className="grid grid-cols-2 gap-4">
+                        <StreakWidget />
+                        <LatestAchievementWidget />
+                    </div>
+                </div>
+            </div>
+            <HubNavigation onNavigate={onSectionNavigate} />
+        </div>
+    );
+};
+
+// --- Main Social View ---
+
 const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNavigate, setIsPremiumModalOpen }) => {
-    const [section, setSection] = useState<SocialSection>('main');
+    const [section, setSection] = useState<SocialSection>('hub');
     const [tournaments, setTournaments] = useState<Tournament[]>(mockTournaments);
     const [teams, setTeams] = useState<Team[]>(mockTeams);
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
-    // Find the user's team from the mock data, or leave it undefined if they don't have one.
     const [userTeam, setUserTeam] = useState<Team | undefined>(teams.find(t => t.id === user.teamId));
 
     const handleUpdateTeam = (updatedTeam: Team) => {
@@ -196,38 +349,36 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
         });
     };
 
-    const handlePremiumSectionClick = (action: () => void) => {
-        if (user.isPremium) {
-            action();
-        } else {
-            setIsPremiumModalOpen(true);
-        }
+    const handlePremiumSectionClick = (section: SocialSection) => {
+        // This function now correctly handles navigation between hub sections.
+        // The premium check that was here before is temporarily disabled.
+        setSection(section);
     };
 
     const renderContent = () => {
         if (!user.playerProfile) {
-            return <PlayerProfileOnboarding onNavigate={onNavigate} />;
+            return <div className="p-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
         }
 
         switch (section) {
             case 'tournaments':
                 return <TournamentsView 
                             tournaments={tournaments} 
-                            onBack={() => setSection('main')} 
+                            onBack={() => setSection('hub')} 
                             addNotification={addNotification} 
                             user={user} />;
             case 'my-team':
                 return <MyTeamDashboard
                     team={userTeam}
-                    onBack={() => setSection('main')}
+                    onBack={() => setSection('hub')}
                     addNotification={addNotification}
                     onUpdateTeam={handleUpdateTeam}
                     onCreateTeam={handleCreateTeam}
                     allPlayers={mockPlayers}
-                 />
+                 />;
             case 'challenge':
                 const otherTeams = teams.filter(t => t.id !== userTeam?.id);
-                return <ChallengeView teams={otherTeams} onBack={() => setSection('main')} addNotification={addNotification} />;
+                return <ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} />;
             case 'find-players':
                 if (viewingPlayerProfile) {
                     return <PlayerProfileDetailView 
@@ -240,36 +391,24 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
                 const availablePlayers = mockPlayers.filter(p => !userTeamPlayers.find(ut => ut.id === p.id));
                 return <FindPlayersView 
                             players={availablePlayers} 
-                            onBack={() => setSection('main')} 
+                            onBack={() => setSection('hub')} 
                             onRecruit={handleRecruit} 
                             onViewProfile={setViewingPlayerProfile} 
                         />;
             case 'sports-forum':
-                return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('main')} />;
+                return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
             default:
-                return (
-                    <>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">DaviPlay</h1>
-                        <div className="space-y-4">
-                            <SectionCard title="Mi Perfil de Jugador" description="Crea y personaliza tu avatar deportivo." icon={<span className="text-3xl">👕</span>} onClick={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
-                            <SectionCard title="Foro Deportivo" description="Publica, debate y opina sobre deportes." icon={<span className="text-2xl">💬</span>} onClick={() => handlePremiumSectionClick(() => setSection('sports-forum'))} isPremium isLocked={!user.isPremium} />
-                            <SectionCard title="Torneos" description="Compite por la gloria y los premios." icon={<span className="text-2xl">🏆</span>} onClick={() => handlePremiumSectionClick(() => setSection('tournaments'))} isPremium isLocked={!user.isPremium} />
-                            <SectionCard title="Mi Equipo" description="Gestiona tu plantilla, tácticas y más." icon={<span className="text-2xl">🛡️</span>} onClick={() => handlePremiumSectionClick(() => setSection('my-team'))} isPremium isLocked={!user.isPremium} />
-                            <SectionCard title="Retar Equipos" description="Encuentra rivales y organiza partidos." icon={<span className="text-2xl">⚔️</span>} onClick={() => handlePremiumSectionClick(() => setSection('challenge'))} isPremium isLocked={!user.isPremium} />
-                            <SectionCard title="Buscar Jugadores" description="Recluta nuevos talentos para tu equipo." icon={<span className="text-2xl">🕵️</span>} onClick={() => handlePremiumSectionClick(() => setSection('find-players'))} isPremium isLocked={!user.isPremium} />
-                        </div>
-                    </>
-                );
+                return <PlayerHub user={user} onSectionNavigate={handlePremiumSectionClick} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
         }
     };
 
-    return <div className="animate-fade-in">{renderContent()}</div>;
+    return <div className="animate-fade-in text-white">{renderContent()}</div>;
 };
 
 // --- SUB-VIEWS ---
 
 const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, text }) => (
-    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
+    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
         <ChevronLeftIcon className="h-5 w-5" />
         {text}
     </button>
@@ -282,12 +421,12 @@ const TournamentsView: React.FC<{
     user: User;
 }> = ({ tournaments, onBack, addNotification, user }) => {
     return (
-        <div>
+        <div className="p-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
-                <TrophyIcon className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500" />
-                <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Torneos</h2>
-                <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
+                <TrophyIcon className="mx-auto h-16 w-16 text-gray-400" />
+                <h2 className="mt-4 text-2xl font-bold tracking-tight">Próximamente: Torneos</h2>
+                <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">
                     ¡Estamos preparando todo para que puedas competir por la gloria! La sección de torneos estará disponible muy pronto.
                 </p>
             </div>
@@ -299,28 +438,28 @@ const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, o
     const sortedHistory = (team.matchHistory || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return (
-        <div>
+        <div className="p-4">
              <BackButton onClick={onBack} text="Volver a Retar Equipos" />
-             <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
+             <div className="bg-black/20 backdrop-blur-md border border-white/10 p-6 rounded-2xl">
                 <div className="flex items-center gap-4 mb-6">
-                    {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-20 h-20 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700" /> : <ShieldIcon className="w-20 h-20 text-gray-400" />}
+                    {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-20 h-20 rounded-full object-cover border-4 border-gray-700" /> : <ShieldIcon className="w-20 h-20 text-gray-400" />}
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
-                        <p className="font-semibold text-gray-500 dark:text-gray-400">{team.level}</p>
+                        <p className="font-semibold text-gray-400">{team.level}</p>
                     </div>
                 </div>
                  <div className="grid grid-cols-3 gap-4 text-center">
                      <div>
-                         <p className="text-3xl font-black text-green-500">{team.stats.wins}</p>
-                         <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold uppercase">Victorias</p>
+                         <p className="text-3xl font-black text-green-400">{team.stats.wins}</p>
+                         <p className="text-sm text-gray-400 font-semibold uppercase">Victorias</p>
                      </div>
                      <div>
-                         <p className="text-3xl font-black text-yellow-500">{team.stats.draws}</p>
-                         <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold uppercase">Empates</p>
+                         <p className="text-3xl font-black text-yellow-400">{team.stats.draws}</p>
+                         <p className="text-sm text-gray-400 font-semibold uppercase">Empates</p>
                      </div>
                      <div>
-                         <p className="text-3xl font-black text-red-500">{team.stats.losses}</p>
-                         <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold uppercase">Derrotas</p>
+                         <p className="text-3xl font-black text-red-400">{team.stats.losses}</p>
+                         <p className="text-sm text-gray-400 font-semibold uppercase">Derrotas</p>
                      </div>
                  </div>
                  <div className="mt-8">
@@ -338,28 +477,28 @@ const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, o
                                 let resultColor = '';
                                 if (scoreUs > scoreThem) {
                                     result = 'G';
-                                    resultColor = 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+                                    resultColor = 'bg-green-900/50 text-green-300';
                                 } else if (scoreUs < scoreThem) {
                                     result = 'P';
-                                    resultColor = 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+                                    resultColor = 'bg-red-900/50 text-red-300';
                                 } else {
                                     result = 'E';
-                                    resultColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+                                    resultColor = 'bg-yellow-900/50 text-yellow-300';
                                 }
                                 
                                 return (
-                                    <div key={match.id} className="bg-slate-50 dark:bg-gray-700/50 p-3 rounded-lg flex items-center gap-4">
+                                    <div key={match.id} className="bg-gray-700/50 p-3 rounded-lg flex items-center gap-4">
                                         <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-black text-lg ${resultColor}`}>{result}</div>
                                         <div className="flex-grow">
                                             <p className="font-semibold">vs. {opponentName}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                            <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                         </div>
                                         <div className="font-bold text-lg">{scoreUs} - {scoreThem}</div>
                                     </div>
                                 );
                             })
                         ) : (
-                            <p className="text-center py-4 text-gray-500 dark:text-gray-400">Este equipo aún no ha jugado partidos.</p>
+                            <p className="text-center py-4 text-gray-400">Este equipo aún no ha jugado partidos.</p>
                         )}
                      </div>
                  </div>
@@ -387,9 +526,9 @@ const ChallengeView: React.FC<{ teams: Team[], onBack: () => void, addNotificati
     }
 
     return (
-        <div>
+        <div className="p-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">Retar Equipos</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-6">Retar Equipos</h1>
              <div className="relative mb-6">
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
                 <input
@@ -397,30 +536,30 @@ const ChallengeView: React.FC<{ teams: Team[], onBack: () => void, addNotificati
                     placeholder="Busca un equipo por su nombre..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full py-3 pl-12 pr-4 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-[var(--color-primary-400)] text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm"
+                    className="w-full py-3 pl-12 pr-4 border-white/20 bg-black/20 rounded-full focus:ring-2 focus:ring-[var(--color-primary-400)] text-white placeholder-gray-400 shadow-sm"
                 />
             </div>
             <div className="space-y-4">
                 {filteredTeams.length > 0 ? filteredTeams.map(team => (
-                    <div key={team.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
+                    <div key={team.id} className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-3">
                             {team.logo ? <img src={team.logo} alt="logo" className="w-10 h-10 rounded-full object-cover" /> : <ShieldIcon className="w-10 h-10 text-gray-400"/>}
                             <div>
                                 <p className="font-bold text-lg">{team.name}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{team.level} - {team.players.length} jugadores</p>
+                                <p className="text-sm text-gray-400">{team.level} - {team.players.length} jugadores</p>
                             </div>
                         </div>
                         <div className="flex gap-2">
-                             <button onClick={() => setSelectedTeam(team)} className="bg-slate-100 text-slate-700 dark:bg-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors text-sm">
+                             <button onClick={() => setSelectedTeam(team)} className="bg-gray-700 text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
                                 Ver Perfil
                             </button>
-                            <button onClick={() => handleChallenge(team)} className="bg-[var(--color-primary-100)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/50 dark:text-[var(--color-primary-400)] font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-200)] dark:hover:bg-[var(--color-primary-900)]/80 transition-colors text-sm">
+                            <button onClick={() => handleChallenge(team)} className="bg-[var(--color-primary-900)]/50 text-[var(--color-primary-400)] font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-900)]/80 transition-colors text-sm">
                                 Retar
                             </button>
                         </div>
                     </div>
                 )) : (
-                    <p className="text-center py-10 text-gray-500 dark:text-gray-400">No se encontraron equipos con ese nombre.</p>
+                    <p className="text-center py-10 text-gray-400">No se encontraron equipos con ese nombre.</p>
                 )}
             </div>
         </div>
@@ -434,26 +573,26 @@ const FindPlayersView: React.FC<{
     onViewProfile: (player: Player) => void 
 }> = ({ players, onBack, onRecruit, onViewProfile }) => {
     return (
-        <div>
+        <div className="p-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-6">Buscar Jugadores</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-6">Buscar Jugadores</h1>
             <div className="space-y-4">
                 {players.map(player => (
-                    <div key={player.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
+                    <div key={player.id} className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-400"/>}
+                            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-gray-400"/>}
                             </div>
                             <div>
                                 <p className="font-bold text-lg">{player.name}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{player.position} - Nivel: {player.level}</p>
+                                <p className="text-sm text-gray-400">{player.position} - Nivel: {player.level}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => onViewProfile(player)} className="bg-slate-100 text-slate-700 dark:bg-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors text-sm">
+                            <button onClick={() => onViewProfile(player)} className="bg-gray-700 text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
                                 Ver Perfil
                             </button>
-                            <button onClick={() => onRecruit(player)} className="bg-[var(--color-primary-100)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/50 dark:text-[var(--color-primary-400)] font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-200)] dark:hover:bg-[var(--color-primary-900)]/80 transition-colors text-sm">
+                            <button onClick={() => onRecruit(player)} className="bg-[var(--color-primary-900)]/50 text-[var(--color-primary-400)] font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-900)]/80 transition-colors text-sm">
                                 Reclutar
                             </button>
                         </div>
