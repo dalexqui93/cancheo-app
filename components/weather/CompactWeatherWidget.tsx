@@ -10,9 +10,10 @@ import AnimatedWeatherBackground from './AnimatedWeatherBackground';
 interface CompactWeatherWidgetProps {
     weatherData: WeatherData | null;
     isLoading: boolean;
+    onRefresh: () => void;
 }
 
-const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData, isLoading }) => {
+const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData, isLoading, onRefresh }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const bestTimes = useMemo(() => {
@@ -20,7 +21,7 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
         return findBestPlayingTimes(weatherData.hourly);
     }, [weatherData]);
 
-    if (isLoading) {
+    if (isLoading && !weatherData) { // Muestra el spinner solo en la carga inicial
         return (
             <div className="w-full max-w-sm mx-auto bg-black/20 backdrop-blur-md rounded-xl p-3 text-white/80 text-sm flex items-center justify-center gap-2">
                 <SpinnerIcon className="w-5 h-5" />
@@ -37,7 +38,7 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
         );
     }
 
-    const { current } = weatherData;
+    const { current, locationName } = weatherData;
     const condition = mapWmoCodeToIcon(current.weatherCode);
 
     return (
@@ -45,6 +46,24 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
             <div className="absolute inset-0">
                 <AnimatedWeatherBackground condition={condition} />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            </div>
+            
+             <div className="absolute top-2 right-2 z-20">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLoading) {
+                            onRefresh();
+                        }
+                    }}
+                    disabled={isLoading}
+                    className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-colors disabled:cursor-wait"
+                    title="Actualizar clima"
+                >
+                    <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.691L7.985 5.989m11.667 0l-3.181 3.183m0 0l-3.181-3.183" />
+                    </svg>
+                </button>
             </div>
             
             <button
@@ -59,8 +78,9 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
                         <p className="text-xs opacity-80">Sensación {Math.round(current.apparentTemperature)}°</p>
                     </div>
                 </div>
-                <div className="text-right">
-                    <p className="font-semibold capitalize">{condition === 'partly-cloudy' ? 'Parcialmente Nublado' : condition}</p>
+                <div className="text-right flex-grow min-w-0">
+                    {locationName && <p className="font-bold text-sm truncate">{locationName}</p>}
+                    <p className={`font-semibold capitalize text-sm ${locationName ? 'opacity-80' : ''}`}>{condition === 'partly-cloudy' ? 'Parc. Nublado' : condition}</p>
                     <div className="flex items-center justify-end gap-2 text-xs opacity-80">
                          <span>💧 {current.precipitationProbability}%</span>
                          <span>💨 {Math.round(current.windSpeed)} km/h</span>

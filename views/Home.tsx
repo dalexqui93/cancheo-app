@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData } from '../types';
 import FieldCard from '../components/FieldCard';
 import { SearchIcon } from '../components/icons/SearchIcon';
-import { CompassIcon } from '../components/icons/CompassIcon';
+import { LocationIcon } from '../components/icons/LocationIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import FieldCardSkeleton from '../components/FieldCardSkeleton';
 import CompactWeatherWidget from '../components/weather/CompactWeatherWidget';
@@ -24,9 +24,10 @@ interface HomeProps {
     isSearchingLocation: boolean;
     weatherData: WeatherData | null;
     isWeatherLoading: boolean;
+    onRefreshWeather: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading }) => {
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const handleSearch = (e: React.FormEvent) => {
@@ -86,14 +87,15 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                             type="button"
                             onClick={onSearchByLocation}
                             disabled={isSearchingLocation}
-                            className={`w-14 h-14 p-2 rounded-full shadow-sm transition-all duration-300 hover:scale-110 overflow-hidden ${isSearchingLocation ? 'animate-pulse-glow bg-white/20 border border-white/30 flex items-center justify-center' : 'bg-black/20 backdrop-blur-sm'}`}
+                            className="flex-shrink-0 w-14 h-14 flex items-center justify-center bg-[var(--color-primary-600)] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[var(--color-primary-500)] disabled:bg-[var(--color-primary-400)] disabled:cursor-not-allowed"
                             title="Buscar cerca de mí"
+                            aria-label="Buscar canchas cerca de mi ubicación actual"
                         >
-                            {isSearchingLocation ? <SpinnerIcon className="w-10 h-10 text-[var(--color-primary-500)]" /> : <img src="https://i.pinimg.com/736x/c5/76/ae/c576aeb1e92f668240e59401297409f3.jpg" alt="Buscar cerca de mí" className="w-full h-full object-cover rounded-full" />}
+                            {isSearchingLocation ? <SpinnerIcon className="w-8 h-8" /> : <LocationIcon className="w-8 h-8" />}
                         </button>
                     </form>
                     <div className="text-white pt-4">
-                        <CompactWeatherWidget weatherData={weatherData} isLoading={isWeatherLoading} />
+                        <CompactWeatherWidget weatherData={weatherData} isLoading={isWeatherLoading} onRefresh={onRefreshWeather} />
                     </div>
                 </div>
             </header>

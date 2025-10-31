@@ -96,7 +96,9 @@ const ProfilePicture: React.FC<{
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.drawImage(img, 0, 0, width, height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    // Comprimir la imagen a formato JPEG con una calidad del 70%
+                    // para reducir significativamente el tamaño del archivo antes de subirlo.
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                     onUpdate(dataUrl);
                 }
                 URL.revokeObjectURL(objectUrl);

@@ -380,6 +380,7 @@ export interface WeatherData {
   lastUpdated: Date;
   current: HourlyData;
   hourly: HourlyData[];
+  locationName?: string;
 }
 
 export interface Favorability {
