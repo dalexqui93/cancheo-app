@@ -262,7 +262,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
 
             <div className="mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                    <div className="lg:col-span-2 space-y-10">
+                    <div className="lg:col-span-2 space-y-10 pb-40 lg:pb-0">
                         <div className="flex justify-between items-start gap-4">
                             <div>
                                 <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-1">{complex.name}</h1>
@@ -274,6 +274,19 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                             <button onClick={handleToggleFavoriteClick} className={`p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-full shadow-sm transition-transform ${isBouncing ? 'animate-heartbeat' : 'transform hover:scale-110'} flex-shrink-0 mt-2`} aria-label={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}>
                                 <HeartIcon isFilled={isFavorite} className="w-6 h-6" />
                             </button>
+                        </div>
+
+                        {/* Mobile Booking Widget */}
+                        <div className="lg:hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
+                            <div className="mb-4">
+                                <label htmlFor="field-select-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Elige un campo</label>
+                                <div className="relative"><select id="field-select-mobile" value={selectedFieldId} onChange={handleFieldChange} className="w-full appearance-none p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 dark:text-gray-200 font-semibold">{complex.fields.map(f => (<option key={f.id} value={f.id}>{f.name.split(' - ').pop() || f.name} ({f.size})</option>))}</select><ChevronDownIcon className="h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/></div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${selectedField.pricePerHour.toLocaleString('es-CO')}<span className="text-base font-normal text-gray-500 dark:text-gray-400"> / hora</span></p>
+                            </div>
+                            {selectedField.loyaltyEnabled && (<div className="flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-400 mt-2"><span className="text-lg">🎟️</span><span>Juega {selectedField.loyaltyGoal} y obtén 1 gratis</span></div>)}
+                            <BookingWidget field={selectedField} uniqueId="mobile" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} weatherData={weatherData} />
                         </div>
 
                         <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
@@ -298,22 +311,10 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                             <div className="space-y-6">{selectedField.reviews.slice(0, 2).map(review => (<div key={review.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700"><div className="flex items-start"><div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center mr-4 flex-shrink-0"><UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-400"/></div><div className="flex-1"><div className="flex items-center mb-1"><p className="font-bold text-gray-800 dark:text-gray-200">{review.author}</p><div className="ml-auto"><StarRating rating={review.rating} /></div></div><p className="text-gray-700 dark:text-gray-300 leading-relaxed">{review.comment}</p></div></div></div>))}</div>
                             {selectedField.reviews.length > 2 && (<div className="mt-6 text-center"><button onClick={() => setIsReviewsModalOpen(true)} className="font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">Mostrar las {selectedField.reviews.length} opiniones</button></div>)}
                         </div>
-
-                        <div className="lg:hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
-                            <div className="mb-4">
-                                <label htmlFor="field-select-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Elige un campo</label>
-                                <div className="relative"><select id="field-select-mobile" value={selectedFieldId} onChange={handleFieldChange} className="w-full appearance-none p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 dark:text-gray-200 font-semibold">{complex.fields.map(f => (<option key={f.id} value={f.id}>{f.name.split(' - ').pop() || f.name} ({f.size})</option>))}</select><ChevronDownIcon className="h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/></div>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${selectedField.pricePerHour.toLocaleString('es-CO')}<span className="text-base font-normal text-gray-500 dark:text-gray-400"> / hora</span></p>
-                            </div>
-                            {selectedField.loyaltyEnabled && (<div className="flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-400 mt-2"><span className="text-lg">🎟️</span><span>Juega {selectedField.loyaltyGoal} y obtén 1 gratis</span></div>)}
-                            <BookingWidget field={selectedField} uniqueId="mobile" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} weatherData={weatherData} />
-                        </div>
                     </div>
 
                     <aside className="hidden lg:block lg:col-span-1">
-                        <div className="lg:sticky lg:top-24 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
+                        <div className="lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-y-auto bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
                             <div className="mb-4">
                                 <label htmlFor="field-select-desktop" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Elige un campo</label>
                                 <div className="relative"><select id="field-select-desktop" value={selectedFieldId} onChange={handleFieldChange} className="w-full appearance-none p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 dark:text-gray-200 font-semibold">{complex.fields.map(f => (<option key={f.id} value={f.id}>{f.name.split(' - ').pop() || f.name} ({f.size})</option>))}</select><ChevronDownIcon className="h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/></div>

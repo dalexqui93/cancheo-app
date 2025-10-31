@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 /**
  * =============================================================================
@@ -271,11 +270,16 @@ const owner2ToSeed: Omit<User, 'id'> = {
 
 const fieldsToSeed: Omit<SoccerField, 'id'>[] = [
   {
-    complexId: 'complex-1', ownerId: 'owner-1', name: 'El Templo del Fútbol - Cancha 1', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 90000, rating: 4.8,
+    complexId: 'complex-1', ownerId: 'owner-1', name: 'El Templo del Fútbol - Cancha 1', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 90000, rating: 4.5,
     images: ['https://i.pinimg.com/736x/47/33/3e/47333e07ed4963aa120c821b597d0f8e.jpg', 'https://i.pinimg.com/736x/ee/5b/8d/ee5b8d1fe632960104478b7c5b883c85.jpg'],
     description: 'El mejor lugar para jugar con tus amigos. Canchas de última generación con césped sintético de alta calidad.',
     services: [ { name: 'Vestuarios', icon: '👕' }, { name: 'Cafetería', icon: '☕' }, { name: 'Parqueadero', icon: '🅿️' } ],
-    reviews: [ { id: 'r1', author: 'Juan Perez', rating: 5, comment: 'Excelente cancha, muy bien cuidada.', timestamp: new Date() } ],
+    reviews: [
+        { id: 'r1', author: 'Juan Perez', rating: 5, comment: 'Excelente cancha, muy bien cuidada. El césped está en perfectas condiciones.', timestamp: new Date('2024-07-20T10:00:00Z') },
+        { id: 'r2', author: 'Maria Rodriguez', rating: 4, comment: 'Muy buenas instalaciones, aunque a veces es difícil conseguir reserva. Recomiendo planificar con tiempo.', timestamp: new Date('2024-07-18T15:30:00Z') },
+        { id: 'r10', author: 'Carlos Sánchez', rating: 5, comment: '¡De las mejores de la ciudad! La atención en la cafetería también es de primera.', timestamp: new Date('2024-07-15T20:00:00Z') },
+        { id: 'r11', author: 'Laura Gómez', rating: 4, comment: 'Me encanta este lugar. Solo sugeriría mejorar un poco la iluminación para los partidos nocturnos.', timestamp: new Date('2024-07-12T21:00:00Z') }
+    ],
     size: '5v5', latitude: 4.648283, longitude: -74.088951, loyaltyEnabled: true, loyaltyGoal: 7,
   },
   {
