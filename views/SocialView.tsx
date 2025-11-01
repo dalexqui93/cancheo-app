@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation } from '../types';
+import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { ShieldIcon } from '../components/icons/ShieldIcon';
@@ -126,9 +127,9 @@ interface SocialViewProps {
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onNavigate: (view: View) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
+    section: SocialSection;
+    setSection: (section: SocialSection) => void;
 }
-
-type SocialSection = 'hub' | 'tournaments' | 'my-team' | 'challenge' | 'find-players' | 'sports-forum';
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
     return (
@@ -306,15 +307,13 @@ const PlayerHub: React.FC<{ user: User; onSectionNavigate: (section: SocialSecti
 
 // --- Main Social View ---
 
-// FIX: Add BackButton component used in sub-views
 const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, text }) => (
-    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
         <ChevronLeftIcon className="h-5 w-5" />
         {text}
     </button>
 );
 
-// FIX: Add placeholder component for ChallengeView
 const ChallengeView: React.FC<{
     teams: Team[];
     onBack: () => void;
@@ -322,17 +321,16 @@ const ChallengeView: React.FC<{
 }> = ({ teams, onBack, addNotification }) => (
     <div className="p-4 pb-[5.5rem] md:pb-4">
         <BackButton onClick={onBack} text="Volver a DaviPlay" />
-        <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
+        <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
             <SwordsIcon className="mx-auto h-16 w-16 text-gray-400" />
-            <h2 className="mt-4 text-2xl font-bold tracking-tight">Próximamente: Retar Equipos</h2>
-            <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Retar Equipos</h2>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                 Esta función para desafiar a otros equipos estará disponible pronto.
             </p>
         </div>
     </div>
 );
 
-// FIX: Add placeholder component for FindPlayersView
 const FindPlayersView: React.FC<{
     players: Player[];
     onBack: () => void;
@@ -341,18 +339,17 @@ const FindPlayersView: React.FC<{
 }> = ({ players, onBack, onRecruit, onViewProfile }) => (
     <div className="p-4 pb-[5.5rem] md:pb-4">
         <BackButton onClick={onBack} text="Volver a DaviPlay" />
-        <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
+        <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
             <UserPlusIcon className="mx-auto h-16 w-16 text-gray-400" />
-            <h2 className="mt-4 text-2xl font-bold tracking-tight">Próximamente: Fichajes</h2>
-            <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Fichajes</h2>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                 El mercado de fichajes para encontrar y reclutar nuevos jugadores para tu equipo estará disponible pronto.
             </p>
         </div>
     </div>
 );
 
-const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNavigate, setIsPremiumModalOpen }) => {
-    const [section, setSection] = useState<SocialSection>('hub');
+const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(mockTournaments);
     const [teams, setTeams] = useState<Team[]>(mockTeams);
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
@@ -446,8 +443,11 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
                 return <PlayerHub user={user} onSectionNavigate={handlePremiumSectionClick} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
         }
     };
+    
+    const socialSectionsWithDarkBg = ['hub', 'my-team'];
+    const hasDarkBg = socialSectionsWithDarkBg.includes(section);
 
-    return <div className="animate-fade-in text-white">{renderContent()}</div>;
+    return <div className={`animate-fade-in ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>{renderContent()}</div>;
 };
 
 // --- SUB-VIEWS ---
@@ -461,10 +461,10 @@ const TournamentsView: React.FC<{
     return (
         <div className="p-4 pb-[5.5rem] md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <div className="text-center py-20 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl mt-6">
+            <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
                 <TrophyIcon className="mx-auto h-16 w-16 text-gray-400" />
-                <h2 className="mt-4 text-2xl font-bold tracking-tight">Próximamente: Torneos</h2>
-                <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">
+                <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Torneos</h2>
+                <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                     ¡Estamos preparando todo para que puedas competir por la gloria! La sección de torneos estará disponible muy pronto.
                 </p>
             </div>
@@ -545,5 +545,4 @@ const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, o
     );
 };
 
-// FIX: Add default export to fix module resolution error
 export default SocialView;

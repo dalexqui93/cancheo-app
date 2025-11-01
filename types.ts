@@ -244,6 +244,8 @@ export interface OwnerApplication {
     rejectionReason?: string;
 }
 
+export type SocialSection = 'hub' | 'tournaments' | 'my-team' | 'challenge' | 'find-players' | 'sports-forum';
+
 export enum View {
     HOME,
     SEARCH_RESULTS,

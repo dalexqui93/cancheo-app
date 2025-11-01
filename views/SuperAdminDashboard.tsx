@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -76,7 +80,7 @@ const AdminSettingsView: React.FC<{
             onLogout();
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error al actualizar la contraseña: ' + String(error));
         }
     };
@@ -115,7 +119,7 @@ const AdminSettingsView: React.FC<{
             } else {
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error al crear usuario: ' + String(error));
         } finally {
             setIsCreatingUser(false);

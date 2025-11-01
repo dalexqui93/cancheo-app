@@ -1,5 +1,3 @@
-// FIX: Replaced truncated file content with the full implementation to export all required database functions.
-
 // @ts-nocheck
 /**
  * =============================================================================
@@ -248,7 +246,7 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // FIX: Ensure console.error receives a single string argument.
+        // FIX: Cast unknown error to string for console.error
         console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: ' + String(e));
     }
 } else {
@@ -338,7 +336,7 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // FIX: Ensure console.error receives a single string argument.
+        // FIX: Cast unknown error to string for console.error
         console.error('Error poblando la base de datos: ' + String(error));
     }
 };

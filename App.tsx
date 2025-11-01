@@ -1,13 +1,7 @@
 
 
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData } from './types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
 import { View } from './types';
 import Header from './components/Header';
 import Home from './views/Home';
@@ -85,6 +79,7 @@ const App = () => {
     const [isRegisterLoading, setIsRegisterLoading] = useState<boolean>(false);
     const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState<boolean>(false);
     const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
+    const [socialSection, setSocialSection] = useState<SocialSection>('hub');
 
     // Weather State
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -174,7 +169,7 @@ const App = () => {
                     locationName = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.state;
                 }
             } catch (geoError) {
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.warn
                 console.warn('No se pudo obtener el nombre de la ubicación para el clima: ' + String(geoError));
             }
 
@@ -192,7 +187,7 @@ const App = () => {
             setWeatherData(finalWeatherData);
             localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.warn
             console.warn('Error al obtener el clima, usando fallback/cache: ' + String(error));
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
@@ -271,7 +266,7 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error al reproducir sonido de notificación: ' + String(error));
         }
     }, []);
@@ -307,7 +302,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error saving notification to database: ' + String(error));
             }
         }
@@ -375,7 +370,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error deleting notification from database: ' + String(error));
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -402,7 +397,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error marking notifications as read: ' + String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -422,7 +417,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error clearing notifications: ' + String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -653,7 +648,7 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Registration error: ' + String(error));
             }
         } finally {
@@ -707,7 +702,7 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Owner registration error: ' + String(error));
             }
         } finally {
@@ -759,6 +754,7 @@ const App = () => {
                     showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para acceder a DaviPlay.' });
                 } else {
                     handleNavigate(View.SOCIAL, navOptions);
+                    setSocialSection('hub');
                 }
                 break;
             case 'bookings':
@@ -831,7 +827,7 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error getting location: ' + String(error));
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
@@ -899,7 +895,7 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Booking confirmation error: ' + String(error));
             showToast({
                 type: 'error',
@@ -1041,7 +1037,7 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error updating password: ' + String(error));
             showToast({
                 type: 'error',
@@ -1287,7 +1283,14 @@ const App = () => {
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:
                     if (user) {
-                        return <SocialView user={user} addNotification={showToast} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
+                        return <SocialView 
+                                    user={user} 
+                                    addNotification={showToast} 
+                                    onNavigate={handleNavigate} 
+                                    setIsPremiumModalOpen={setIsPremiumModalOpen} 
+                                    section={socialSection}
+                                    setSection={setSocialSection}
+                                />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                  case View.PLAYER_PROFILE_CREATOR:
@@ -1312,12 +1315,16 @@ const App = () => {
         );
     };
     
+    const isSocialView = view === View.SOCIAL;
+    const socialSectionsWithDarkBg = ['hub', 'my-team'];
+    const showDarkSocialBg = isSocialView && socialSectionsWithDarkBg.includes(socialSection);
+    
     const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
     const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR].includes(view);
-    const isSocialView = view === View.SOCIAL;
 
     return (
-        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${isSocialView ? 'daviplay-hub-bg' : ''}`}>
+        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''}`}>
+            {showDarkSocialBg && <div className="absolute inset-0"></div>}
             <div className="relative z-10">
                 <FirebaseWarningBanner />
                 {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications}/>}
