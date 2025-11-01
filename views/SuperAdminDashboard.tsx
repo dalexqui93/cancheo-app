@@ -1,4 +1,7 @@
 
+
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -17,6 +20,7 @@ import { SoccerBallIcon } from '../components/icons/SoccerBallIcon';
 import { CogIcon } from '../components/icons/CogIcon';
 import * as db from '../firebase';
 import { EyeIcon } from '../components/icons/EyeIcon';
+// FIX: Import EyeOffIcon to toggle password visibility
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
 import { LockIcon } from '../components/icons/LockIcon';
 
@@ -72,7 +76,8 @@ const AdminSettingsView: React.FC<{
             onLogout();
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-            console.error(`Error al actualizar la contraseña: ${String(error)}`);
+            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            console.error('Error al actualizar la contraseña: ' + String(error));
         }
     };
 
@@ -110,7 +115,8 @@ const AdminSettingsView: React.FC<{
             } else {
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
-            console.error(`Error al crear usuario: ${String(error)}`);
+            // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            console.error('Error al crear usuario: ' + String(error));
         } finally {
             setIsCreatingUser(false);
         }
@@ -131,12 +137,14 @@ const AdminSettingsView: React.FC<{
                     <div className="relative">
                         <label className="text-sm font-medium">Nueva Contraseña</label>
                         <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className={inputClasses} />
-                        <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-7 h-5 w-5 text-gray-400"><EyeIcon/></button>
+                        {/* FIX: Toggle between EyeIcon and EyeOffIcon for password visibility */}
+                        <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-7 h-5 w-5 text-gray-400">{showPass ? <EyeOffIcon/> : <EyeIcon/>}</button>
                     </div>
                     <div className="relative">
                         <label className="text-sm font-medium">Confirmar Contraseña</label>
                         <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputClasses} />
-                        <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-7 h-5 w-5 text-gray-400"><EyeIcon/></button>
+                        {/* FIX: Toggle between EyeIcon and EyeOffIcon for password visibility */}
+                        <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-7 h-5 w-5 text-gray-400">{showConfirm ? <EyeOffIcon/> : <EyeIcon/>}</button>
                     </div>
                 </div>
                 {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
@@ -153,7 +161,8 @@ const AdminSettingsView: React.FC<{
                     <input type="tel" name="phone" value={newUser.phone} onChange={handleNewUserChange} placeholder="Teléfono" className={inputClasses} />
                     <div className="relative">
                         <input type={showNewUserPass ? 'text' : 'password'} name="password" value={newUser.password} onChange={handleNewUserChange} placeholder="Contraseña" className={inputClasses} />
-                        <button type="button" onClick={() => setShowNewUserPass(!showNewUserPass)} className="absolute right-3 top-2 h-5 w-5 text-gray-400"><EyeIcon/></button>
+                        {/* FIX: Toggle between EyeIcon and EyeOffIcon for password visibility */}
+                        <button type="button" onClick={() => setShowNewUserPass(!showNewUserPass)} className="absolute right-3 top-2 h-5 w-5 text-gray-400">{showNewUserPass ? <EyeOffIcon/> : <EyeIcon/>}</button>
                     </div>
                     <select name="role" value={newUser.role} onChange={handleNewUserChange} className={inputClasses}>
                         <option value="player">Jugador</option>

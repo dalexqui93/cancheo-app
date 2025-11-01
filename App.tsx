@@ -1,5 +1,9 @@
 
 
+
+
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData } from './types';
 import { View } from './types';
@@ -168,8 +172,8 @@ const App = () => {
                     locationName = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.state;
                 }
             } catch (geoError) {
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.warn('No se pudo obtener el nombre de la ubicación para el clima: ', String(geoError));
+                // FIX: Ensure console.warn receives a single string argument.
+                console.warn('No se pudo obtener el nombre de la ubicación para el clima: ' + String(geoError));
             }
 
             const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
@@ -186,8 +190,8 @@ const App = () => {
             setWeatherData(finalWeatherData);
             localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
-            // FIX: Explicitly cast 'unknown' error to string for safe logging.
-            console.warn('Error al obtener el clima, usando fallback/cache: ', String(error));
+            // FIX: Ensure console.warn receives a single string argument.
+            console.warn('Error al obtener el clima, usando fallback/cache: ' + String(error));
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
@@ -265,8 +269,8 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // FIX: Explicitly cast 'unknown' error to string for safe logging.
-            console.error('Error al reproducir sonido de notificación: ', String(error));
+            // FIX: Ensure console.error receives a single string argument.
+            console.error('Error al reproducir sonido de notificación: ' + String(error));
         }
     }, []);
 
@@ -301,8 +305,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.error('Error saving notification to database: ', String(error));
+                // FIX: Ensure console.error receives a single string argument.
+                console.error('Error saving notification to database: ' + String(error));
             }
         }
     }, [user, playNotificationSound]);
@@ -369,8 +373,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.error('Error deleting notification from database: ', String(error));
+                // FIX: Ensure console.error receives a single string argument.
+                console.error('Error deleting notification from database: ' + String(error));
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -396,8 +400,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.error('Error marking notifications as read: ', String(error));
+                // FIX: Ensure console.error receives a single string argument.
+                console.error('Error marking notifications as read: ' + String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -416,8 +420,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.error('Error clearing notifications: ', String(error));
+                // FIX: Ensure console.error receives a single string argument.
+                console.error('Error clearing notifications: ' + String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -647,8 +651,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.error('Registration error: ', String(error));
+                // FIX: Ensure console.error receives a single string argument.
+                console.error('Registration error: ' + String(error));
             }
         } finally {
             setIsRegisterLoading(false);
@@ -701,8 +705,8 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Explicitly cast 'unknown' error to string for safe logging.
-                console.error('Owner registration error: ', String(error));
+                // FIX: Ensure console.error receives a single string argument.
+                console.error('Owner registration error: ' + String(error));
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -825,8 +829,8 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // FIX: Explicitly cast 'unknown' error to string for safe logging.
-            console.error('Error getting location:', String(error));
+            // FIX: Ensure console.error receives a single string argument.
+            console.error('Error getting location: ' + String(error));
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === 1) { // PERMISSION_DENIED
@@ -893,8 +897,8 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // FIX: Explicitly cast 'unknown' error to string for safe logging.
-            console.error('Booking confirmation error: ', String(error));
+            // FIX: Ensure console.error receives a single string argument.
+            console.error('Booking confirmation error: ' + String(error));
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -1035,8 +1039,8 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // FIX: Explicitly cast 'unknown' error to string for safe logging.
-            console.error('Error updating password: ', String(error));
+            // FIX: Ensure console.error receives a single string argument.
+            console.error('Error updating password: ' + String(error));
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',
@@ -1312,7 +1316,6 @@ const App = () => {
 
     return (
         <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${isSocialView ? 'daviplay-hub-bg' : ''}`}>
-             {isSocialView && <div className="absolute inset-0"></div>}
             <div className="relative z-10">
                 <FirebaseWarningBanner />
                 {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications}/>}
