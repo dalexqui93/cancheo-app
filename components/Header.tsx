@@ -8,6 +8,9 @@ import { InformationCircleIcon } from './icons/InformationCircleIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { MegaphoneIcon } from './icons/MegaphoneIcon';
 import { timeSince } from '../utils/timeSince';
+import { BellIcon } from './icons/BellIcon';
+import { DashboardIcon } from './icons/DashboardIcon';
+import { LogoutIcon } from './icons/LogoutIcon';
 
 
 interface HeaderProps {
@@ -65,6 +68,13 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
+    const MenuItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
+        <button onClick={onClick} className="w-full flex items-center gap-3 p-2 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+            {icon}
+            <span className="font-medium">{label}</span>
+        </button>
+    );
+
     return (
         <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
             <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -86,14 +96,14 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                     className="relative text-gray-600 dark:text-gray-300 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-500)] transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
                                     aria-label={`Notificaciones (${unreadCount} sin leer)`}
                                 >
-                                    <img src="https://i.pinimg.com/736x/d9/89/fc/d989fcb7cb07f6984613f0f0ae02b6ee.jpg" alt="Notificaciones" className="h-6 w-6 rounded-full object-cover" />
+                                    <BellIcon className="h-6 w-6" />
                                      {unreadCount > 0 && (
                                         <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" />
                                     )}
                                 </button>
                                  {isNotificationsOpen && (
-                                    <div className="absolute right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 border dark:border-gray-700 animate-fade-in flex flex-col" style={{maxHeight: '80vh'}}>
-                                        <div className="relative p-4 border-b border-gray-200 dark:border-gray-700 flex justify-center items-center flex-shrink-0">
+                                    <div className="absolute right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in flex flex-col" style={{maxHeight: '80vh', transformOrigin: 'top right'}}>
+                                        <div className="relative p-4 border-b border-black/10 dark:border-white/10 flex justify-center items-center flex-shrink-0">
                                             <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">Notificaciones</h3>
                                             {unreadCount > 0 && (
                                                 <button onClick={onMarkAllAsRead} className="absolute right-4 text-sm font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline whitespace-nowrap">
@@ -104,7 +114,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                         <div className="flex-grow overflow-y-auto">
                                             {notifications.length > 0 ? (
                                                 notifications.map(notif => (
-                                                    <div key={notif.id} className="group p-4 flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 relative">
+                                                    <div key={notif.id} className="group p-4 flex items-start gap-4 hover:bg-black/5 dark:hover:bg-white/5 relative">
                                                         {!notif.read && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 bg-blue-500 rounded-full"></div>}
                                                         <div className="flex-shrink-0 mt-1 pl-2">
                                                             <NotificationIcon notification={notif} />
@@ -125,14 +135,14 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                                 ))
                                             ) : (
                                                 <div className="text-center py-16 px-4 flex flex-col items-center">
-                                                    <img src="https://i.pinimg.com/736x/d9/89/fc/d989fcb7cb07f6984613f0f0ae02b6ee.jpg" alt="Notificaciones vacías" className="h-12 w-12 rounded-full object-cover opacity-50 mb-4"/>
+                                                    <BellIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 opacity-50 mb-4"/>
                                                     <h4 className="font-bold text-gray-800 dark:text-gray-200">Todo está al día</h4>
                                                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No tienes notificaciones nuevas.</p>
                                                 </div>
                                             )}
                                         </div>
                                         {notifications.length > 0 && (
-                                            <div className="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                            <div className="p-2 border-t border-black/10 dark:border-white/10 flex-shrink-0">
                                                 <button onClick={onClearAll} className="w-full text-center text-sm font-semibold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 py-2 rounded-md transition-colors">
                                                     Limpiar todo
                                                 </button>
@@ -145,17 +155,45 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
 
                             {/* Profile Dropdown */}
                             <div ref={profileRef} className="relative">
-                                <button onClick={() => setIsProfileOpen(prev => !prev)} className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-500)] transition-colors">
-                                    <UserIcon className="h-6 w-6" />
-                                    <span className="font-medium hidden sm:block">{user.name}</span>
+                                <button onClick={() => setIsProfileOpen(prev => !prev)} className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                     <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                                        {user.profilePicture ? (
+                                            <img src={user.profilePicture} alt="Foto de perfil" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <UserIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                                        )}
+                                    </div>
+                                    <span className="font-semibold hidden sm:block">{user.name}</span>
                                 </button>
                                 {isProfileOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border dark:border-gray-700 animate-fade-in">
-                                    {!user.isAdmin && <a href="#" onClick={(e) => { e.preventDefault(); onNavigate(View.PROFILE); setIsProfileOpen(false); }} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Mi Perfil</a>}
-                                    {user.isOwner && <a href="#" onClick={(e) => { e.preventDefault(); onNavigate(View.OWNER_DASHBOARD); setIsProfileOpen(false); }} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Panel Propietario</a>}
-                                    {user.isAdmin && <a href="#" onClick={(e) => { e.preventDefault(); onNavigate(View.SUPER_ADMIN_DASHBOARD); setIsProfileOpen(false); }} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Panel Admin</a>}
-                                    <a href="#" onClick={(e) => {e.preventDefault(); onLogout(); setIsProfileOpen(false);}} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cerrar Sesión</a>
-                                </div>
+                                    <div className="absolute right-0 mt-2 w-72 origin-top-right bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in" style={{ transformOrigin: 'top right' }}>
+                                        <div className="p-4 border-b border-black/10 dark:border-white/10">
+                                            <div className="flex items-center gap-3">
+                                                 <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                                                    {user.profilePicture ? (
+                                                        <img src={user.profilePicture} alt="Foto de perfil" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <UserIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-2">
+                                            {!user.isAdmin && <MenuItem icon={<UserIcon className="w-5 h-5"/>} label="Mi Perfil" onClick={() => { onNavigate(View.PROFILE); setIsProfileOpen(false); }} />}
+                                            {user.isOwner && <MenuItem icon={<DashboardIcon className="w-5 h-5"/>} label="Panel Propietario" onClick={() => { onNavigate(View.OWNER_DASHBOARD); setIsProfileOpen(false); }} />}
+                                            {user.isAdmin && <MenuItem icon={<DashboardIcon className="w-5 h-5"/>} label="Panel Admin" onClick={() => { onNavigate(View.SUPER_ADMIN_DASHBOARD); setIsProfileOpen(false); }} />}
+                                        </div>
+                                         <div className="p-2 border-t border-black/10 dark:border-white/10">
+                                            <button onClick={() => {onLogout(); setIsProfileOpen(false);}} className="w-full flex items-center gap-3 p-2 text-sm text-red-600 dark:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                                                <LogoutIcon className="w-5 h-5"/>
+                                                <span className="font-medium">Cerrar Sesión</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
