@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
 import { View } from './types';
@@ -169,7 +170,8 @@ const App = () => {
                 }
             } catch (geoError) {
                 // Cast unknown error to string for console.warn
-                console.warn('No se pudo obtener el nombre de la ubicación para el clima: ' + String(geoError));
+// FIX: Pass error object as a separate argument to console.warn instead of using string concatenation.
+                console.warn('No se pudo obtener el nombre de la ubicación para el clima:', geoError);
             }
 
             const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
@@ -187,7 +189,8 @@ const App = () => {
             localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
             // Cast unknown error to string for console.warn
-            console.warn('Error al obtener el clima, usando fallback/cache: ' + String(error));
+// FIX: Pass error object as a separate argument to console.warn instead of using string concatenation.
+            console.warn('Error al obtener el clima, usando fallback/cache:', error);
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
@@ -266,7 +269,8 @@ const App = () => {
             audio.play();
         } catch (error) {
             // Cast unknown error to string for console.error
-            console.error('Error al reproducir sonido de notificación: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error('Error al reproducir sonido de notificación:', error);
         }
     }, []);
 
@@ -301,7 +305,8 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // Cast unknown error to string for console.error
-                console.error('Error saving notification to database: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+                console.error('Error saving notification to database:', error);
             }
         }
     }, [user, playNotificationSound]);
@@ -369,7 +374,8 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // Cast unknown error to string for console.error
-                console.error('Error deleting notification from database: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+                console.error('Error deleting notification from database:', error);
                 // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
@@ -396,7 +402,8 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // Cast unknown error to string for console.error
-                console.error('Error marking notifications as read: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+                console.error('Error marking notifications as read:', error);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -416,7 +423,8 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // Cast unknown error to string for console.error
-                console.error('Error clearing notifications: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+                console.error('Error clearing notifications:', error);
                 setNotifications(originalNotifications); // Revert on error
             }
         }
@@ -647,7 +655,8 @@ const App = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // Cast unknown error to string for console.error
-                console.error('Registration error: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+                console.error('Registration error:', error);
             }
         } finally {
             setIsRegisterLoading(false);
@@ -701,7 +710,8 @@ const App = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // Cast unknown error to string for console.error
-                console.error('Owner registration error: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+                console.error('Owner registration error:', error);
             }
         } finally {
             setIsOwnerRegisterLoading(false);
@@ -826,7 +836,8 @@ const App = () => {
             
         } catch (error) {
             // Cast unknown error to string for console.error
-            console.error('Error getting location: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error('Error getting location:', error);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
                 if (error.code === 1) { // PERMISSION_DENIED
@@ -894,7 +905,8 @@ const App = () => {
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
             // Cast unknown error to string for console.error
-            console.error('Booking confirmation error: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error('Booking confirmation error:', error);
             showToast({
                 type: 'error',
                 title: 'Error de Reserva',
@@ -1036,7 +1048,8 @@ const App = () => {
             });
         } catch (error) {
             // Cast unknown error to string for console.error
-            console.error('Error updating password: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error('Error updating password:', error);
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',

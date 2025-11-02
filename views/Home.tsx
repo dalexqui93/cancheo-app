@@ -106,7 +106,8 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
     
         } catch (error) {
             // FIX: Cast unknown error to string for console.error
-            console.error("Búsqueda con IA fallida:", String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error("Búsqueda con IA fallida:", error);
             // Fallback to regular search
             onSearch(searchTerm);
         } finally {

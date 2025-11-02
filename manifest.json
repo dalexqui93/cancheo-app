@@ -1,0 +1,23 @@
+{
+  "short_name": "Cancheo",
+  "name": "Cancheo - Reserva de Canchas",
+  "description": "Una aplicación web para buscar, reservar y pagar canchas de fútbol sintéticas en tiempo real. Encuentra la cancha perfecta cerca de ti, revisa su disponibilidad y reserva tu partido en minutos.",
+  "icons": [
+    {
+      "src": "https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#16a34a",
+  "background_color": "#f8fafc"
+}

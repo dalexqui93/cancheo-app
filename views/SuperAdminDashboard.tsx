@@ -73,7 +73,8 @@ const AdminSettingsView: React.FC<{
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
             // FIX: Cast unknown error to string for console.error
-            console.error('Error al actualizar la contraseña: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error('Error al actualizar la contraseña:', error);
         }
     };
 
@@ -112,7 +113,8 @@ const AdminSettingsView: React.FC<{
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
             // FIX: Cast unknown error to string for console.error
-            console.error('Error al crear usuario: ' + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error('Error al crear usuario:', error);
         } finally {
             setIsCreatingUser(false);
         }

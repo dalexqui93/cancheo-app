@@ -9,6 +9,7 @@
 
 
 
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -311,7 +312,8 @@ const ComplexEditorModal: React.FC<{
         } catch (error) {
             addNotification({type: 'error', title: 'Error de Red', message: 'No se pudo conectar al servicio de geolocalización.'});
             // FIX: Cast unknown error to string for console.error
-            console.error("Error al buscar coordenadas: " + String(error));
+// FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
+            console.error("Error al buscar coordenadas:", error);
         } finally {
             setIsLocating(false);
         }
