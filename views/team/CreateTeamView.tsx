@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { UploadIcon } from '../../components/icons/UploadIcon';
 import { UsersIcon } from '../../components/icons/UsersIcon';
@@ -49,18 +48,18 @@ const LogoCreatorModal: React.FC<{
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl m-4" onClick={e => e.stopPropagation()}>
                 <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-bold flex items-center gap-2"><SparklesIcon className="w-6 h-6 text-yellow-400"/> Creador de Logos con IA</h3>
+                    <h3 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100"><SparklesIcon className="w-6 h-6 text-yellow-400"/> Creador de Logos con IA</h3>
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
                 </div>
                 <div className="p-6 space-y-4">
                     <p className="text-sm text-gray-700 dark:text-gray-300">Describe el logo de tus sueños. La IA creará opciones únicas para tu equipo.</p>
                     <div>
                         <label className="font-semibold block mb-1 text-gray-900 dark:text-gray-100">Colores principales</label>
-                        <input type="text" value={colors} onChange={e => setColors(e.target.value)} placeholder="Ej: azul y blanco" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                        <input type="text" value={colors} onChange={e => setColors(e.target.value)} placeholder="Ej: azul y blanco" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100"/>
                     </div>
                      <div>
                         <label className="font-semibold block mb-1 text-gray-900 dark:text-gray-100">Palabras clave</label>
-                        <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="Ej: un león agresivo, una pelota en llamas" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                        <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="Ej: un león agresivo, una pelota en llamas" className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100"/>
                     </div>
                     <button onClick={handleGenerate} disabled={isLoading} className="w-full py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm disabled:bg-gray-400 flex items-center justify-center gap-2">
                         {isLoading ? <><SpinnerIcon className="w-5 h-5"/> Generando...</> : 'Generar Logos'}
@@ -195,7 +194,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                     </div>
                     <div>
                         <label htmlFor="team-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre del Equipo</label>
-                        <input type="text" id="team-name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700" />
+                        <input type="text" id="team-name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nivel Competitivo</label>
@@ -213,7 +212,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                         </div>
                     </div>
                     <div className="border-t dark:border-gray-700 pt-5 flex justify-end gap-3">
-                        <button type="button" onClick={onBack} className="py-2 px-5 rounded-lg font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
+                        <button type="button" onClick={onBack} className="py-2 px-5 rounded-lg font-semibold bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-800/50 dark:text-orange-300 dark:hover:bg-orange-800/80">Cancelar</button>
                         <button type="submit" className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm">Crear Equipo</button>
                     </div>
                 </form>

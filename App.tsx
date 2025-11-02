@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
 import { View } from './types';
@@ -702,7 +704,7 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Cast unknown error to string for console.error
+                // FIX: The error object is of type `unknown` and cannot be concatenated with a string. Casting it to a string resolves the type error.
                 console.error('Owner registration error: ' + String(error));
             }
         } finally {

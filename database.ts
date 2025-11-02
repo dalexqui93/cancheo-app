@@ -246,6 +246,7 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
+// FIX: Cast unknown error to string for console.error
         // FIX: Cast unknown error to string for console.error
         // FIX: Cast unknown error to string for console.error
         console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: ' + String(e));
