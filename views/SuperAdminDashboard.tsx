@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -549,37 +539,26 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = (props) => {
             <main className="p-4 pb-28">
                 {renderContent()}
             </main>
+            
+            {selectedField && <FieldDetailModal field={selectedField} owner={ownerOfSelectedField} onClose={() => setSelectedField(null)} />}
+            {selectedUser && <UserDetailModal user={selectedUser} onClose={() => setSelectedUser(null)} />}
 
             {/* Bottom Nav */}
             <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 z-50 flex justify-around items-center">
                 {TABS.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === tab.id ? 'text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]' : 'text-gray-500 dark:text-gray-400'}`}>
-                        <div className="relative">
-                            {tab.icon}
-                             {tab.id === 'verifications' && pendingApplicationsCount > 0 && (
-                                <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center ring-2 ring-white dark:ring-gray-800">
-                                    {pendingApplicationsCount}
-                                </span>
-                            )}
-                        </div>
+                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center gap-1 transition-colors ${activeTab === tab.id ? 'text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {tab.icon}
                         <span className="text-xs font-bold">{tab.label}</span>
+                        {tab.id === 'verifications' && pendingApplicationsCount > 0 && (
+                            <span className="absolute -top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                {pendingApplicationsCount}
+                            </span>
+                        )}
                     </button>
                 ))}
             </nav>
-
-            {selectedField && (
-                <FieldDetailModal 
-                    field={selectedField}
-                    owner={ownerOfSelectedField}
-                    onClose={() => setSelectedField(null)}
-                />
-            )}
-
-            {selectedUser && (
-                <UserDetailModal user={selectedUser} onClose={() => setSelectedUser(null)} />
-            )}
         </div>
     );
-}
+};
 
 export default SuperAdminDashboard;

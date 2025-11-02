@@ -6,7 +6,7 @@ import type { Notification } from '../types';
 
 interface ForgotPasswordProps {
     onNavigate: (view: View, options?: { isBack?: boolean }) => void;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
 const ForgotPasswordView: React.FC<ForgotPasswordProps> = ({ onNavigate, addNotification }) => {

@@ -62,14 +62,17 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, onBack, a
     }
     
     const handleSendMessage = (text: string, replyToMessage: ChatMessage | null) => {
-        const currentUser = team.players.find(p => p.id === 'u1'); // Hardcoded for demo
-        if (!currentUser) return;
+        const currentUserAsPlayer = team.players.find(p => p.id === user.id);
+        if (!currentUserAsPlayer) {
+            addNotification({type: 'error', title: 'Error de Chat', message: 'No se encontró tu perfil en el equipo.'});
+            return;
+        };
 
         const newMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
-            senderId: currentUser.id,
-            senderName: currentUser.name,
-            senderProfilePicture: currentUser.profilePicture,
+            senderId: currentUserAsPlayer.id,
+            senderName: currentUserAsPlayer.name,
+            senderProfilePicture: currentUserAsPlayer.profilePicture,
             text: text,
             timestamp: new Date(),
             replyTo: replyToMessage ? {
@@ -109,11 +112,22 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, onBack, a
         case 'performance':
             return <PerformanceView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} />;
         case 'chat':
-             const currentUser = team.players.find(p => p.id === 'u1'); // Hardcoding current user for now
+             const currentUserForChat = team.players.find(p => p.id === user.id);
+             if (!currentUserForChat) {
+                return (
+                    <div className="p-4">
+                         <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
+                            <ChevronLeftIcon className="h-5 w-5" />
+                            Volver al Panel
+                        </button>
+                        <p className="text-center">Error: tu usuario no es parte de este equipo.</p>
+                    </div>
+                );
+             }
              return <TeamChatView
                  team={team}
                  messages={messages}
-                 currentUser={currentUser!}
+                 currentUser={currentUserForChat}
                  onSendMessage={handleSendMessage}
                  onBack={() => setView('dashboard')}
              />;
