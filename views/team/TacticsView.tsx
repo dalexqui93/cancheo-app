@@ -1,13 +1,75 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import type { Team, Formation, Player } from '../../types';
+import type { Team, Formation, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import FormationPitch from '../../components/team/FormationPitch';
+import { SparklesIcon } from '../../components/icons/SparklesIcon';
+import { GoogleGenAI } from '@google/genai';
+import { XIcon } from '../../components/icons/XIcon';
+import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 
 interface TacticsViewProps {
     team: Team;
+    user: User;
     onBack: () => void;
     onUpdateTeam: (team: Team) => void;
+    setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
+
+const TacticalAnalysisModal: React.FC<{ team: Team; onClose: () => void; }> = ({ team, onClose }) => {
+    const [analysis, setAnalysis] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const getAnalysis = async () => {
+            const lastMatches = (team.matchHistory || [])
+                .slice(0, 3)
+                .map(m => `vs ${'name' in m.teamB ? m.teamB.name : 'Rival'}: ${m.scoreA}-${m.scoreB}`)
+                .join(', ');
+            
+            const prompt = `Eres un analista táctico de fútbol experto. Mi equipo amateur se llama "${team.name}" y nuestro nivel es ${team.level}.
+Formación actual: ${team.formation}.
+Últimos 3 resultados: ${lastMatches || 'No hay partidos registrados'}.
+Notas tácticas actuales: "${team.tacticsNotes || 'Ninguna'}".
+
+Analiza esta información y dame un consejo táctico para mejorar. Sugiere un posible cambio de formación o estrategia, y explica por qué sería beneficioso. Sé conciso y directo en tu recomendación.`;
+
+            try {
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+                setAnalysis(response.text);
+            } catch (e) {
+                console.error(e);
+                setAnalysis('Hubo un error al obtener el análisis. Por favor, inténtalo de nuevo más tarde.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        getAnalysis();
+    }, [team]);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg m-4" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-bold flex items-center gap-2"><SparklesIcon className="w-6 h-6 text-yellow-400"/> Análisis del DT Virtual</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
+                </div>
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center text-center p-8">
+                            <SpinnerIcon className="w-12 h-12 text-[var(--color-primary-500)]" />
+                            <p className="mt-4 font-semibold">Analizando jugadas...</p>
+                        </div>
+                    ) : (
+                        <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">{analysis}</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const FORMATIONS: { name: Formation, layout: { pos: string, x: number, y: number }[] }[] = [
     { name: '4-4-2', layout: [
@@ -47,10 +109,11 @@ const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.
 );
 
 
-const TacticsView: React.FC<TacticsViewProps> = ({ team, onBack, onUpdateTeam }) => {
-    const [formation, setFormation] = useState<Formation>('Custom');
+const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateTeam, setIsPremiumModalOpen }) => {
+    const [formation, setFormation] = useState<Formation>(team.formation || 'Custom');
     const [notes, setNotes] = useState(team.tacticsNotes || '');
     const [playerPositions, setPlayerPositions] = useState<{[playerId: string]: { x: number; y: number; pos?: string }}>(team.playerPositions);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
     
     // State for custom drag-and-drop
     const [draggedPlayer, setDraggedPlayer] = useState<{ id: string, origin: 'pitch' | 'bench' } | null>(null);
@@ -149,6 +212,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, onBack, onUpdateTeam })
         setDragPosition(null);
     };
 
+    const handleAiAnalysisClick = () => {
+        setShowAnalysisModal(true);
+    };
+
     const playersOnPitchIds = Object.keys(playerPositions);
     const benchPlayers = team.players.filter(p => !playersOnPitchIds.includes(p.id));
 
@@ -201,6 +268,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, onBack, onUpdateTeam })
                 </div>
                 <div className="space-y-6">
                     <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border dark:border-gray-700">
+                        <button onClick={handleAiAnalysisClick} className="w-full font-semibold text-yellow-500 hover:underline text-left flex items-center gap-2 mb-4 p-3 rounded-lg bg-yellow-400/10 hover:bg-yellow-400/20">
+                            <SparklesIcon className="w-5 h-5" />
+                            Consejo del Analista IA
+                            <span className="text-xs bg-yellow-400/20 text-yellow-500 px-1.5 py-0.5 rounded-full">PREMIUM</span>
+                        </button>
                         <label htmlFor="formation-select" className="block text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">Formación</label>
                         <select
                             id="formation-select"
@@ -239,6 +311,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, onBack, onUpdateTeam })
                     </div>
                 </div>
             )}
+
+            {showAnalysisModal && <TacticalAnalysisModal team={team} onClose={() => setShowAnalysisModal(false)} />}
         </div>
     );
 };

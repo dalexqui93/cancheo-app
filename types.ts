@@ -345,8 +345,8 @@ export interface ForumComment {
     authorProfilePicture?: string;
     timestamp: Date;
     content: string;
-
     reactions: ForumReaction[];
+    isFlagged?: boolean;
 }
 
 export interface ForumPost {
@@ -360,6 +360,7 @@ export interface ForumPost {
     tags?: string[];
     reactions: ForumReaction[];
     comments: ForumComment[];
+    isFlagged?: boolean;
 }
 
 // --- Weather Module Types ---

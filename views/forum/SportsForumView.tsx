@@ -5,6 +5,7 @@ import CreatePost from '../../components/forum/CreatePost';
 import PostCard from '../../components/forum/PostCard';
 import EditPostModal from '../../components/forum/EditPostModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { GoogleGenAI } from '@google/genai';
 
 const mockPostsData: ForumPost[] = [
     {
@@ -24,6 +25,8 @@ const mockPostsData: ForumPost[] = [
         ],
         comments: [
             { id: 'c1', authorId: 'u3', authorName: 'Luis Fernandez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u3', timestamp: new Date(new Date().getTime() - 1000 * 60 * 3), content: 'Totalmente de acuerdo, la defensa estuvo impecable.', reactions: [{ emoji: '👍', userIds: ['u2'] }] },
+            { id: 'c2', authorId: 'u1', authorName: 'Carlos Pérez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u1', timestamp: new Date(new Date().getTime() - 1000 * 60 * 2), content: 'No estoy tan seguro, el mediocampo perdió muchos balones en la segunda mitad. Hay que mejorar eso.', reactions: [] },
+            { id: 'c3', authorId: 'u4', authorName: 'Marta Gomez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u4', timestamp: new Date(new Date().getTime() - 1000 * 60 * 1), content: 'Concuerdo con Carlos. Si no ajustamos la presión en el medio, la final será muy difícil. El rival tiene jugadores muy rápidos.', reactions: [{ emoji: '👍', userIds: ['u1'] }] },
         ],
     },
     {
@@ -43,10 +46,24 @@ const mockPostsData: ForumPost[] = [
     },
 ];
 
+const moderateContent = async (text: string): Promise<boolean> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Analiza el siguiente texto por toxicidad, lenguaje de odio, spam, o contenido extremadamente inapropiado. Responde únicamente con 'true' si es inapropiado, o 'false' si es seguro. Texto: "${text}"`
+        });
+        return response.text.trim().toLowerCase() === 'true';
+    } catch (error) {
+        console.error("Error en la moderación de contenido:", error);
+        return false; // Fail safe
+    }
+};
+
 
 interface SportsForumViewProps {
     user: User;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onBack: () => void;
 }
 
@@ -58,7 +75,8 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
 
     const filters = ['Todos', 'Mis Publicaciones', 'Fútbol', 'Apuestas', 'Debate'];
 
-    const handleCreatePost = (content: string, image: string | null, tags: string[]) => {
+    const handleCreatePost = async (content: string, image: string | null, tags: string[]) => {
+        const isFlagged = await moderateContent(content);
         const newPost: ForumPost = {
             id: `post-${Date.now()}`,
             authorId: user.id,
@@ -70,9 +88,15 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
             tags: tags.length > 0 ? tags : ['General'],
             reactions: [],
             comments: [],
+            isFlagged,
         };
         setPosts(prev => [newPost, ...prev]);
-        addNotification({type: 'success', title: 'Publicación Creada', message: 'Tu publicación ahora está visible en el foro.'});
+        
+        if (isFlagged) {
+            addNotification({type: 'info', title: 'Publicación en Revisión', message: 'Tu publicación está pendiente de revisión por posible contenido inapropiado.'});
+        } else {
+            addNotification({type: 'success', title: 'Publicación Creada', message: 'Tu publicación ahora está visible en el foro.'});
+        }
     };
     
     const handleToggleReaction = (postId: string, commentId: string | null, emoji: SportsEmoji) => {
@@ -124,7 +148,8 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
         }));
     };
     
-    const handleAddComment = (postId: string, content: string) => {
+    const handleAddComment = async (postId: string, content: string) => {
+        const isFlagged = await moderateContent(content);
         const newComment: ForumComment = {
             id: `c-${Date.now()}`,
             authorId: user.id,
@@ -133,6 +158,7 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
             timestamp: new Date(),
             content: content,
             reactions: [],
+            isFlagged,
         };
 
         setPosts(posts => posts.map(p => {
@@ -141,6 +167,10 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
             }
             return p;
         }));
+        
+        if(isFlagged) {
+            addNotification({type: 'info', title: 'Comentario en Revisión', message: 'Tu comentario será visible una vez que sea aprobado.'});
+        }
     };
 
     const handleUpdatePost = (updatedPost: ForumPost) => {

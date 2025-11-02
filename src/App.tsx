@@ -169,6 +169,7 @@ const App = () => {
                 }
             } catch (geoError) {
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.warn
                 console.warn('No se pudo obtener el nombre de la ubicación para el clima: ' + String(geoError));
             }
 
@@ -187,6 +188,7 @@ const App = () => {
             localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
             // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.warn
             console.warn('Error al obtener el clima, usando fallback/cache: ' + String(error));
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
@@ -266,6 +268,7 @@ const App = () => {
             audio.play();
         } catch (error) {
             // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error al reproducir sonido de notificación: ' + String(error));
         }
     }, []);
@@ -302,6 +305,7 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error saving notification to database: ' + String(error));
             }
         }
@@ -370,6 +374,7 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error deleting notification from database: ' + String(error));
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -397,6 +402,7 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error marking notifications as read: ' + String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -417,6 +423,7 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Error clearing notifications: ' + String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -648,6 +655,7 @@ const App = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast 'error' to string to allow concatenation in console.error.
                 console.error('Registration error: ' + String(error));
             }
         } finally {
@@ -702,6 +710,8 @@ const App = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+                // FIX: Cast 'error' to string to allow concatenation in console.error.
+                // FIX: Cast unknown error to string for console.error
                 console.error('Owner registration error: ' + String(error));
             }
         } finally {
@@ -826,6 +836,7 @@ const App = () => {
             
         } catch (error) {
             // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error getting location: ' + String(error));
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
@@ -894,6 +905,7 @@ const App = () => {
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
             // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Booking confirmation error: ' + String(error));
             showToast({
                 type: 'error',
@@ -1007,6 +1019,7 @@ const App = () => {
             });
         } catch (error) {
             // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+            // FIX: Cast unknown error to string for console.error
             console.error('Error updating password: ' + String(error));
             showToast({
                 type: 'error',

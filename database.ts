@@ -247,6 +247,7 @@ if (isFirebaseConfigured) {
         }
     } catch (e) {
         // FIX: Cast unknown error to string for console.error
+        // FIX: Cast unknown error to string for console.error
         console.error('Error al inicializar Firebase. Revisa tus credenciales en firebase.ts: ' + String(e));
     }
 } else {
@@ -336,6 +337,7 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
+        // FIX: Cast unknown error to string for console.error
         // FIX: Cast unknown error to string for console.error
         console.error('Error poblando la base de datos: ' + String(error));
     }

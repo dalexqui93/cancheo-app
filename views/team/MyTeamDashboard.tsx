@@ -19,11 +19,13 @@ type TeamView = 'dashboard' | 'roster' | 'tactics' | 'schedule' | 'performance' 
 
 interface MyTeamDashboardProps {
     team: Team | undefined;
+    user: User;
     onBack: () => void;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onUpdateTeam: (team: Team) => void;
     onCreateTeam: (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => void;
     allPlayers: Player[];
+    setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
 
 const mockMessages: ChatMessage[] = [
@@ -50,13 +52,13 @@ const NavCard: React.FC<{ title: string; icon: React.ReactNode; onClick: () => v
     </button>
 );
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, onBack, addNotification, onUpdateTeam, onCreateTeam, allPlayers }) => {
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, onBack, addNotification, onUpdateTeam, onCreateTeam, allPlayers, setIsPremiumModalOpen }) => {
     const [view, setView] = useState<TeamView>('dashboard');
     const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
 
 
     if (!team) {
-        return <CreateTeamView onBack={onBack} onCreate={onCreateTeam} />;
+        return <CreateTeamView onBack={onBack} onCreate={onCreateTeam} setIsPremiumModalOpen={setIsPremiumModalOpen} user={user} />;
     }
     
     const handleSendMessage = (text: string, replyToMessage: ChatMessage | null) => {
@@ -101,7 +103,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, onBack, addNoti
         case 'roster':
             return <RosterView team={team} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allPlayers={allPlayers} />;
         case 'tactics':
-            return <TacticsView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} />;
+            return <TacticsView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
         case 'schedule':
             return <ScheduleView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} addNotification={addNotification} />;
         case 'performance':

@@ -648,7 +648,7 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: Cast unknown error to string for console.error
+                // Fix: Cast 'error' to string to allow concatenation in console.error.
                 console.error('Registration error: ' + String(error));
             }
         } finally {
@@ -1147,7 +1147,26 @@ const App = () => {
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
-        const homeComponent = <Home onSearch={handleSearch} onSelectField={handleSelectField} fields={fields} loading={loading} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} announcements={announcements} user={user} onSearchByLocation={handleSearchByLocation} isSearchingLocation={isSearchingLocation} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={fetchWeather} />;
+        const homeComponent = <Home 
+            onSearch={handleSearch} 
+            onSelectField={handleSelectField} 
+            fields={fields} 
+            loading={loading} 
+            favoriteFields={user?.favoriteFields || []} 
+            onToggleFavorite={handleToggleFavorite} 
+            theme={theme} 
+            announcements={announcements} 
+            user={user} 
+            onSearchByLocation={handleSearchByLocation} 
+            isSearchingLocation={isSearchingLocation} 
+            weatherData={weatherData} 
+            isWeatherLoading={isWeatherLoading} 
+            onRefreshWeather={fetchWeather}
+            onSearchResults={(results) => {
+                setSearchResults(results);
+                handleNavigate(View.SEARCH_RESULTS);
+            }} 
+        />;
         
         const viewElement = (() => {
             switch (view) {

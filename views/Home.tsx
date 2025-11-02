@@ -9,6 +9,9 @@ import CompactWeatherWidget from '../components/weather/CompactWeatherWidget';
 import { UsersFiveIcon } from '../components/icons/UsersFiveIcon';
 import { UsersSevenIcon } from '../components/icons/UsersSevenIcon';
 import { UsersElevenIcon } from '../components/icons/UsersElevenIcon';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { GoogleGenAI, Type } from '@google/genai';
+
 
 interface HomeProps {
     onSearch: (location: string, filters?: { size?: '5v5' | '7v7' | '11v11' }) => void;
@@ -25,14 +28,89 @@ interface HomeProps {
     weatherData: WeatherData | null;
     isWeatherLoading: boolean;
     onRefreshWeather: () => void;
+    onSearchResults: (results: SoccerField[]) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather }) => {
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [isAiSearching, setIsAiSearching] = useState(false);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         onSearch(searchTerm);
+    };
+
+    const handleAiSearch = async () => {
+        if (!searchTerm.trim()) {
+            onSearch(searchTerm);
+            return;
+        }
+    
+        setIsAiSearching(true);
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-pro',
+                contents: `Analiza la consulta del usuario para encontrar una cancha de fútbol y extrae los criterios relevantes. La consulta es: "${searchTerm}". Responde ÚNICAMENTE con un objeto JSON.`,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            location: { type: Type.STRING, description: 'La ciudad, barrio o lugar específico mencionado.' },
+                            size: { type: Type.STRING, description: 'El tamaño de la cancha como "5v5", "7v7", o "11v11".' },
+                            price_max: { type: Type.NUMBER, description: 'El precio máximo por hora si se menciona.' },
+                            price_preference: { type: Type.STRING, description: 'Preferencia de precio como "barato" o "económico".' },
+                            amenities: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Una lista de servicios requeridos como "parqueadero", "cafetería", "luces", "cerveza".' },
+                        },
+                    },
+                },
+            });
+    
+            const criteria = JSON.parse(response.text);
+            
+            let results = fields;
+    
+            if (criteria.location) {
+                const loc = criteria.location.toLowerCase();
+                results = results.filter(f => 
+                    f.city.toLowerCase().includes(loc) || 
+                    f.address.toLowerCase().includes(loc) || 
+                    f.name.toLowerCase().includes(loc)
+                );
+            }
+    
+            if (criteria.size) {
+                const size = criteria.size.toLowerCase();
+                if(size.includes('5')) results = results.filter(f => f.size === '5v5');
+                else if(size.includes('7')) results = results.filter(f => f.size === '7v7');
+                else if(size.includes('11')) results = results.filter(f => f.size === '11v11');
+            }
+    
+            if (criteria.amenities && criteria.amenities.length > 0) {
+                results = results.filter(f => 
+                    criteria.amenities.every((amenity: string) => 
+                        f.services.some(s => s.name.toLowerCase().includes(amenity.toLowerCase()))
+                    )
+                );
+            }
+
+            if (criteria.price_max) {
+                results = results.filter(f => f.pricePerHour <= criteria.price_max);
+            } else if (criteria.price_preference && (criteria.price_preference === 'barato' || criteria.price_preference === 'económico')) {
+                 const avgPrice = fields.reduce((acc, f) => acc + f.pricePerHour, 0) / fields.length;
+                 results = results.filter(f => f.pricePerHour < avgPrice * 0.8); // 20% below average
+            }
+            
+            onSearchResults(results);
+    
+        } catch (error) {
+            console.error("Búsqueda con IA fallida:", error);
+            // Fallback to regular search
+            onSearch(searchTerm);
+        } finally {
+            setIsAiSearching(false);
+        }
     };
 
     const groupedFields = useMemo(() => {
@@ -74,24 +152,36 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                     </p>
                     <form onSubmit={handleSearch} className="max-w-xl mx-auto flex gap-2 items-center relative">
                         <div className="relative flex-grow group">
-                            <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10 group-focus-within:text-[var(--color-primary-500)] transition-colors" />
+                            <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10 group-focus-within:text-[var(--color-primary-500)] transition-colors">
+                                <SearchIcon />
+                            </button>
                             <input
                                 type="text"
-                                placeholder="Busca por nombre o ciudad..."
+                                placeholder="Cancha 7v7 barata en Medellín..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full py-3 pl-12 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-0 focus:shadow-lg focus:shadow-[var(--color-primary-500)]/30"
                             />
                         </div>
-                        <button
+                         <button
                             type="button"
                             onClick={onSearchByLocation}
-                            disabled={isSearchingLocation}
-                            className="flex-shrink-0 w-14 h-14 flex items-center justify-center bg-[var(--color-primary-600)] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[var(--color-primary-500)] disabled:bg-[var(--color-primary-400)] disabled:cursor-not-allowed"
+                            disabled={isSearchingLocation || isAiSearching}
+                            className="flex-shrink-0 w-14 h-14 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[var(--color-primary-500)] disabled:opacity-50"
                             title="Buscar cerca de mí"
                             aria-label="Buscar canchas cerca de mi ubicación actual"
                         >
-                            {isSearchingLocation ? <SpinnerIcon className="w-8 h-8" /> : <LocationIcon className="w-8 h-8" />}
+                            {isSearchingLocation ? <SpinnerIcon className="w-6 h-6" /> : <LocationIcon className="w-6 h-6" />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleAiSearch}
+                            disabled={isAiSearching || isSearchingLocation}
+                            className="flex-shrink-0 w-14 h-14 flex items-center justify-center bg-[var(--color-primary-600)] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[var(--color-primary-500)] disabled:bg-[var(--color-primary-400)] disabled:cursor-not-allowed"
+                            title="Búsqueda Inteligente con IA"
+                            aria-label="Realizar búsqueda inteligente con Inteligencia Artificial"
+                        >
+                            {isAiSearching ? <SpinnerIcon className="w-6 h-6" /> : <SparklesIcon className="w-6 h-6" />}
                         </button>
                     </form>
                     <div className="text-white pt-4">

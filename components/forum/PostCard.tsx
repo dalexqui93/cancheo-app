@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import type { ForumPost, User, SportsEmoji, Notification } from '../../types';
+import type { ForumPost, User, SportsEmoji, Notification, ForumComment } from '../../types';
 import { UserIcon } from '../icons/UserIcon';
 import { DotsHorizontalIcon } from '../icons/DotsHorizontalIcon';
 import { PaperAirplaneIcon } from '../icons/PaperAirplaneIcon';
 import { timeSince } from '../../utils/timeSince';
+import { GoogleGenAI } from '@google/genai';
+import { XIcon } from '../icons/XIcon';
+import { SparklesIcon } from '../icons/SparklesIcon';
+import { SpinnerIcon } from '../icons/SpinnerIcon';
+import { ExclamationTriangleIcon } from '../icons/ExclamationTriangleIcon';
 
 interface PostCardProps {
     post: ForumPost;
     currentUser: User;
     onToggleReaction: (postId: string, commentId: string | null, emoji: SportsEmoji) => void;
     onAddComment: (postId: string, content: string) => void;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onEdit: (post: ForumPost) => void;
     onDelete: (post: ForumPost) => void;
 }
@@ -25,10 +30,43 @@ const EMOJIS: { emoji: SportsEmoji; name: string; activeColor: string }[] = [
     { emoji: '😡', name: 'Me enoja', activeColor: 'text-red-500' },
 ];
 
+const SummaryModal: React.FC<{ 
+    isOpen: boolean; 
+    onClose: () => void; 
+    isLoading: boolean;
+    summary: string;
+}> = ({ isOpen, onClose, isLoading, summary }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg m-4" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-bold flex items-center gap-2"><SparklesIcon className="w-6 h-6 text-yellow-400"/> Resumen del Hilo por IA</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
+                </div>
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center text-center p-8">
+                            <SpinnerIcon className="w-12 h-12 text-[var(--color-primary-500)]" />
+                            <p className="mt-4 font-semibold">Analizando la conversación...</p>
+                        </div>
+                    ) : (
+                        <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">{summary}</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction, onAddComment, addNotification, onEdit, onDelete }) => {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
+    const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+    const [summary, setSummary] = useState('');
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const SUMMARY_THRESHOLD = 3;
 
     const handleCommentSubmit = () => {
         if (commentText.trim()) {
@@ -41,11 +79,30 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
         addNotification({type: 'info', title: 'Reporte Enviado', message: 'Gracias por ayudarnos a mantener la comunidad segura.'});
     };
     
+    const handleGenerateSummary = async () => {
+        setIsSummaryModalOpen(true);
+        setIsSummaryLoading(true);
+        setSummary('');
+        try {
+            const commentsText = post.comments.map(c => `${c.authorName}: ${c.content}`).join('\n---\n');
+            const prompt = `Resume esta conversación de un foro de fútbol. Identifica los principales puntos de debate, las opiniones más comunes y cualquier conclusión a la que lleguen los participantes. La conversación es:\n\n${commentsText}`;
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+            setSummary(response.text);
+        } catch (error) {
+            console.error("Error al generar resumen:", error);
+            setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
+        } finally {
+            setIsSummaryLoading(false);
+        }
+    };
+
     const sortedReactions = [...post.reactions].sort((a,b) => b.userIds.length - a.userIds.length);
     const totalReactions = post.reactions.reduce((sum, r) => sum + r.userIds.length, 0);
     const currentUserReaction = post.reactions.find(r => r.userIds.includes(currentUser.id));
 
     return (
+        <>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700">
             <div className="p-4">
                 {/* Post Header */}
@@ -75,6 +132,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                 </div>
 
                 {/* Post Content */}
+                {post.isFlagged && (
+                    <div className="mt-3 p-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-lg text-xs font-semibold flex items-center gap-2">
+                        <ExclamationTriangleIcon className="w-4 h-4" />
+                        Este contenido está pendiente de revisión.
+                    </div>
+                )}
                 <p className="my-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{post.content}</p>
                 {post.imageUrl && <img src={post.imageUrl} alt="Contenido de la publicación" className="mt-3 rounded-lg w-full object-cover max-h-96" />}
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -85,7 +148,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             </div>
 
             {/* Reactions & Comments Count */}
-            <div className="px-4 pt-2 pb-1 flex items-center justify-between">
+            <div className="px-4 pt-2 pb-1 flex items-center justify-between flex-wrap gap-2">
                 {totalReactions > 0 ? (
                     <div className="flex items-center">
                         <div className="flex items-center">
@@ -100,9 +163,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                         </span>
                     </div>
                 ) : <div />}
-                <button onClick={() => setShowComments(!showComments)} className="text-sm font-semibold text-gray-500 dark:text-gray-400 hover:underline">
-                    {post.comments.length} {post.comments.length === 1 ? 'comentario' : 'comentarios'}
-                </button>
+                 <div className="flex items-center gap-4">
+                     {post.comments.length >= SUMMARY_THRESHOLD && (
+                        <button onClick={handleGenerateSummary} className="text-xs font-bold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] hover:underline flex items-center gap-1">
+                            <SparklesIcon className="w-4 h-4" /> Resumir Hilo con IA
+                        </button>
+                    )}
+                    <button onClick={() => setShowComments(!showComments)} className="text-sm font-semibold text-gray-500 dark:text-gray-400 hover:underline">
+                        {post.comments.length} {post.comments.length === 1 ? 'comentario' : 'comentarios'}
+                    </button>
+                </div>
             </div>
 
             {/* Action Buttons */}
@@ -148,9 +218,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                                 {comment.authorProfilePicture ? <img src={comment.authorProfilePicture} alt={comment.authorName} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-slate-500 dark:text-gray-400"/>}
                             </div>
                             <div className="flex-grow">
-                                <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-xl">
+                                <div className={`p-3 rounded-xl ${comment.isFlagged ? 'bg-yellow-100 dark:bg-yellow-900/20' : 'bg-gray-100 dark:bg-gray-700'}`}>
                                     <p className="font-bold text-sm text-gray-800 dark:text-gray-100">{comment.authorName}</p>
                                     <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
+                                    {comment.isFlagged && <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 mt-1">Pendiente de revisión</p>}
                                 </div>
                                  <div className="flex items-center gap-2 mt-1 px-2">
                                      <span className="text-xs text-gray-400">{timeSince(comment.timestamp)}</span>
@@ -182,6 +253,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                 </div>
             )}
         </div>
+        <SummaryModal 
+            isOpen={isSummaryModalOpen}
+            onClose={() => setIsSummaryModalOpen(false)}
+            isLoading={isSummaryLoading}
+            summary={summary}
+        />
+        </>
     );
 };
 

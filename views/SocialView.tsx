@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -309,7 +310,7 @@ const PlayerHub: React.FC<{ user: User; onSectionNavigate: (section: SocialSecti
 
 const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, text }) => (
     <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
-        <ChevronLeftIcon className="h-5 w-5" />
+        <ChevronLeftIcon className="h-5 h-5" />
         {text}
     </button>
 );
@@ -412,11 +413,13 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
             case 'my-team':
                 return <MyTeamDashboard
                     team={userTeam}
+                    user={user}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
                     onUpdateTeam={handleUpdateTeam}
                     onCreateTeam={handleCreateTeam}
                     allPlayers={mockPlayers}
+                    setIsPremiumModalOpen={setIsPremiumModalOpen}
                  />;
             case 'challenge':
                 const otherTeams = teams.filter(t => t.id !== userTeam?.id);
@@ -455,7 +458,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
 const TournamentsView: React.FC<{
     tournaments: Tournament[];
     onBack: () => void;
-    addNotification: (notif: Omit<Notification, 'id'>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     user: User;
 }> = ({ tournaments, onBack, addNotification, user }) => {
     return (
