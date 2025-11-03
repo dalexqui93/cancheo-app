@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -14,7 +16,8 @@ import { CreditCardIcon } from '../components/icons/CreditCardIcon';
 import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
 import { SoccerBallIcon } from '../components/icons/SoccerBallIcon';
 import { CogIcon } from '../components/icons/CogIcon';
-import * as db from '../firebase';
+// Fix: Corrected import path from '../firebase' to '../database' to resolve module not found error.
+import * as db from '../database';
 import { EyeIcon } from '../components/icons/EyeIcon';
 // FIX: Import EyeOffIcon to toggle password visibility
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
@@ -72,7 +75,6 @@ const AdminSettingsView: React.FC<{
             onLogout();
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-            // FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
             console.error('Error al actualizar la contraseña:', error);
         }
     };
@@ -111,7 +113,6 @@ const AdminSettingsView: React.FC<{
             } else {
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
-            // FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
             console.error('Error al crear usuario:', error);
         } finally {
             setIsCreatingUser(false);

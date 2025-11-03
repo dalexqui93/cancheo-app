@@ -12,6 +12,9 @@
 
 
 
+
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -30,7 +33,8 @@ import { PhoneIcon } from '../components/icons/PhoneIcon';
 import { WhatsappIcon } from '../components/icons/WhatsappIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { IdentificationIcon } from '../components/icons/IdentificationIcon';
-import * as db from '../firebase';
+// Fix: Corrected import path from '../firebase' to '../database' to resolve module not found error.
+import * as db from '../database';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { UserIcon } from '../components/icons/UserIcon';
 import { TrophyIcon } from '../components/icons/TrophyIcon';
@@ -313,7 +317,6 @@ const ComplexEditorModal: React.FC<{
             }
         } catch (error) {
             addNotification({type: 'error', title: 'Error de Red', message: 'No se pudo conectar al servicio de geolocalización.'});
-            // FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
             console.error("Error al buscar coordenadas:", error);
         } finally {
             setIsLocating(false);

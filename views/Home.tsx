@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -105,7 +106,6 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             onSearchResults(results);
     
         } catch (error) {
-            // FIX: Pass error object as a separate argument to console.error instead of using string concatenation.
             console.error("Búsqueda con IA fallida:", error);
             // Fallback to regular search
             onSearch(searchTerm);
