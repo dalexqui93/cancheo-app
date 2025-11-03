@@ -21,26 +21,29 @@ const levelToRating = (level: Player['level']): number => {
         case 'Casual': return 2;
         case 'Intermedio': return 3.5;
         case 'Competitivo': return 5;
-        default: return 0;
+        default: return typeof level === 'number' ? level : 0;
     }
 };
 
 const PlayerCard: React.FC<{ player: Player; isCaptain: boolean; onRemove: () => void; }> = ({ player, isCaptain, onRemove }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 flex items-center gap-4 relative">
-        <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-slate-500 dark:text-gray-400"/>}
+    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 relative">
+        <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
+            {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-gray-400"/>}
         </div>
         <div className="flex-grow">
-            <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{player.name} {isCaptain && <span className="text-xs font-bold text-yellow-500 ml-1">C</span>}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{player.position}</p>
+            <p className="font-bold text-lg text-white">
+                {player.name} 
+                {isCaptain && <span className="text-xs font-bold text-yellow-400 ml-2">(C)</span>}
+            </p>
+            <p className="text-sm text-gray-400">{player.position}</p>
             <div className="mt-1 flex items-center gap-2">
                 <StarRating rating={levelToRating(player.level)} />
-                <span className="text-xs text-gray-500 dark:text-gray-400">{player.level}</span>
+                <span className="text-xs text-gray-400">{player.level}</span>
             </div>
         </div>
-        <div className="text-3xl font-black text-gray-200 dark:text-gray-600">{player.number || '-'}</div>
+        <div className="text-4xl font-black text-white/20">{player.number || '-'}</div>
         {!isCaptain && (
-            <button onClick={onRemove} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={onRemove} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-400 rounded-full hover:bg-white/10">
                 <TrashIcon className="w-4 h-4" />
             </button>
         )}
@@ -53,18 +56,18 @@ const AddPlayerModal: React.FC<{
     onClose: () => void; 
 }> = ({ availablePlayers, onAdd, onClose }) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+        <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/10 flex justify-between items-center">
                 <h3 className="text-2xl font-bold">Añadir Jugador</h3>
-                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
+                <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6"/></button>
             </div>
             <div className="p-6 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-3">
                     {availablePlayers.map(player => (
-                        <div key={player.id} className="p-3 bg-slate-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                        <div key={player.id} className="p-3 bg-black/20 rounded-lg flex items-center justify-between">
                             <div>
                                 <p className="font-semibold">{player.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{player.position} - {player.level}</p>
+                                <p className="text-xs text-gray-400">{player.position} - {player.level}</p>
                             </div>
                             <button onClick={() => { onAdd(player); onClose(); }} className="bg-[var(--color-primary-600)] text-white font-bold py-1.5 px-4 rounded-lg hover:bg-[var(--color-primary-700)] text-sm">
                                 Añadir
@@ -83,14 +86,10 @@ const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, o
     const availablePlayers = allPlayers.filter(p => !team.players.some(tp => tp.id === p.id));
     
     return (
-        <div className="pb-24 md:pb-4">
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
-                <ChevronLeftIcon className="h-5 w-5" />
-                Volver al Panel
-            </button>
+        <div className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Plantilla del Equipo</h1>
-                <button onClick={() => setIsAddingPlayer(true)} className="flex items-center gap-2 bg-[var(--color-primary-600)] text-white font-bold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm text-sm">
+                <h1 className="text-3xl font-bold tracking-tight">Plantilla del Equipo</h1>
+                <button onClick={() => setIsAddingPlayer(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
                     <PlusIcon className="w-5 h-5" />
                     Añadir Jugador
                 </button>

@@ -50,10 +50,10 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg m-4" onClick={e => e.stopPropagation()}>
-                <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
+            <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-lg m-4" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-white/10 flex justify-between items-center">
                     <h3 className="text-xl font-bold flex items-center gap-2"><SparklesIcon className="w-6 h-6 text-yellow-400"/> Análisis del DT Virtual</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6"/></button>
                 </div>
                 <div className="p-6 max-h-[60vh] overflow-y-auto">
                     {isLoading ? (
@@ -62,7 +62,7 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
                             <p className="mt-4 font-semibold">Analizando jugadas...</p>
                         </div>
                     ) : (
-                        <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">{analysis}</div>
+                        <div className="prose prose-invert max-w-none whitespace-pre-wrap">{analysis}</div>
                     )}
                 </div>
             </div>
@@ -95,15 +95,15 @@ const FORMATIONS: { name: Formation, layout: { pos: string, x: number, y: number
 const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.PointerEvent, playerId: string) => void; isDragged: boolean; isCaptain: boolean }> = ({ player, onPointerDown, isDragged, isCaptain }) => (
     <div
         onPointerDown={(e) => onPointerDown(e, player.id)}
-        className={`relative w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex flex-col items-center justify-center shadow-md text-center p-1 transition-opacity ${isDragged ? 'opacity-40' : 'opacity-100'} touch-none cursor-grab active:cursor-grabbing`}
+        className={`relative w-16 h-16 bg-gray-700 rounded-full flex flex-col items-center justify-center shadow-md text-center p-1 transition-opacity ${isDragged ? 'opacity-40' : 'opacity-100'} touch-none cursor-grab active:cursor-grabbing border-2 border-gray-500`}
         title={player.name}
     >
-        <span className="font-black text-xl text-orange-500">{player.number || '?'}</span>
-        <span className="text-[9px] font-semibold uppercase text-gray-600 dark:text-gray-300 truncate w-full">
+        <span className="font-black text-xl text-orange-400">{player.number || '?'}</span>
+        <span className="text-[9px] font-semibold uppercase text-gray-300 truncate w-full">
             {player.name.split(' ').pop()}
         </span>
         {isCaptain && (
-            <div title="Capitán" className="absolute top-0 right-0 w-4 h-4 bg-yellow-400 text-black text-[10px] font-bold rounded-full flex items-center justify-center border border-white dark:border-gray-200">C</div>
+            <div title="Capitán" className="absolute top-0 right-0 w-4 h-4 bg-yellow-400 text-black text-[10px] font-bold rounded-full flex items-center justify-center border border-gray-200">C</div>
         )}
     </div>
 );
@@ -220,13 +220,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
     const benchPlayers = team.players.filter(p => !playersOnPitchIds.includes(p.id));
 
     return (
-        <div onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} className="pb-24 md:pb-4">
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
-                <ChevronLeftIcon className="h-5 w-5" />
-                Volver al Panel
-            </button>
+        <div onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Tácticas y Formaciones</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Tácticas y Formaciones</h1>
                 <button onClick={handleSave} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
                     Guardar Táctica
                 </button>
@@ -234,7 +230,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 flex flex-col gap-4">
-                    <div className="flex-grow bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700">
+                    <div className="flex-grow bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl">
                         <FormationPitch
                             pitchRef={pitchRef}
                             players={team.players}
@@ -246,9 +242,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                     </div>
                      <div 
                         ref={benchRef}
-                        className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border dark:border-gray-700"
+                        className="bg-black/20 backdrop-blur-md border border-white/10 p-3 rounded-xl"
                     >
-                        <h3 className="text-sm font-bold text-center text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Banquillo</h3>
+                        <h3 className="text-sm font-bold text-center text-gray-400 mb-2 uppercase tracking-wider">Banquillo</h3>
                         <div className="flex flex-row flex-wrap justify-center items-center gap-3 min-h-[5rem]">
                              {benchPlayers.length > 0 ? (
                                 benchPlayers.map(player => (
@@ -267,31 +263,31 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                     </div>
                 </div>
                 <div className="space-y-6">
-                    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border dark:border-gray-700">
-                        <button onClick={handleAiAnalysisClick} className="w-full font-semibold text-yellow-500 hover:underline text-left flex items-center gap-2 mb-4 p-3 rounded-lg bg-yellow-400/10 hover:bg-yellow-400/20">
+                    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-5 rounded-xl">
+                        <button onClick={handleAiAnalysisClick} className="w-full font-semibold text-yellow-400 hover:underline text-left flex items-center gap-2 mb-4 p-3 rounded-lg bg-yellow-400/10 hover:bg-yellow-400/20">
                             <SparklesIcon className="w-5 h-5" />
                             Consejo del Analista IA
-                            <span className="text-xs bg-yellow-400/20 text-yellow-500 px-1.5 py-0.5 rounded-full">PREMIUM</span>
+                            <span className="text-xs bg-yellow-400/20 text-yellow-400 px-1.5 py-0.5 rounded-full">PREMIUM</span>
                         </button>
-                        <label htmlFor="formation-select" className="block text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">Formación</label>
+                        <label htmlFor="formation-select" className="block text-lg font-bold mb-2">Formación</label>
                         <select
                             id="formation-select"
                             value={formation}
                             onChange={(e) => handleFormationChange(e.target.value as Formation)}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700"
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600"
                         >
                             <option value="Custom">Personalizada</option>
                             {FORMATIONS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
                         </select>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border dark:border-gray-700">
-                        <label htmlFor="tactics-notes" className="block text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">Notas Tácticas</label>
+                    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-5 rounded-xl">
+                        <label htmlFor="tactics-notes" className="block text-lg font-bold mb-2">Notas Tácticas</label>
                         <textarea
                             id="tactics-notes"
                             rows={8}
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700"
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600"
                             placeholder="Ej: Presión alta, buscar al delantero, etc."
                         />
                     </div>
@@ -303,9 +299,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                     className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
                     style={{ left: dragPosition.x, top: dragPosition.y }}
                 >
-                    <div className="w-16 h-16 bg-gray-300 dark:bg-gray-600 rounded-full flex flex-col items-center justify-center shadow-lg text-center p-1 opacity-90 ring-2 ring-[var(--color-primary-500)]">
-                        <span className="font-black text-xl text-orange-500">{draggedPlayerDetails.number || '?'}</span>
-                        <span className="text-[9px] font-semibold uppercase text-gray-700 dark:text-gray-200 truncate w-full">
+                    <div className="w-16 h-16 bg-gray-600 rounded-full flex flex-col items-center justify-center shadow-lg text-center p-1 opacity-90 ring-2 ring-[var(--color-primary-500)] border-2 border-gray-400">
+                        <span className="font-black text-xl text-orange-400">{draggedPlayerDetails.number || '?'}</span>
+                        <span className="text-[9px] font-semibold uppercase text-gray-200 truncate w-full">
                             {draggedPlayerDetails.name.split(' ').pop()}
                         </span>
                     </div>

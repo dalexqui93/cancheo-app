@@ -62,33 +62,33 @@ const MatchModal: React.FC<{
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md m-4 p-6" onClick={e => e.stopPropagation()}>
+            <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-md m-4 p-6" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-2xl font-bold">{match ? 'Editar' : 'Agregar'} Partido</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6"/></button>
                 </div>
                 <div className="space-y-4">
                     <div>
                         <label className="font-semibold block mb-1">Nombre del Rival</label>
-                        <input type="text" value={opponentName} onChange={e => setOpponentName(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                        <input type="text" value={opponentName} onChange={e => setOpponentName(e.target.value)} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
                     </div>
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label className="font-semibold block mb-1">Tu Marcador</label>
-                            <input type="number" value={scoreA} onChange={e => setScoreA(Number(e.target.value))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                            <input type="number" value={scoreA} onChange={e => setScoreA(Number(e.target.value))} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
                         </div>
                         <div className="flex-1">
                             <label className="font-semibold block mb-1">Marcador Rival</label>
-                            <input type="number" value={scoreB} onChange={e => setScoreB(Number(e.target.value))} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                            <input type="number" value={scoreB} onChange={e => setScoreB(Number(e.target.value))} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
                         </div>
                     </div>
                      <div>
                         <label className="font-semibold block mb-1">Fecha del Partido</label>
-                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
                     </div>
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
-                    <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
+                    <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-white/10 hover:bg-white/20">Cancelar</button>
                     <button onClick={handleSubmit} className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm">Guardar</button>
                 </div>
             </div>
@@ -98,31 +98,31 @@ const MatchModal: React.FC<{
 
 
 const StatBox: React.FC<{ title: string; value: string | number; subValue?: string, children?: React.ReactNode }> = ({ title, value, subValue, children }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 h-full flex flex-col justify-between">
+    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl h-full flex flex-col justify-between">
         <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
-            {subValue && <p className="text-xs text-gray-500 dark:text-gray-400">{subValue}</p>}
+            <p className="text-sm font-medium text-gray-400">{title}</p>
+            <p className="text-3xl font-bold text-white">{value}</p>
+            {subValue && <p className="text-xs text-gray-400">{subValue}</p>}
         </div>
         {children && <div className="mt-2">{children}</div>}
     </div>
 );
 
 const TopPerformerCard: React.FC<{ player: Player | undefined; stat: number; title: string; icon: React.ReactNode }> = ({ player, stat, title, icon }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 flex items-center gap-4 h-full">
+    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 h-full">
         {player ? <>
-            <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-slate-500 dark:text-gray-400"/>}
+            <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
+                {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-gray-400"/>}
             </div>
             <div>
-                <p className="text-xs font-bold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] uppercase tracking-wide">{title}</p>
-                <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{player.name}</p>
-                <div className="flex items-center gap-2 mt-1 text-gray-700 dark:text-gray-300">
+                <p className="text-xs font-bold text-[var(--color-primary-400)] uppercase tracking-wide">{title}</p>
+                <p className="font-bold text-lg text-white">{player.name}</p>
+                <div className="flex items-center gap-2 mt-1 text-gray-300">
                     {icon}
                     <span className="font-bold text-xl">{stat}</span>
                 </div>
             </div>
-        </> : <p className="text-center w-full text-gray-500 dark:text-gray-400">No hay datos</p>}
+        </> : <p className="text-center w-full text-gray-400">No hay datos</p>}
     </div>
 );
 
@@ -134,7 +134,7 @@ const SortableHeader: React.FC<{
 }> = ({ label, sortKey, currentSort, onSort }) => {
     const isCurrentKey = currentSort.key === sortKey;
     return (
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
             <button className="flex items-center gap-1" onClick={() => onSort(sortKey)}>
                 {label}
                 {isCurrentKey && <ChevronDownIcon className={`w-4 h-4 transition-transform ${currentSort.direction === 'asc' ? 'transform rotate-180' : ''}`} />}
@@ -232,16 +232,12 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
 
 
     return (
-        <div className="space-y-6 pb-24 md:pb-4">
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold hover:underline">
-                <ChevronLeftIcon className="h-5 w-5" />
-                Volver al Panel
-            </button>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Rendimiento del Equipo</h1>
+        <div className="space-y-6 animate-fade-in">
+            <h1 className="text-3xl font-bold tracking-tight">Rendimiento del Equipo</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatBox title="Récord General" value={`${team.stats.wins}-${team.stats.draws}-${team.stats.losses}`} subValue="V-E-P">
-                    <div className="flex h-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                    <div className="flex h-3 rounded-full overflow-hidden bg-black/30">
                         <div className="bg-green-500" style={{width: `${(team.stats.wins/totalMatches)*100}%`}}></div>
                         <div className="bg-yellow-500" style={{width: `${(team.stats.draws/totalMatches)*100}%`}}></div>
                         <div className="bg-red-500" style={{width: `${(team.stats.losses/totalMatches)*100}%`}}></div>
@@ -256,10 +252,10 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
                  <TopPerformerCard player={topAssister} stat={topAssister?.stats.assists ?? 0} title="Máximo Asistente" icon={<ShoeIcon className="w-5 h-5"/>} />
              </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700">
+            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl">
                 <div className="p-6 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Historial de Partidos</h2>
-                    <button onClick={() => handleOpenModal(null)} className="flex items-center gap-2 bg-[var(--color-primary-600)] text-white font-bold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm text-sm">
+                    <h2 className="text-xl font-bold">Historial de Partidos</h2>
+                    <button onClick={() => handleOpenModal(null)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
                         <PlusIcon className="w-5 h-5" />
                         Agregar Partido
                     </button>
@@ -268,50 +264,50 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
                     <div className="space-y-3 p-6 pt-0">
                         {matchHistory.map(match => {
                             const result = (match.scoreA ?? 0) > (match.scoreB ?? 0) ? 'V' : (match.scoreA ?? 0) < (match.scoreB ?? 0) ? 'D' : 'E';
-                            const resultColor = result === 'V' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : result === 'D' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+                            const resultColor = result === 'V' ? 'bg-green-900/50 text-green-300' : result === 'D' ? 'bg-red-900/50 text-red-300' : 'bg-yellow-900/50 text-yellow-300';
                             return (
-                                <div key={match.id} className="bg-slate-50 dark:bg-gray-700/50 p-3 rounded-lg flex items-center gap-4">
+                                <div key={match.id} className="bg-black/20 p-3 rounded-lg flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-black text-lg ${resultColor}`}>{result}</div>
                                     <div className="flex-grow">
                                         <p className="font-semibold">vs. {'name' in match.teamB ? match.teamB.name : 'Rival'}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                                        <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
                                     </div>
                                     <div className="font-bold text-lg">{match.scoreA} - {match.scoreB}</div>
-                                    <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-[var(--color-primary-600)] hover:underline">Editar</button>
-                                    <button onClick={() => setMatchToDelete(match)} className="text-gray-400 hover:text-red-500 p-1 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-[var(--color-primary-400)] hover:underline">Editar</button>
+                                    <button onClick={() => setMatchToDelete(match)} className="text-gray-400 hover:text-red-400 p-1 rounded-full"><TrashIcon className="w-4 h-4"/></button>
                                 </div>
                             )
                         })}
                     </div>
                 ) : (
-                    <p className="px-6 pb-6 text-gray-500 dark:text-gray-400">No hay partidos registrados.</p>
+                    <p className="px-6 pb-6 text-gray-400">No hay partidos registrados.</p>
                 )}
             </div>
             
-             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 p-6">Estadísticas de Jugadores</h2>
+             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
+                <h2 className="text-xl font-bold p-6">Estadísticas de Jugadores</h2>
                 <div className="overflow-x-auto">
-                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700/50">
+                     <table className="min-w-full divide-y divide-white/10">
+                        <thead className="bg-black/20">
                             <tr>
                                 <SortableHeader label="Jugador" sortKey="name" currentSort={sortConfig} onSort={handleSort} />
                                 <SortableHeader label="PJ" sortKey="matchesPlayed" currentSort={sortConfig} onSort={handleSort} />
                                 <SortableHeader label="G" sortKey="goals" currentSort={sortConfig} onSort={handleSort} />
                                 <SortableHeader label="A" sortKey="assists" currentSort={sortConfig} onSort={handleSort} />
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tarjetas</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tarjetas</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody className="divide-y divide-white/10">
                            {sortedPlayers.map(player => (
-                               <tr key={player.id}>
+                               <tr key={player.id} className="hover:bg-black/20">
                                    <td className="px-6 py-4 whitespace-nowrap">
-                                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{player.name}</div>
-                                       <div className="text-sm text-gray-500 dark:text-gray-400">{player.position}</div>
+                                       <div className="text-sm font-medium text-white">{player.name}</div>
+                                       <div className="text-sm text-gray-400">{player.position}</div>
                                    </td>
-                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{player.stats.matchesPlayed}</td>
-                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{player.stats.goals}</td>
-                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{player.stats.assists}</td>
-                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{player.stats.matchesPlayed}</td>
+                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{player.stats.goals}</td>
+                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{player.stats.assists}</td>
+                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                                        <div className="flex items-center gap-2">
                                            <span className="flex items-center gap-1"><YellowCardIcon className="w-2.5 h-3.5"/> {player.stats.yellowCards}</span>
                                            <span className="flex items-center gap-1"><RedCardIcon className="w-2.5 h-3.5"/> {player.stats.redCards}</span>
