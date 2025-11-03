@@ -398,7 +398,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
+                // Fix: The 'unknown' type of the error object from a catch block is not assignable to string parameters. Explicitly convert to string.
                 console.error('Error marking notifications as read:', String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
