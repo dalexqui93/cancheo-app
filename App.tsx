@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
 import { View } from './types';
@@ -648,7 +649,7 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: The 'unknown' type of the error object from a catch block is not assignable to string parameters.
+                // Fix: The 'unknown' type of the error object from a catch block is not assignable to string parameters.
                 console.error('Registration error:', String(error));
             }
         } finally {
