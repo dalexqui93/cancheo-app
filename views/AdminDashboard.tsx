@@ -317,7 +317,8 @@ const ComplexEditorModal: React.FC<{
             }
         } catch (error) {
             addNotification({type: 'error', title: 'Error de Red', message: 'No se pudo conectar al servicio de geolocalización.'});
-            console.error("Error al buscar coordenadas:", error);
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error("Error al buscar coordenadas:", String(error));
         } finally {
             setIsLocating(false);
         }

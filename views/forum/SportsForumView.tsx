@@ -55,7 +55,8 @@ const moderateContent = async (text: string): Promise<boolean> => {
         });
         return response.text.trim().toLowerCase() === 'true';
     } catch (error) {
-        console.error("Error en la moderación de contenido:", error);
+        // Fix: Explicitly convert error to string for consistent and safe logging.
+        console.error("Error en la moderación de contenido:", String(error));
         return false; // Fail safe
     }
 };
@@ -130,7 +131,7 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
                         newReactions.push({ emoji, userIds: [user.id] });
                     }
                 }
-    
+                // Fix: A function whose declared type is neither 'undefined', 'void', nor 'any' must return a value.
                 return newReactions;
             };
     
@@ -147,117 +148,99 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
             }
         }));
     };
-    
-    const handleAddComment = async (postId: string, content: string) => {
-        const isFlagged = await moderateContent(content);
-        const newComment: ForumComment = {
-            id: `c-${Date.now()}`,
-            authorId: user.id,
-            authorName: user.name,
-            authorProfilePicture: user.profilePicture,
-            timestamp: new Date(),
-            content: content,
-            reactions: [],
-            isFlagged,
-        };
-
-        setPosts(posts => posts.map(p => {
-            if (p.id === postId) {
-                return { ...p, comments: [...p.comments, newComment] };
-            }
-            return p;
-        }));
-        
-        if(isFlagged) {
-            addNotification({type: 'info', title: 'Comentario en Revisión', message: 'Tu comentario será visible una vez que sea aprobado.'});
-        }
-    };
 
     const handleUpdatePost = (updatedPost: ForumPost) => {
-        setPosts(posts.map(p => p.id === updatedPost.id ? updatedPost : p));
+        setPosts(posts => posts.map(p => p.id === updatedPost.id ? updatedPost : p));
         setEditingPost(null);
-        addNotification({type: 'success', title: 'Publicación Actualizada', message: 'Tus cambios han sido guardados.'});
     };
 
-    const handleDeletePost = (post: ForumPost) => {
-        setPostToDelete(post);
-    };
-
-    const confirmDeletePost = () => {
-        if (postToDelete) {
-            setPosts(posts.filter(p => p.id !== postToDelete.id));
-            addNotification({type: 'info', title: 'Publicación Eliminada', message: 'Tu publicación ha sido eliminada del foro.'});
-            setPostToDelete(null);
-        }
+    const handleDeletePost = () => {
+        if (!postToDelete) return;
+        setPosts(posts => posts.filter(p => p.id !== postToDelete.id));
+        setPostToDelete(null);
     };
 
     const filteredPosts = useMemo(() => {
         if (activeFilter === 'Todos') return posts;
-        if (activeFilter === 'Mis Publicaciones') {
-            return posts.filter(post => post.authorId === user.id);
-        }
-        return posts.filter(post => post.tags?.includes(activeFilter));
+        if (activeFilter === 'Mis Publicaciones') return posts.filter(p => p.authorId === user.id);
+        return posts.filter(p => p.tags?.includes(activeFilter));
     }, [posts, activeFilter, user.id]);
 
-
     return (
-        <div className="pb-24 md:pb-4">
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
+        <div className="p-4 sm:p-6 pb-[5.5rem] md:pb-4 space-y-6 animate-fade-in">
+            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] font-semibold mb-2 hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
-                Volver a Comunidad
+                Volver a DaviPlay
             </button>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">Foro Deportivo</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Un espacio para compartir y debatir tu pasión por el deporte.</p>
-            
-            <div className="space-y-6">
-                <CreatePost user={user} onPost={handleCreatePost} />
-                
-                <div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
-                        <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
-                            {filters.map(filter => (
-                                <button
-                                    key={filter}
-                                    onClick={() => setActiveFilter(filter)}
-                                    className={`whitespace-nowrap py-3 px-1 border-b-2 font-semibold text-sm transition-colors
-                                        ${activeFilter === filter
-                                            ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]'
-                                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
-                                        }`}
-                                >
-                                    {filter}
-                                </button>
-                            ))}
-                        </nav>
-                    </div>
-                    <div className="space-y-4">
-                        {filteredPosts.map(post => (
-                           <PostCard 
-                                key={post.id} 
-                                post={post}
-                                currentUser={user}
-                                onToggleReaction={handleToggleReaction}
-                                onAddComment={handleAddComment}
-                                addNotification={addNotification}
-                                onEdit={setEditingPost}
-                                onDelete={handleDeletePost}
-                            />
-                        ))}
-                    </div>
-                </div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Foro Deportivo</h1>
+
+            <CreatePost user={user} onPost={handleCreatePost} />
+
+            {/* Filters */}
+            <div className="flex space-x-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto scrollbar-hide">
+                {filters.map(filter => (
+                    <button
+                        key={filter}
+                        onClick={() => setActiveFilter(filter)}
+                        className={`px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 ${
+                            activeFilter === filter
+                                ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]'
+                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                    >
+                        {filter}
+                    </button>
+                ))}
             </div>
+
+            {/* Posts */}
+            <div className="space-y-6">
+                {filteredPosts.map(post => (
+                    <PostCard
+                        key={post.id}
+                        post={post}
+                        currentUser={user}
+                        onToggleReaction={handleToggleReaction}
+                        onAddComment={async (postId, content) => {
+                            const isFlagged = await moderateContent(content);
+                            const newComment: ForumComment = {
+                                id: `comment-${Date.now()}`,
+                                authorId: user.id,
+                                authorName: user.name,
+                                authorProfilePicture: user.profilePicture,
+                                timestamp: new Date(),
+                                content,
+                                reactions: [],
+                                isFlagged,
+                            };
+                            setPosts(posts => posts.map(p => {
+                                if (p.id !== postId) return p;
+                                return { ...p, comments: [...p.comments, newComment] };
+                            }));
+                            if (isFlagged) {
+                                addNotification({ type: 'info', title: 'Comentario en Revisión', message: 'Tu comentario está pendiente de revisión.' });
+                            }
+                        }}
+                        addNotification={addNotification}
+                        onEdit={setEditingPost}
+                        onDelete={setPostToDelete}
+                    />
+                ))}
+            </div>
+
             {editingPost && (
-                <EditPostModal
+                <EditPostModal 
                     post={editingPost}
-                    onSave={handleUpdatePost}
                     onClose={() => setEditingPost(null)}
+                    onSave={handleUpdatePost}
                 />
             )}
+            
             <ConfirmationModal
                 isOpen={!!postToDelete}
                 onClose={() => setPostToDelete(null)}
-                onConfirm={confirmDeletePost}
-                title="Confirmar Eliminación"
+                onConfirm={handleDeletePost}
+                title="Eliminar Publicación"
                 message="¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer."
                 confirmButtonText="Sí, eliminar"
             />

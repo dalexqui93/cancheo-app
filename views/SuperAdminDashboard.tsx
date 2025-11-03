@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -75,7 +76,8 @@ const AdminSettingsView: React.FC<{
             onLogout();
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-            console.error('Error al actualizar la contraseña:', error);
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error('Error al actualizar la contraseña:', String(error));
         }
     };
 
@@ -113,7 +115,8 @@ const AdminSettingsView: React.FC<{
             } else {
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
-            console.error('Error al crear usuario:', error);
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error('Error al crear usuario:', String(error));
         } finally {
             setIsCreatingUser(false);
         }

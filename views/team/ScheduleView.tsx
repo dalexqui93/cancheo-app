@@ -11,7 +11,6 @@ interface ScheduleViewProps {
     team: Team;
     onBack: () => void;
     onUpdateTeam: (team: Team) => void;
-    // FIX: The addNotification prop should omit 'id' and 'timestamp' to match the functions passed to it.
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
@@ -112,7 +111,6 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ team, onBack, onUpdateTeam,
         const newEvent = { ...event, id: `ev-${Date.now()}` };
         const updatedSchedule = [...team.schedule, newEvent];
         onUpdateTeam({ ...team, schedule: updatedSchedule });
-        // FIX: The addNotification prop should omit 'id' and 'timestamp'.
         addNotification({type: 'success', title: 'Evento Agregado', message: `Se ha añadido "${event.title}" al calendario.`})
     };
 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -106,7 +107,8 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             onSearchResults(results);
     
         } catch (error) {
-            console.error("Búsqueda con IA fallida:", error);
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error("Búsqueda con IA fallida:", String(error));
             // Fallback to regular search
             onSearch(searchTerm);
         } finally {

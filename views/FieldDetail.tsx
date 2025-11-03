@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, WeatherData, Review } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
@@ -266,7 +267,8 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                 });
                 setSummary(JSON.parse(response.text));
             } catch (error) {
-                console.error("No se pudo generar el resumen de reseñas:", error);
+                // Fix: Explicitly convert error to string for consistent and safe logging.
+                console.error("No se pudo generar el resumen de reseñas:", String(error));
                 setSummary(null);
             } finally {
                 setIsSummaryLoading(false);
