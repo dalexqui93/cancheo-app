@@ -1,13 +1,4 @@
 
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
 import { View } from './types';
@@ -56,7 +47,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -176,7 +167,7 @@ const App = () => {
                     locationName = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.state;
                 }
             } catch (geoError) {
-                // FIX: Pass error object as a separate argument to console.warn instead of using string concatenation.
+                // Fix: Pass error object as a separate argument to console.warn instead of using string concatenation.
                 console.warn('No se pudo obtener el nombre de la ubicación para el clima:', geoError);
             }
 
@@ -194,7 +185,7 @@ const App = () => {
             setWeatherData(finalWeatherData);
             localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
         } catch (error) {
-            // FIX: Pass error object as a separate argument to console.warn for better debugging.
+            // Fix: Pass error object as a separate argument to console.warn for better debugging.
             console.warn('Error al obtener el clima, usando fallback/cache:', error);
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
@@ -273,7 +264,7 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // FIX: Pass error object as a separate argument to console.error for better debugging.
+            // Fix: Pass error object as a separate argument to console.error for better debugging.
             console.error('Error al reproducir sonido de notificación:', error);
         }
     }, []);
@@ -308,7 +299,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Pass error object as a separate argument to console.error for better debugging.
+                // Fix: Pass error object as a separate argument to console.error for better debugging.
                 console.error('Error saving notification to database:', error);
             }
         }
@@ -376,7 +367,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Pass error object as a separate argument to console.error for better debugging.
+                // Fix: Pass error object as a separate argument to console.error for better debugging.
                 console.error('Error deleting notification from database:', error);
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -403,7 +394,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Pass error object as a separate argument to console.error for better debugging.
+                // Fix: Pass error object as a separate argument to console.error for better debugging.
                 console.error('Error marking notifications as read:', error);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -423,7 +414,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: Pass error object as a separate argument to console.error for better debugging.
+                // Fix: Pass error object as a separate argument to console.error for better debugging.
                 console.error('Error clearing notifications:', error);
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -649,7 +640,7 @@ const App = () => {
                     message: 'Ya existe una cuenta con este correo electrónico.'
                 });
             } else {
-                // FIX: Do not concatenate the 'error' object, which is of type 'unknown', with a string for the user-facing message.
+                // Fix: Do not concatenate the 'error' object, which is of type 'unknown', with a string for the user-facing message.
                 showToast({
                     type: 'error',
                     title: 'Error Inesperado',
@@ -703,7 +694,7 @@ const App = () => {
                     message: 'Ya existe una cuenta con este correo electrónico.'
                 });
             } else {
-                // FIX: Do not concatenate the 'error' object, which is of type 'unknown', with a string for the user-facing message.
+                // Fix: Do not concatenate the 'error' object, which is of type 'unknown', with a string for the user-facing message.
                 showToast({
                     type: 'error',
                     title: 'Error Inesperado',
@@ -833,7 +824,7 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // FIX: Pass error object as a separate argument to console.error for better debugging.
+            // Fix: Pass error object as a separate argument to console.error for better debugging.
             console.error('Error getting location:', error);
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
@@ -901,7 +892,7 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // FIX: Pass error object as a separate argument to console.error for better debugging.
+            // Fix: Pass error object as a separate argument to console.error for better debugging.
             console.error('Booking confirmation error:', error);
             showToast({
                 type: 'error',
@@ -1044,7 +1035,7 @@ const App = () => {
             });
         } catch (error) {
             console.error('Error updating password:', error);
-            // FIX: Do not concatenate the 'error' object, which is of type 'unknown', with a string for the user-facing message.
+            // Fix: Do not concatenate the 'error' object, which is of type 'unknown', with a string for the user-facing message.
             showToast({
                 type: 'error',
                 title: 'Error Inesperado',
