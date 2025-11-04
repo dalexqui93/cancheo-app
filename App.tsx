@@ -4,6 +4,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
 import { View } from './types';
@@ -650,6 +652,7 @@ const App = () => {
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
                 // Fix: The 'unknown' type of the error object from a catch block is not assignable to string parameters.
+                // FIX: Explicitly convert error to string for consistent and safe logging, as 'error' is of type 'unknown'.
                 console.error('Registration error:', String(error));
             }
         } finally {
@@ -1340,7 +1343,7 @@ const App = () => {
     const showDarkSocialBg = isSocialView && socialSectionsWithDarkBg.includes(socialSection);
     
     const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
-    const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR].includes(view);
+    const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
 
     return (
         <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''}`}>

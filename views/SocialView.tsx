@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -17,6 +19,7 @@ import SportsForumView from './forum/SportsForumView';
 import { UserIcon } from '../components/icons/UserIcon';
 import { View } from '../types';
 import PlayerProfileDetailView from './player_profile/PlayerProfileDetailView';
+import { LogoutIcon } from '../components/icons/LogoutIcon';
 import { TrophyIcon } from '../components/icons/TrophyIcon';
 import PremiumBadge from '../components/PremiumBadge';
 import { PlayerKickingBallIcon } from '../components/icons/PlayerKickingBallIcon';
@@ -452,7 +455,20 @@ const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNaviga
     const socialSectionsWithDarkBg = ['hub', 'my-team'];
     const hasDarkBg = socialSectionsWithDarkBg.includes(section);
 
-    return <div className={`animate-fade-in ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>{renderContent()}</div>;
+    return (
+        <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+            {renderContent()}
+
+            {/* Exit DaviPlay Button */}
+            <button
+                onClick={() => onNavigate(View.HOME)}
+                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
+                aria-label="Salir de DaviPlay"
+            >
+                <LogoutIcon className="w-8 h-8" />
+            </button>
+        </div>
+    );
 };
 
 // --- SUB-VIEWS ---
