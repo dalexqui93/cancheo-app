@@ -1,7 +1,5 @@
-
-
-import React, { useState, useMemo } from 'react';
-import type { SoccerField, User, Announcement, Theme, WeatherData } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team } from '../types';
 import FieldCard from '../components/FieldCard';
 import { SearchIcon } from '../components/icons/SearchIcon';
 import { LocationIcon } from '../components/icons/LocationIcon';
@@ -13,6 +11,7 @@ import { UsersSevenIcon } from '../components/icons/UsersSevenIcon';
 import { UsersElevenIcon } from '../components/icons/UsersElevenIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { GoogleGenAI, Type } from '@google/genai';
+import { calculateDistance } from '../utils/geolocation';
 
 
 interface HomeProps {
@@ -31,9 +30,128 @@ interface HomeProps {
     isWeatherLoading: boolean;
     onRefreshWeather: () => void;
     onSearchResults: (results: SoccerField[]) => void;
+    allBookings: ConfirmedBooking[];
+    allTeams: Team[];
 }
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults }) => {
+const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
+
+const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ logo, name, size = 'w-16 h-16' }) => {
+    if (logo) {
+        return <img src={logo} alt={`${name} logo`} className={`${size} object-contain`} />;
+    }
+    return (
+        <div className={`${size} rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600`}>
+            <span className="text-2xl font-bold text-white" style={{textShadow: '1px 1px 3px rgba(0,0,0,0.5)'}}>{name.charAt(0)}</span>
+        </div>
+    );
+};
+
+const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[] }> = ({ match, onSelectField, allTeams }) => {
+    const teamNameA = match.teamName || match.userName;
+    const rivalNameB = match.rivalName || opponentNames[match.id.charCodeAt(match.id.length - 1) % opponentNames.length];
+
+    const teamA = allTeams.find(t => t.name.toLowerCase() === teamNameA.toLowerCase());
+    const teamB = allTeams.find(t => t.name.toLowerCase() === rivalNameB.toLowerCase());
+    
+    const [countdown, setCountdown] = useState('');
+
+    const isLive = useMemo(() => {
+        const now = new Date();
+        const bookingDate = new Date(match.date);
+        if (now.toDateString() !== bookingDate.toDateString()) return false;
+
+        const [startHour, startMinute] = match.time.split(':').map(Number);
+        
+        const startTime = new Date(bookingDate);
+        startTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 60 minute match
+        
+        return now >= startTime && now < endTime;
+    }, [match.time, match.date]);
+
+    useEffect(() => {
+        if (!isLive) {
+            setCountdown('');
+            return;
+        }
+
+        const bookingDate = new Date(match.date);
+        const [startHour, startMinute] = match.time.split(':').map(Number);
+        const startTime = new Date(bookingDate);
+        startTime.setHours(startHour, startMinute, 0, 0);
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const remaining = endTime.getTime() - now.getTime();
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+                setCountdown('Finalizado');
+            } else {
+                const minutes = Math.floor((remaining / 1000) / 60);
+                const seconds = Math.floor((remaining / 1000) % 60);
+                setCountdown(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isLive, match.date, match.time]);
+
+
+    return (
+        <div 
+            className="flex-shrink-0 w-80 rounded-2xl shadow-lg overflow-hidden border border-white/10 relative text-white"
+            style={{
+                backgroundImage: `url('https://i.pinimg.com/1200x/4b/09/c1/4b09c1845862b6d4f29e8fe129d5af24.jpg')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+            }}
+        >
+            <div className="absolute inset-0 bg-black/[.35] backdrop-blur-sm"></div>
+            
+            <div className="p-4 relative z-10 flex flex-col h-full">
+                <div className="flex justify-between items-start text-xs mb-2">
+                    <p className="font-bold truncate max-w-[70%]">{match.field.name}</p>
+                    <p className="font-bold">{match.time}</p>
+                </div>
+                
+                {isLive && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live">
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        <span>VIVO</span>
+                        <span className="font-mono tracking-wider">{countdown}</span>
+                    </div>
+                )}
+                
+                <div className="flex-grow flex items-center justify-around my-2">
+                    <div className="flex flex-col items-center text-center w-28">
+                        <TeamLogo logo={teamA?.logo} name={teamNameA} />
+                        <p className="font-bold mt-2 truncate w-full">{teamNameA}</p>
+                    </div>
+                    
+                    <div className="text-2xl font-black text-gray-400">VS</div>
+                    
+                    <div className="flex flex-col items-center text-center w-28">
+                        <TeamLogo logo={teamB?.logo} name={rivalNameB} />
+                        <p className="font-bold mt-2 truncate w-full">{rivalNameB}</p>
+                    </div>
+                </div>
+                
+                <button 
+                    onClick={() => onSelectField(match.field)}
+                    className="w-full text-center bg-white/10 hover:bg-white/20 transition-colors font-semibold py-2 px-4 rounded-lg text-sm mt-auto"
+                >
+                    Ver Cancha
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAiSearching, setIsAiSearching] = useState(false);
 
@@ -126,6 +244,32 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         return Object.values(grouped);
     }, [fields]);
 
+    const matchesInUserCity = useMemo(() => {
+        if (!allBookings || allBookings.length === 0 || !weatherData?.locationName) {
+            return [];
+        }
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const userCity = weatherData.locationName.toLowerCase().trim();
+    
+        const todayMatchesInCity = allBookings.filter(booking => {
+            if (!booking.date || !booking.status || !booking.field.city) return false;
+    
+            const bookingDate = new Date(booking.date);
+            bookingDate.setHours(0, 0, 0, 0);
+    
+            const bookingCity = booking.field.city.toLowerCase().trim();
+            
+            return bookingDate.getTime() === today.getTime() &&
+                   booking.status === 'confirmed' &&
+                   bookingCity === userCity;
+        });
+    
+        return todayMatchesInCity.sort((a, b) => a.time.localeCompare(b.time));
+    
+    }, [allBookings, weatherData]);
+
     const favoriteComplexes = useMemo(() => {
         return groupedFields.filter(group => favoriteFields.includes(group[0].complexId || group[0].id));
     }, [groupedFields, favoriteFields]);
@@ -208,6 +352,30 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                     <span>Fútbol 11</span>
                 </button>
             </div>
+
+            {/* Today's Matches */}
+            <section>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                    Partidos de Hoy {weatherData?.locationName && <span className="text-[var(--color-primary-500)]">en {weatherData.locationName}</span>}
+                </h2>
+                {loading ? (
+                    <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="flex-shrink-0 w-80 h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl shimmer-bg"></div>
+                        ))}
+                    </div>
+                ) : matchesInUserCity.length > 0 ? (
+                    <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+                        {matchesInUserCity.map(match => (
+                            <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-8 px-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700">
+                        <p className="text-gray-600 dark:text-gray-400">No hay partidos programados en tu ciudad para hoy.</p>
+                    </div>
+                )}
+            </section>
             
             {/* Announcements */}
             {announcements && announcements.length > 0 && (

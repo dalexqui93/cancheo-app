@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -36,6 +30,7 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 
 
 // --- MOCK DATA ---
+// NOTE: Team data is now fetched from database.ts, but other social mocks remain here for now.
 const mockPlayers: Player[] = [
     { 
         id: 'u1', name: 'Carlos Pérez', profilePicture: 'https://i.pravatar.cc/150?u=u1', number: 9, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 12, assists: 4, yellowCards: 3, redCards: 0 },
@@ -75,61 +70,31 @@ const mockSchedule: TeamEvent[] = [
     { id: 'ev3', type: 'event', date: new Date(new Date().setDate(new Date().getDate() + 10)), title: 'Asado de Equipo', location: 'Club Campestre' },
 ];
 
-const mockTeams: Team[] = [
-    {
-        id: 't1', name: 'Los Galácticos', captainId: 'u1', players: mockPlayers.slice(0, 7),
-        level: 'Competitivo', stats: { wins: 1, losses: 0, draws: 1 },
-        formation: '4-3-3',
-        playerPositions: {},
-        tacticsNotes: "Presión alta al rival. Salida rápida por las bandas. El #10 tiene libertad de movimiento.",
-        schedule: mockSchedule,
-        matchHistory: [
-            { id: 'mh1', teamA: {id: 't1', name: 'Los Galácticos'}, teamB: {id: 'ext1', name: 'Rivales FC'}, scoreA: 3, scoreB: 3, date: new Date('2024-07-20'), status: 'jugado'},
-            { id: 'mh2', teamA: {id: 't1', name: 'Los Galácticos'}, teamB: {id: 'ext2', name: 'Deportivo Amigos'}, scoreA: 5, scoreB: 2, date: new Date('2024-07-13'), status: 'jugado'},
-        ],
-    },
-    {
-        id: 't2', name: 'Atlético Panas', captainId: 'u6', players: [],
-        level: 'Intermedio', stats: { wins: 8, losses: 5, draws: 3 },
-        formation: '4-4-2', playerPositions: {}, schedule: [], 
-        matchHistory: [
-             { id: 'mh3', teamA: {id: 't2', name: 'Atlético Panas'}, teamB: {id: 'ext3', name: 'Real Mandil'}, scoreA: 1, scoreB: 2, date: new Date('2024-07-22'), status: 'jugado'},
-             { id: 'mh4', teamA: {id: 't2', name: 'Atlético Panas'}, teamB: {id: 'ext4', name: 'Spartans FC'}, scoreA: 4, scoreB: 0, date: new Date('2024-07-15'), status: 'jugado'},
-        ],
-    },
-    {
-        id: 't3', name: 'Real Mandil', captainId: 'u-other', players: [mockPlayers[8], mockPlayers[9]],
-        level: 'Casual', stats: { wins: 3, losses: 9, draws: 2 },
-        formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [],
-    },
-    {
-        id: 't4', name: 'Spartans FC', captainId: 'u-other', players: [mockPlayers[10], mockPlayers[11]],
-        level: 'Competitivo', stats: { wins: 15, losses: 1, draws: 0 },
-        formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [],
-    },
-];
+const getMockTournaments = (teams: Team[]): Tournament[] => {
+    const groupAMatches: Match[] = [
+        { id: 'g1m1', teamA: teams[0], teamB: teams[1], scoreA: 3, scoreB: 1, date: new Date(2024, 7, 1), status: 'jugado', isEditable: true, events: []},
+        { id: 'g1m2', teamA: teams[2], teamB: teams[3], scoreA: 2, scoreB: 2, date: new Date(2024, 7, 1), status: 'jugado', isEditable: true, events: [] },
+    ];
 
-const groupAMatches: Match[] = [
-    { id: 'g1m1', teamA: mockTeams[0], teamB: mockTeams[1], scoreA: 3, scoreB: 1, date: new Date(2024, 7, 1), status: 'jugado', isEditable: true, events: []},
-    { id: 'g1m2', teamA: mockTeams[2], teamB: mockTeams[3], scoreA: 2, scoreB: 2, date: new Date(2024, 7, 1), status: 'jugado', isEditable: true, events: [] },
-];
+    return [
+        {
+            id: 'tor1', name: 'Copa Verano 2024', format: 'Fútbol 7', prize: '$1,000,000',
+            status: 'en juego', structure: 'groups-then-knockout', teams: teams.slice(0,4),
+            groups: [{ id: 'g1', name: 'Grupo A', teams: teams.slice(0, 4), standings: [], matches: groupAMatches }],
+            knockoutRounds: []
+        },
+        {
+            id: 'tor2', name: 'Torneo Relámpago', format: 'Fútbol 5', prize: 'Trofeo + Medallas',
+            status: 'inscripciones abiertas', structure: 'knockout', teams: [],
+        }
+    ];
+};
 
-const mockTournaments: Tournament[] = [
-    {
-        id: 'tor1', name: 'Copa Verano 2024', format: 'Fútbol 7', prize: '$1,000,000',
-        status: 'en juego', structure: 'groups-then-knockout', teams: mockTeams.slice(0,4),
-        groups: [{ id: 'g1', name: 'Grupo A', teams: mockTeams.slice(0, 4), standings: [], matches: groupAMatches }],
-        knockoutRounds: []
-    },
-    {
-        id: 'tor2', name: 'Torneo Relámpago', format: 'Fútbol 5', prize: 'Trofeo + Medallas',
-        status: 'inscripciones abiertas', structure: 'knockout', teams: [],
-    }
-];
 // --- END MOCK DATA ---
 
 interface SocialViewProps {
     user: User;
+    allTeams: Team[];
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onNavigate: (view: View) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
@@ -355,9 +320,9 @@ const FindPlayersView: React.FC<{
     </div>
 );
 
-const SocialView: React.FC<SocialViewProps> = ({ user, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection }) => {
-    const [tournaments, setTournaments] = useState<Tournament[]>(mockTournaments);
-    const [teams, setTeams] = useState<Team[]>(mockTeams);
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection }) => {
+    const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
+    const [teams, setTeams] = useState<Team[]>(allTeams);
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
     const [userTeam, setUserTeam] = useState<Team | undefined>(teams.find(t => t.id === user.teamId));

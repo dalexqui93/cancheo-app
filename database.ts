@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement } from './types';
+import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -95,6 +95,85 @@ const announcementsToSeed = (owner1Id: string) => [
     { title: '¡Torneo de Verano!', message: 'Inscripciones abiertas para nuestro torneo de verano en El Templo del Fútbol. ¡Grandes premios!', type: 'news', ownerId: owner1Id, complexName: 'El Templo del Fútbol' }
 ];
 
+// --- Team & Player Mock Data (moved from SocialView) ---
+const mockPlayers: Player[] = [
+    { 
+        id: 'u1', name: 'Carlos Pérez', profilePicture: 'https://i.pravatar.cc/150?u=u1', number: 9, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 12, assists: 4, yellowCards: 3, redCards: 0 },
+        age: 28, height: 182, weight: 78, dominantFoot: 'Derecho', bio: 'Delantero rápido y letal en el área. Siempre buscando el gol.', strength: 85, speed: 92, stamina: 88, specialSkills: ['Tiro Potente', 'Regate Rápido', 'Cabeceo'],
+    },
+    { 
+        id: 'u2', name: 'Ana García', profilePicture: 'https://i.pravatar.cc/150?u=u2', number: 4, position: 'Defensa', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 1, assists: 2, yellowCards: 5, redCards: 0 },
+        age: 26, height: 170, weight: 65, dominantFoot: 'Derecho', bio: 'Defensa central sólida y con buen juego aéreo.', strength: 90, speed: 75, stamina: 85, specialSkills: ['Defensa Férrea', 'Marcaje', 'Cabeceo'],
+    },
+    { 
+        id: 'u3', name: 'Luis Fernandez', profilePicture: 'https://i.pravatar.cc/150?u=u3', number: 10, position: 'Medio', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 6, assists: 9, yellowCards: 1, redCards: 0 },
+        age: 30, height: 175, weight: 72, dominantFoot: 'Ambidiestro', bio: 'Mediocampista creativo con gran visión de juego.', strength: 78, speed: 82, stamina: 90, specialSkills: ['Visión de Juego', 'Pase Preciso', 'Regate Rápido'],
+    },
+    { 
+        id: 'u4', name: 'Marta Gomez', profilePicture: 'https://i.pravatar.cc/150?u=u4', number: 1, position: 'Portero', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
+        age: 24, height: 185, weight: 80, dominantFoot: 'Derecho', bio: 'Portera con excelentes reflejos y segura en el mano a mano.', strength: 88, speed: 80, stamina: 82, specialSkills: ['Portero Ágil', 'Liderazgo'],
+    },
+    { 
+        id: 'u5', name: 'Juan Rodriguez', profilePicture: 'https://i.pravatar.cc/150?u=u5', number: 8, position: 'Medio', level: 'Intermedio', stats: { matchesPlayed: 13, goals: 3, assists: 5, yellowCards: 2, redCards: 0 },
+        age: 22, height: 178, weight: 75, bio: 'Box-to-box midfielder.', strength: 80, speed: 85, stamina: 92, specialSkills: ['Resistencia', 'Pase Preciso'],
+    },
+    { 
+        id: 'u6', name: 'Sofía López', profilePicture: 'https://i.pravatar.cc/150?u=u6', number: 11, position: 'Delantero', level: 'Intermedio', stats: { matchesPlayed: 10, goals: 7, assists: 2, yellowCards: 0, redCards: 0 },
+        age: 25, height: 168, weight: 62, dominantFoot: 'Izquierdo', bio: 'Extremo veloz con buen uno contra uno.', strength: 70, speed: 94, stamina: 80, specialSkills: ['Velocidad', 'Regate Rápido'],
+    },
+    { id: 'u7', name: 'Diego Martínez', profilePicture: 'https://i.pravatar.cc/150?u=u7', number: 5, position: 'Defensa', level: 'Intermedio', stats: { matchesPlayed: 14, goals: 0, assists: 1, yellowCards: 8, redCards: 1 } },
+    { id: 'u8', name: 'Leo Messi', profilePicture: 'https://i.pravatar.cc/150?u=u8', number: 30, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
+    { id: 'u9', name: 'CR7', profilePicture: 'https://i.pravatar.cc/150?u=u9', number: 7, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
+    { id: 'u10', name: 'Neymar Jr', profilePicture: 'https://i.pravatar.cc/150?u=u10', number: 10, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
+    { id: 'u11', name: 'Kylian Mbappe', profilePicture: 'https://i.pravatar.cc/150?u=u11', number: 7, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
+    { id: 'u12', name: 'Luka Modric', profilePicture: 'https://i.pravatar.cc/150?u=u12', number: 10, position: 'Medio', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
+];
+
+const mockSchedule: TeamEvent[] = [
+    { id: 'ev1', type: 'match', date: new Date(new Date().setDate(new Date().getDate() + 3)), title: 'vs. Atlético Panas', location: 'Gol Center Envigado' },
+    { id: 'ev2', type: 'training', date: new Date(new Date().setDate(new Date().getDate() + 5)), title: 'Entrenamiento Táctico', location: 'Cancha El Templo' },
+    { id: 'ev3', type: 'event', date: new Date(new Date().setDate(new Date().getDate() + 10)), title: 'Asado de Equipo', location: 'Club Campestre' },
+];
+
+const mockTeams: Team[] = [
+    {
+        id: 't1', name: 'Los Galácticos', captainId: 'u1', players: mockPlayers.slice(0, 7),
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi41LDEzLjAxNEw1MCw1My42bC0xMS45MTIsNy4xIDIuNS0xMy4wMTRMOS42ODYsNDYuNjkyIDEzLjIyLDM3Ljk3WiIgZmlsbD0iI0ZGRiIvPjwvc3ZnPg==',
+        level: 'Competitivo', stats: { wins: 1, losses: 0, draws: 1 },
+        formation: '4-3-3',
+        playerPositions: {},
+        tacticsNotes: "Presión alta al rival. Salida rápida por las bandas. El #10 tiene libertad de movimiento.",
+        schedule: mockSchedule,
+        matchHistory: [
+            { id: 'mh1', teamA: {id: 't1', name: 'Los Galácticos'}, teamB: {id: 'ext1', name: 'Rivales FC'}, scoreA: 3, scoreB: 3, date: new Date('2024-07-20'), status: 'jugado'},
+            { id: 'mh2', teamA: {id: 't1', name: 'Los Galácticos'}, teamB: {id: 'ext2', name: 'Deportivo Amigos'}, scoreA: 5, scoreB: 2, date: new Date('2024-07-13'), status: 'jugado'},
+        ],
+    },
+    {
+        id: 't2', name: 'Atlético Panas', captainId: 'u6', players: [],
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iI0Y0NUEyMCIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNjUgNDVINzVDNTUgNjAgNDAgNjUgMzUgNDUgQzUwIDM1IDUwIDM1IDY1IDQ1WiIgZmlsbD0iI0ZGRiIvPjxjaXJjbGUgY3g9IjM1IiBjeT0iNDIiIHI9IjUiIGZpbGw9IiNGRkYiLz48Y2lyY2xlIGN4PSI2NSIgY3k9IjQyIiByPSI1IiBmaWxsPSIjRkZGIi8+PC9zdmc+',
+        level: 'Intermedio', stats: { wins: 8, losses: 5, draws: 3 },
+        formation: '4-4-2', playerPositions: {}, schedule: [], 
+        matchHistory: [
+             { id: 'mh3', teamA: {id: 't2', name: 'Atlético Panas'}, teamB: {id: 'ext3', name: 'Real Mandil'}, scoreA: 1, scoreB: 2, date: new Date('2024-07-22'), status: 'jugado'},
+             { id: 'mh4', teamA: {id: 't2', name: 'Atlético Panas'}, teamB: {id: 'ext4', name: 'Spartans FC'}, scoreA: 4, scoreB: 0, date: new Date('2024-07-15'), status: 'jugado'},
+        ],
+    },
+    {
+        id: 't3', name: 'Real Mandil', captainId: 'u-other', players: [mockPlayers[8], mockPlayers[9]],
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAgMEwxMCAyMFY2MEMxMCA5MCA1MCAxMDAgNTAgMTAwUzkwIDkwIDkwIDYwVjIwWiIgZmlsbD0iIzAwMDAwMCIgc3Ryb2tlPSIjRkZENzAwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzUgMjVMNjUgMjVNNTAgMjVMMzUgNDBINjVMNTAgMjVaIE0zNSA0MEw1MCA2MEw2NSA0MFoiIGZpbGw9IiNGRkQ3MDAiLz48L3N2Zz4=',
+        level: 'Casual', stats: { wins: 3, losses: 9, draws: 2 },
+        formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [],
+    },
+    {
+        id: 't4', name: 'Spartans FC', captainId: 'u-other', players: [mockPlayers[10], mockPlayers[11]],
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAgMTBMMTAgNDBWNzBMMjAgOTBMODAgOTBMMzAgNzBMMzAgNTBMODAgNTBaIiBmaWxsPSIjQzgwODJGIiBzdHJva2U9IiNGRkYiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik01MCAxMEw5MCA0MFY3MEw4MCA5MEwyMCA5MFM3MCA3MCA3MCA1MFMxMCA1MCAxMCA3MFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
+        level: 'Competitivo', stats: { wins: 15, losses: 1, draws: 0 },
+        formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [],
+    },
+     { id: 't5', name: 'Furia Roja', captainId: 'u-other', players: [], logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iI0JEMDAwMCIgc3Ryb2tlPSIjZmVkNzAwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAgMjAgQyA3MCA0MCA3MCA2MCA1MCA4MCBDIDMwIDYwIDMwIDQwIDUwIDIwIFoiIGZpbGw9IiNmZWQ3MDAiPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0ic2NhbGUiIGZyb209IjEgMSIgdG89IjEuMSAxLjEiIGR1cj0iMXMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIiBhZGRpdGl2ZT0ic3VtIiBiZWdpbj0iMHMiIGF0dHJpYnV0ZVR5cGU9IlhNTCIvPjwvcGF0aD48L3N2Zz4=', level: 'Intermedio', stats: { wins: 5, losses: 5, draws: 5 }, formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [] },
+];
+
 // --- FUNCIÓN DE SEEDING ---
 export const seedDatabase = async () => {
     if (!db) return;
@@ -178,6 +257,7 @@ const demoData = {
     bookings: [],
     ownerApplications: [],
     announcements: [],
+    teams: [],
 };
 
 const initializeDemoData = () => {
@@ -191,19 +271,88 @@ const initializeDemoData = () => {
     
     demoData.announcements = announcementsToSeed('owner-1').map((a, i) => ({ id: `announcement-${i}`, ...a, createdAt: new Date() }));
     
-    demoData.bookings = [{
-        id: 'booking-1',
-        field: demoData.fields[0],
-        time: '19:00',
-        date: new Date(),
-        userId: 'player-1',
-        userName: player1.name,
-        userPhone: player1.phone,
-        extras: { balls: 1, vests: 0 },
-        totalPrice: 95000,
-        paymentMethod: 'pm-1',
-        status: 'confirmed',
-    }];
+    demoData.teams = mockTeams;
+
+    // Partidos de demostración para hoy
+    const currentHour = new Date().getHours();
+    demoData.bookings = [
+        // Partido "en vivo" con nombres de equipos
+        {
+            id: 'booking-live',
+            field: demoData.fields[1],
+            time: `${String(currentHour).padStart(2, '0')}:00`,
+            date: new Date(),
+            userId: 'player-live',
+            userName: 'Carlos Pérez', // Nombre de usuario
+            teamName: 'Equipo Rocket', // Nombre del equipo
+            rivalName: 'Los Invencibles', // Nombre del rival
+            userPhone: '3110000001',
+            extras: { balls: 0, vests: 1 },
+            totalPrice: 130000,
+            paymentMethod: 'cash',
+            status: 'confirmed',
+        },
+        // Partidos próximos para hoy con nombres de equipos
+        {
+            id: 'booking-upcoming-1',
+            field: demoData.fields[0],
+            time: '19:00',
+            date: new Date(),
+            userId: 'player-up1',
+            userName: 'Juan Rodriguez',
+            teamName: 'Los Galácticos',
+            rivalName: 'Furia Roja',
+            userPhone: '3110000002',
+            extras: { balls: 1, vests: 0 },
+            totalPrice: 95000,
+            paymentMethod: 'card-1',
+            status: 'confirmed',
+        },
+        // Partido próximo sin nombres de equipo (usará nombre de usuario)
+        {
+            id: 'booking-upcoming-2',
+            field: demoData.fields[2],
+            time: '20:00',
+            date: new Date(),
+            userId: 'player-up2',
+            userName: 'Amigos FC', // El nombre de usuario es el nombre del equipo aquí
+            userPhone: '3110000003',
+            extras: { balls: 0, vests: 0 },
+            totalPrice: 75000,
+            paymentMethod: 'cash',
+            status: 'confirmed',
+        },
+         {
+            id: 'booking-upcoming-3',
+            field: demoData.fields[1],
+            time: '21:00',
+            date: new Date(),
+            userId: 'player-up3',
+            userName: 'Ana García',
+            teamName: 'Real Mandil',
+            rivalName: 'Spartans FC',
+            userPhone: '3110000004',
+            extras: { balls: 1, vests: 1 },
+            totalPrice: 135000,
+            paymentMethod: 'card-2',
+            status: 'confirmed',
+        },
+        // Partido que ya pasó hoy
+        {
+            id: 'booking-past-today',
+            field: demoData.fields[0],
+            time: '10:00',
+            date: new Date(),
+            userId: 'player-past',
+            userName: 'Leyendas Urbanas', // Nombre de usuario como nombre de equipo
+            userPhone: '3110000005',
+            extras: { balls: 0, vests: 0 },
+            totalPrice: 90000,
+            paymentMethod: 'cash',
+            status: 'confirmed',
+        }
+    ];
+
     demoData.ownerApplications = [{
         id: 'app-1',
         userId: 'user-pending',
@@ -234,6 +383,11 @@ export const getUsers = async () => {
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.users)));
 };
 
+export const getTeams = async (): Promise<Team[]> => {
+    // In a real app with Firebase, this would be: return getCollection('teams');
+    return Promise.resolve(JSON.parse(JSON.stringify(demoData.teams)));
+};
+
 export const getAllBookings = async () => {
     if (isFirebaseConfigured) {
         const bookings = await getCollection('bookings');
@@ -241,7 +395,11 @@ export const getAllBookings = async () => {
         const fieldMap = new Map(fields.map(f => [f.id, f]));
         return bookings.map(b => ({ ...b, field: fieldMap.get(b.fieldId) || b.field }));
     }
-    return Promise.resolve(JSON.parse(JSON.stringify(demoData.bookings)));
+    // Parse and stringify to simulate a fresh data fetch and handle Date objects correctly
+    return Promise.resolve(JSON.parse(JSON.stringify(demoData.bookings), (key, value) => {
+        if (key === 'date') return new Date(value);
+        return value;
+    }));
 };
 
 export const getOwnerApplications = async () => {

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod } from '../types';
@@ -84,6 +83,8 @@ const Booking: React.FC<BookingProps> = ({ details, user, onConfirm, onBack, isB
     const [paymentInfo, setPaymentInfo] = useState({ cardNumber: '', expiry: '', cvc: '', name: '' });
     const [policiesAccepted, setPoliciesAccepted] = useState(false);
     const [useFreeTicket, setUseFreeTicket] = useState(false);
+    const [teamName, setTeamName] = useState('');
+    const [rivalName, setRivalName] = useState('');
 
     const fieldId = details.field.id;
     const freeTicketsForField = user.loyalty?.[fieldId]?.freeTickets || 0;
@@ -117,13 +118,15 @@ const Booking: React.FC<BookingProps> = ({ details, user, onConfirm, onBack, isB
 
         if (!policiesAccepted || (isNewCardPayment && !isCardFormValid)) return;
         
-        const confirmedDetails: Omit<ConfirmedBooking, 'id' | 'status' | 'userId' | 'userName' | 'userPhone'> = { 
-            ...details, 
-            extras, 
-            totalPrice, 
+        const confirmedDetails: Omit<ConfirmedBooking, 'id' | 'status' | 'userId' | 'userName' | 'userPhone'> = {
+            ...details,
+            extras,
+            totalPrice,
             paymentMethod: effectivePaymentMethod,
             isFree: useFreeTicket,
-            loyaltyApplied: useFreeTicket ? true : undefined,
+            loyaltyApplied: !!useFreeTicket,
+            ...(teamName.trim() && { teamName: teamName.trim() }),
+            ...(rivalName.trim() && { rivalName: rivalName.trim() }),
         };
         onConfirm(confirmedDetails);
     };
@@ -165,6 +168,37 @@ const Booking: React.FC<BookingProps> = ({ details, user, onConfirm, onBack, isB
                                         <span className="w-8 text-center font-semibold">{extras.vests}</span>
                                         <button type="button" onClick={() => setExtras(p => ({...p, vests: p.vests + 1}))} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">+</button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
+                            <h3 className="text-xl font-bold mb-4">Detalles del Partido (Opcional)</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Ingresa los nombres de los equipos para que aparezcan en la sección "Partidos de Hoy".
+                            </p>
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tu Equipo</label>
+                                    <input
+                                        type="text"
+                                        id="teamName"
+                                        value={teamName}
+                                        onChange={(e) => setTeamName(e.target.value)}
+                                        placeholder="Ej: Los Galácticos"
+                                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="rivalName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Equipo Rival</label>
+                                    <input
+                                        type="text"
+                                        id="rivalName"
+                                        value={rivalName}
+                                        onChange={(e) => setRivalName(e.target.value)}
+                                        placeholder="Ej: Atlético Panas"
+                                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700"
+                                    />
                                 </div>
                             </div>
                         </div>

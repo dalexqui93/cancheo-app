@@ -1,11 +1,5 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection } from './types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
 import Header from './components/Header';
 import Home from './views/Home';
@@ -53,13 +47,14 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
     const [allBookings, setAllBookings] = useState<ConfirmedBooking[]>([]);
+    const [allTeams, setAllTeams] = useState<Team[]>([]);
     const [view, setView] = useState<View>(View.HOME);
     const [activeTab, setActiveTab] = useState<Tab>('explore');
     const [user, setUser] = useState<User | null>(null);
@@ -115,12 +110,13 @@ const App = () => {
                 await db.seedDatabase();
             }
 
-            const [fieldsData, usersData, applicationsData, bookingsData, announcementsData] = await Promise.all([
+            const [fieldsData, usersData, applicationsData, bookingsData, announcementsData, teamsData] = await Promise.all([
                 db.getFields(),
                 db.getUsers(),
                 db.getOwnerApplications(),
                 db.getAllBookings(),
                 db.getAnnouncements(),
+                db.getTeams(),
             ]);
 
             setFields(fieldsData);
@@ -128,6 +124,7 @@ const App = () => {
             setOwnerApplications(applicationsData);
             setAllBookings(bookingsData);
             setAnnouncements(announcementsData);
+            setAllTeams(teamsData);
             setLoading(false);
         };
         loadData();
@@ -486,45 +483,73 @@ const App = () => {
         return () => clearInterval(intervalId);
     }, [bookings, addPersistentNotification]);
     
-
-    // Loyalty Program Check
+    // Automatically mark past bookings as 'completed'
     useEffect(() => {
-        if (!user || loading) return;
-    
-        const checkLoyalty = async () => {
+        const completePastBookings = async () => {
             const now = new Date();
-            const playedBookings = bookings.filter(b => 
-                b.userId === user.id &&
-                b.status === 'confirmed' && 
-                !b.loyaltyApplied && 
-                new Date(b.date) < now
-            );
+            const bookingsToComplete: ConfirmedBooking[] = [];
     
-            if (playedBookings.length > 0) {
-                const newLoyalty: UserLoyalty = {};
-                if (user.loyalty) {
-                    for (const key in user.loyalty) {
-                        if (Object.prototype.hasOwnProperty.call(user.loyalty, key)) {
-                            const value = user.loyalty[key];
-                            newLoyalty[key] = { progress: value.progress, freeTickets: value.freeTickets };
-                        }
+            allBookings.forEach(booking => {
+                if (booking.status === 'confirmed') {
+                    const bookingDateTime = new Date(booking.date);
+                    const [hours, minutes] = booking.time.split(':').map(Number);
+                    bookingDateTime.setHours(hours, minutes);
+    
+                    if (bookingDateTime < now) {
+                        bookingsToComplete.push(booking);
                     }
                 }
+            });
+    
+            if (bookingsToComplete.length > 0) {
+                const updates = bookingsToComplete.map(b => 
+                    db.updateBooking(b.id, { status: 'completed' })
+                );
+                await Promise.all(updates);
+    
+                setAllBookings(prevAllBookings => {
+                    const completedIds = new Set(bookingsToComplete.map(b => b.id));
+                    return prevAllBookings.map(b =>
+                        completedIds.has(b.id) ? { ...b, status: 'completed' } : b
+                    );
+                });
+            }
+        };
+    
+        const intervalId = setInterval(completePastBookings, 60 * 1000); // Run every minute
+        completePastBookings(); // Run once on load
+    
+        return () => clearInterval(intervalId);
+    }, [allBookings]);
+
+    // Loyalty Program Check - now triggers on completed bookings
+    useEffect(() => {
+        if (!user || loading) return;
+
+        const checkLoyaltyForCompletedGames = async () => {
+            const completedBookings = bookings.filter(b =>
+                b.userId === user.id &&
+                b.status === 'completed' &&
+                !b.loyaltyApplied
+            );
+
+            if (completedBookings.length > 0) {
+                let newLoyalty: UserLoyalty = user.loyalty ? JSON.parse(JSON.stringify(user.loyalty)) : {};
                 let loyaltyWasUpdated = false;
-    
-                for (const booking of playedBookings) {
+
+                for (const booking of completedBookings) {
                     if (!booking.field.loyaltyEnabled) continue;
-    
+
                     const fieldId = booking.field.id;
                     const loyaltyGoal = booking.field.loyaltyGoal || 7;
-    
+
                     if (!newLoyalty[fieldId]) {
                         newLoyalty[fieldId] = { progress: 0, freeTickets: 0 };
                     }
-    
+
                     newLoyalty[fieldId].progress++;
                     loyaltyWasUpdated = true;
-    
+
                     if (newLoyalty[fieldId].progress >= loyaltyGoal) {
                         newLoyalty[fieldId].progress = 0;
                         newLoyalty[fieldId].freeTickets++;
@@ -536,28 +561,29 @@ const App = () => {
                         });
                     }
                 }
-                
+
                 if (loyaltyWasUpdated) {
                     await db.updateUser(user.id, { loyalty: newLoyalty });
                     const updatedUser = { ...user, loyalty: newLoyalty };
                     setUser(updatedUser);
                     setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
                 }
-    
-                const playedBookingIds = new Set(playedBookings.map(b => b.id));
-                for (const bookingId of playedBookingIds) {
+
+                const completedBookingIds = new Set(completedBookings.map(b => b.id));
+                for (const bookingId of completedBookingIds) {
                     await db.updateBooking(bookingId, { loyaltyApplied: true });
                 }
-                setAllBookings(prevBookings => 
-                    prevBookings.map(b => 
-                        playedBookingIds.has(b.id) ? { ...b, loyaltyApplied: true } : b
+                
+                setAllBookings(prevBookings =>
+                    prevBookings.map(b =>
+                        completedBookingIds.has(b.id) ? { ...b, loyaltyApplied: true } : b
                     )
                 );
             }
         };
-    
-        checkLoyalty();
-    }, [bookings, user, loading, addPersistentNotification]);
+
+        checkLoyaltyForCompletedGames();
+    }, [user, allBookings, loading, addPersistentNotification]);
 
     // Check for remembered user on app load
     useEffect(() => {
@@ -1171,6 +1197,8 @@ const App = () => {
                 setSearchResults(results);
                 handleNavigate(View.SEARCH_RESULTS);
             }} 
+            allBookings={allBookings}
+            allTeams={allTeams}
         />;
         
         const viewElement = (() => {
@@ -1308,7 +1336,8 @@ const App = () => {
                 case View.SOCIAL:
                     if (user) {
                         return <SocialView 
-                                    user={user} 
+                                    user={user}
+                                    allTeams={allTeams} 
                                     addNotification={showToast} 
                                     onNavigate={handleNavigate} 
                                     setIsPremiumModalOpen={setIsPremiumModalOpen} 

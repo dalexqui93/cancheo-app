@@ -298,7 +298,7 @@ export interface ConfirmedBooking extends BookingDetails {
     extras: { balls: number; vests: number };
     totalPrice: number;
     paymentMethod: string; // 'cash' or a payment method ID
-    status?: 'confirmed' | 'cancelled';
+    status?: 'confirmed' | 'cancelled' | 'completed';
     remindersSent?: {
         twentyFourHour: boolean;
         oneHour: boolean;
@@ -306,6 +306,8 @@ export interface ConfirmedBooking extends BookingDetails {
     isFree?: boolean;
     loyaltyApplied?: boolean;
     ratingPrompted?: boolean;
+    teamName?: string;
+    rivalName?: string;
 }
 
 export interface Announcement {

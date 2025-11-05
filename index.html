@@ -193,6 +193,14 @@
                 transform: scale(1) translateY(0);
             }
         }
+        @keyframes pulse-live {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
 
 
         .animate-fade-in {
@@ -218,6 +226,9 @@
         }
         .animate-scale-in {
             animation: scale-in 0.15s ease-out forwards;
+        }
+        .animate-pulse-live {
+            animation: pulse-live 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
 
