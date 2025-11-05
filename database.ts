@@ -274,25 +274,61 @@ const initializeDemoData = () => {
     demoData.teams = mockTeams;
 
     // Partidos de demostración para hoy
-    const currentHour = new Date().getHours();
+    const nowForBooking = new Date();
+    const liveStartTime = new Date(nowForBooking.getTime() - 30 * 60 * 1000); // 30 minutos atrás
+    const liveHour = String(liveStartTime.getHours()).padStart(2, '0');
+    const liveMinute = String(liveStartTime.getMinutes()).padStart(2, '0');
+
     demoData.bookings = [
-        // Partido "en vivo" con nombres de equipos
+        // Partido garantizado "en vivo"
         {
             id: 'booking-live',
-            field: demoData.fields[1],
-            time: `${String(currentHour).padStart(2, '0')}:00`,
-            date: new Date(),
+            field: demoData.fields[1], // El Templo - Cancha 2
+            time: `${liveHour}:${liveMinute}`,
+            date: liveStartTime,
             userId: 'player-live',
-            userName: 'Carlos Pérez', // Nombre de usuario
-            teamName: 'Equipo Rocket', // Nombre del equipo
-            rivalName: 'Los Invencibles', // Nombre del rival
+            userName: 'Carlos Pérez',
+            teamName: 'Equipo Rocket',
+            rivalName: 'Los Invencibles',
             userPhone: '3110000001',
             extras: { balls: 0, vests: 1 },
             totalPrice: 130000,
             paymentMethod: 'cash',
             status: 'confirmed',
         },
-        // Partidos próximos para hoy con nombres de equipos
+        // Partido a medianoche
+        {
+            id: 'booking-midnight',
+            field: demoData.fields[0], // El Templo - Cancha 1
+            time: '00:00',
+            date: new Date(),
+            userId: 'player-midnight',
+            userName: 'Nocturnos FC',
+            teamName: 'Nocturnos FC',
+            rivalName: 'Insomnes',
+            userPhone: '3110000006',
+            extras: { balls: 0, vests: 0 },
+            totalPrice: 90000,
+            paymentMethod: 'cash',
+            status: 'confirmed',
+        },
+        // Partido a mediodía
+        {
+            id: 'booking-noon',
+            field: demoData.fields[2], // Gol Center
+            time: '12:00',
+            date: new Date(),
+            userId: 'player-noon',
+            userName: 'Almuerzo FC',
+            teamName: 'Almuerzo FC',
+            rivalName: 'Siesta SC',
+            userPhone: '3110000007',
+            extras: { balls: 1, vests: 1 },
+            totalPrice: 90000,
+            paymentMethod: 'cash',
+            status: 'confirmed',
+        },
+        // Partidos próximos para hoy
         {
             id: 'booking-upcoming-1',
             field: demoData.fields[0],
@@ -308,14 +344,13 @@ const initializeDemoData = () => {
             paymentMethod: 'card-1',
             status: 'confirmed',
         },
-        // Partido próximo sin nombres de equipo (usará nombre de usuario)
         {
             id: 'booking-upcoming-2',
             field: demoData.fields[2],
             time: '20:00',
             date: new Date(),
             userId: 'player-up2',
-            userName: 'Amigos FC', // El nombre de usuario es el nombre del equipo aquí
+            userName: 'Amigos FC',
             userPhone: '3110000003',
             extras: { balls: 0, vests: 0 },
             totalPrice: 75000,
@@ -344,7 +379,7 @@ const initializeDemoData = () => {
             time: '10:00',
             date: new Date(),
             userId: 'player-past',
-            userName: 'Leyendas Urbanas', // Nombre de usuario como nombre de equipo
+            userName: 'Leyendas Urbanas',
             userPhone: '3110000005',
             extras: { balls: 0, vests: 0 },
             totalPrice: 90000,
