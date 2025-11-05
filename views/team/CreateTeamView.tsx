@@ -1,97 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { UploadIcon } from '../../components/icons/UploadIcon';
-import { UsersIcon } from '../../components/icons/UsersIcon';
+import { ShieldIcon } from '../../components/icons/ShieldIcon';
 import type { User } from '../../types';
 import { SparklesIcon } from '../../components/icons/SparklesIcon';
-import { GoogleGenAI } from '@google/genai';
-import { XIcon } from '../../components/icons/XIcon';
-import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
+import LogoGalleryModal from '../../components/LogoGalleryModal';
 
-
-const LogoCreatorModal: React.FC<{
-    teamName: string;
-    onSelectLogo: (base64: string) => void;
-    onClose: () => void;
-}> = ({ teamName, onSelectLogo, onClose }) => {
-    const [colors, setColors] = useState('');
-    const [keywords, setKeywords] = useState('');
-    const [generatedLogos, setGeneratedLogos] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const handleGenerate = async () => {
-        if (!keywords) {
-            setError('Debes ingresar al menos una palabra clave.');
-            return;
-        }
-        setError('');
-        setIsLoading(true);
-        setGeneratedLogos([]);
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateImages({
-                model: 'imagen-4.0-generate-001',
-                prompt: `Logo for an amateur soccer team called '${teamName}'. The main colors are ${colors || 'any'}. The logo should include: ${keywords}. Style: vector, minimalist, modern, emblem.`,
-                config: { numberOfImages: 4, aspectRatio: '1:1' }
-            });
-            const images = response.generatedImages.map(img => `data:image/png;base64,${img.image.imageBytes}`);
-            setGeneratedLogos(images);
-        } catch (e) {
-            console.error("Error generating logos:", e);
-            setError('Could not generate logos. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-2xl m-4" onClick={e => e.stopPropagation()}>
-                <div className="p-5 border-b border-white/10 flex justify-between items-center">
-                    <h3 className="text-xl font-bold flex items-center gap-2"><SparklesIcon className="w-6 h-6 text-yellow-400"/> AI Logo Creator</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6"/></button>
-                </div>
-                <div className="p-6 space-y-4">
-                    <p className="text-sm text-gray-300">Describe your dream logo. The AI will create unique options for your team.</p>
-                    <div>
-                        <label className="font-semibold block mb-1">Main Colors</label>
-                        <input type="text" value={colors} onChange={e => setColors(e.target.value)} placeholder="e.g., blue and white" className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
-                    </div>
-                     <div>
-                        <label className="font-semibold block mb-1">Keywords</label>
-                        <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="e.g., an aggressive lion, a flaming ball" className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
-                    </div>
-                    <button onClick={handleGenerate} disabled={isLoading} className="w-full py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm disabled:bg-gray-400 flex items-center justify-center gap-2">
-                        {isLoading ? <><SpinnerIcon className="w-5 h-5"/> Generating...</> : 'Generate Logos'}
-                    </button>
-                    {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-                </div>
-                 {generatedLogos.length > 0 && (
-                    <div className="p-6 border-t border-white/10">
-                        <h4 className="font-bold mb-3">Select your favorite:</h4>
-                        <div className="flex overflow-x-auto space-x-4 pb-2 scrollbar-hide">
-                            {generatedLogos.map((logoSrc, i) => (
-                                <button 
-                                    key={i} 
-                                    onClick={() => onSelectLogo(logoSrc)} 
-                                    className="flex-shrink-0 w-32 h-32 bg-gray-700 rounded-lg overflow-hidden border-2 border-transparent hover:border-[var(--color-primary-500)] transition-all"
-                                >
-                                    <img src={logoSrc} alt={`Generated Logo ${i + 1}`} className="w-full h-full object-cover"/>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                 {isLoading && (
-                    <div className="p-6 border-t border-white/10 text-center">
-                        <p className="text-sm text-gray-400">The AI is designing... This might take a moment.</p>
-                    </div>
-                 )}
-            </div>
-        </div>
-    );
-};
 
 interface CreateTeamViewProps {
     user: User;
@@ -104,15 +18,11 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
     const [name, setName] = useState('');
     const [level, setLevel] = useState<'Casual' | 'Intermedio' | 'Competitivo'>('Casual');
     const [logo, setLogo] = useState<string | null>(null);
-    const [showLogoModal, setShowLogoModal] = useState(false);
+    const [showLogoGallery, setShowLogoGallery] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLogoClick = () => {
         fileInputRef.current?.click();
-    };
-
-    const handleAiLogoClick = () => {
-        setShowLogoModal(true);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,7 +81,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
             </button>
             <div className="w-full max-w-lg">
                 <div className="text-center py-12 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl">
-                    <UsersIcon className="mx-auto h-16 w-16 text-gray-400" />
+                    <ShieldIcon className="mx-auto h-16 w-16 text-[var(--color-primary-400)]" />
                     <h2 className="mt-4 text-2xl font-bold tracking-tight">Crea tu Equipo</h2>
                     <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">Reúne a tu plantilla, define tus tácticas y prepárate para competir.</p>
                     
@@ -190,9 +100,9 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                                     <button type="button" onClick={handleLogoClick} className="font-semibold text-[var(--color-primary-400)] hover:underline text-left">
                                         Subir logo
                                     </button>
-                                     <button type="button" onClick={handleAiLogoClick} className="font-semibold text-yellow-500 hover:underline text-left flex items-center gap-1">
+                                     <button type="button" onClick={() => setShowLogoGallery(true)} className="font-semibold text-yellow-500 hover:underline text-left flex items-center gap-1">
                                         <SparklesIcon className="w-4 h-4" />
-                                        Crear con IA
+                                        Elegir de la Galería
                                     </button>
                                 </div>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
@@ -223,13 +133,13 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                     </form>
                 </div>
             </div>
-            {showLogoModal && (
-                <LogoCreatorModal 
-                    teamName={name}
-                    onClose={() => setShowLogoModal(false)}
-                    onSelectLogo={(base64) => {
-                        setLogo(base64);
-                        setShowLogoModal(false);
+            {showLogoGallery && (
+                <LogoGalleryModal 
+                    teamName={name || 'Tu Equipo'}
+                    onClose={() => setShowLogoGallery(false)}
+                    onSelectLogo={(logoUrl) => {
+                        setLogo(logoUrl);
+                        setShowLogoGallery(false);
                     }}
                 />
             )}
