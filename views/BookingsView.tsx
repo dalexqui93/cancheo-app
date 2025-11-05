@@ -9,9 +9,24 @@ interface BookingsViewProps {
     onSelectBooking: (booking: ConfirmedBooking) => void;
 }
 
+// Helper function to get the full Date object for the start of a booking
+const getBookingStartDateTime = (booking: ConfirmedBooking): Date => {
+    const bookingDate = new Date(booking.date);
+    const [hours, minutes] = booking.time.split(':').map(Number);
+    bookingDate.setHours(hours, minutes, 0, 0);
+    return bookingDate;
+};
+
+
 const BookingCard: React.FC<{ booking: ConfirmedBooking; onClick: () => void }> = ({ booking, onClick }) => {
     const isCancelled = booking.status === 'cancelled';
-    const isUpcoming = new Date(booking.date) >= new Date(new Date().toDateString()) && !isCancelled;
+    
+    // A match lasts 1 hour. Calculate the end time.
+    const bookingEndDateTime = new Date(getBookingStartDateTime(booking).getTime() + 60 * 60 * 1000);
+    const now = new Date();
+    
+    // The match is upcoming if it has not ended yet and is not cancelled.
+    const isUpcoming = bookingEndDateTime > now && !isCancelled;
     
     return (
         <button 
@@ -27,7 +42,7 @@ const BookingCard: React.FC<{ booking: ConfirmedBooking; onClick: () => void }> 
                     <p className={`text-sm font-bold ${isUpcoming ? 'text-green-600 dark:text-green-500' : 'text-gray-500 dark:text-gray-400'}`}>{isUpcoming ? 'Próxima' : 'Jugada'}</p>
                 )}
                 <p className={`font-bold text-lg text-gray-800 dark:text-gray-100 ${isCancelled ? 'line-through' : ''}`}>{booking.field.name}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{booking.date.toLocaleDateString('es-CO', { weekday: 'short', month: 'long', day: 'numeric' })} - {booking.time}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{new Date(booking.date).toLocaleDateString('es-CO', { weekday: 'short', month: 'long', day: 'numeric' })} - {booking.time}</p>
             </div>
             {!isCancelled && <ChevronRightIcon className="h-6 w-6 text-gray-400" />}
         </button>
@@ -38,15 +53,23 @@ const BookingCard: React.FC<{ booking: ConfirmedBooking; onClick: () => void }> 
 const BookingsView: React.FC<BookingsViewProps> = ({ bookings, onSelectBooking }) => {
     const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
 
+    const now = new Date();
+
     const upcomingBookings = bookings
-        .filter(b => new Date(b.date) >= new Date(new Date().toDateString()) && b.status !== 'cancelled')
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
+        .filter(b => {
+            const bookingEndDateTime = new Date(getBookingStartDateTime(b).getTime() + 60 * 60 * 1000);
+            return bookingEndDateTime > now && b.status !== 'cancelled';
+        })
+        .sort((a, b) => getBookingStartDateTime(a).getTime() - getBookingStartDateTime(b).getTime());
 
     const historyBookings = bookings
-        .filter(b => new Date(b.date) < new Date(new Date().toDateString()) || b.status === 'cancelled')
+        .filter(b => {
+            const bookingEndDateTime = new Date(getBookingStartDateTime(b).getTime() + 60 * 60 * 1000);
+            return bookingEndDateTime <= now || b.status === 'cancelled';
+        })
         .sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
+            const dateA = getBookingStartDateTime(a);
+            const dateB = getBookingStartDateTime(b);
             return dateB.getTime() - dateA.getTime();
         });
 
