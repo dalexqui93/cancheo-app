@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -178,6 +179,21 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
 const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAiSearching, setIsAiSearching] = useState(false);
+    const [currentDate, setCurrentDate] = useState(() => new Date());
+
+    useEffect(() => {
+        // Este efecto asegura que la lista de "Partidos de Hoy" se actualice automáticamente a la medianoche.
+        const intervalId = setInterval(() => {
+            const now = new Date();
+            // Compara las fechas, ignorando la parte de la hora.
+            if (now.toDateString() !== currentDate.toDateString()) {
+                setCurrentDate(now);
+            }
+        }, 30 * 1000); // Revisa cada 30 segundos para mayor fiabilidad
+
+        return () => clearInterval(intervalId);
+    }, [currentDate]);
+
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -277,7 +293,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         const CITY_RADIUS_KM = 50;
     
         // Utiliza `formatToParts` para una comparación robusta de fechas que ignora la zona horaria del navegador.
-        const now = new Date();
+        const now = currentDate;
         const formatter = new Intl.DateTimeFormat('en-US', { timeZone: targetTimezone, year: 'numeric', month: 'numeric', day: 'numeric' });
         
         const todayParts = formatter.formatToParts(now);
@@ -309,7 +325,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
     
         return todayMatchesInCity.sort((a, b) => a.time.localeCompare(b.time));
     
-    }, [allBookings, weatherData]);
+    }, [allBookings, weatherData, currentDate]);
 
     const favoriteComplexes = useMemo(() => {
         return groupedFields.filter(group => favoriteFields.includes(group[0].complexId || group[0].id));
