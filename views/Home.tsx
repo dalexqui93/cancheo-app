@@ -339,17 +339,23 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
 
             {/* Size filters */}
             <div className="flex justify-center gap-2 sm:gap-4">
-                <button onClick={() => onSearch('', { size: '5v5' })} className="flex items-center gap-2 py-2 px-5 rounded-full text-sm sm:text-base font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] transition">
-                    <UsersFiveIcon className="w-5 h-5" />
-                    <span>Fútbol 5</span>
+                <button 
+                    onClick={() => onSearch('', { size: '5v5' })} 
+                    className="py-2.5 px-6 rounded-full text-sm sm:text-base font-bold text-blue-800 dark:text-blue-200 bg-blue-100/50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800/50 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-lg hover:shadow-blue-500/20"
+                >
+                    Fútbol 5
                 </button>
-                <button onClick={() => onSearch('', { size: '7v7' })} className="flex items-center gap-2 py-2 px-5 rounded-full text-sm sm:text-base font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] transition">
-                    <UsersSevenIcon className="w-5 h-5" />
-                    <span>Fútbol 7</span>
+                <button 
+                    onClick={() => onSearch('', { size: '7v7' })} 
+                    className="py-2.5 px-6 rounded-full text-sm sm:text-base font-bold text-green-800 dark:text-green-200 bg-green-100/50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-800/50 hover:border-green-400 dark:hover:border-green-600 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-lg hover:shadow-green-500/20"
+                >
+                    Fútbol 7
                 </button>
-                <button onClick={() => onSearch('', { size: '11v11' })} className="flex items-center gap-2 py-2 px-5 rounded-full text-sm sm:text-base font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] transition">
-                    <UsersElevenIcon className="w-5 h-5" />
-                    <span>Fútbol 11</span>
+                <button 
+                    onClick={() => onSearch('', { size: '11v11' })} 
+                    className="py-2.5 px-6 rounded-full text-sm sm:text-base font-bold text-orange-800 dark:text-orange-200 bg-orange-100/50 dark:bg-orange-900/30 border-2 border-orange-200 dark:border-orange-800/50 hover:border-orange-400 dark:hover:border-orange-600 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-lg hover:shadow-orange-500/20"
+                >
+                    Fútbol 11
                 </button>
             </div>
 
