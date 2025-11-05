@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -33,6 +32,7 @@ interface HomeProps {
     onSearchResults: (results: SoccerField[]) => void;
     allBookings: ConfirmedBooking[];
     allTeams: Team[];
+    currentTime: Date;
 }
 
 const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
@@ -48,15 +48,38 @@ const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ lo
     );
 };
 
-const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[], timezone?: string }> = ({ match, onSelectField, allTeams, timezone }) => {
+const getMatchTimestamps = (match: ConfirmedBooking, timezone: string) => {
+    const matchDate = new Date(match.date);
+    const [hours, minutes] = match.time.split(':').map(Number);
+
+    const naiveDateTime = new Date(
+        matchDate.getFullYear(),
+        matchDate.getMonth(),
+        matchDate.getDate(),
+        hours,
+        minutes
+    );
+
+    // This is a known issue: JavaScript's native Date object handling of timezones is limited.
+    // This logic attempts to get an offset but might be inaccurate around DST changes.
+    // A proper library like date-fns-tz would be required for a fully robust solution.
+    const localTime = new Date();
+    const timeInTargetZone = new Date(localTime.toLocaleString('en-US', { timeZone: timezone }));
+    const timezoneOffset = localTime.getTime() - timeInTargetZone.getTime();
+
+    const startTs = naiveDateTime.getTime() - timezoneOffset;
+    const endTs = startTs + 60 * 60 * 1000; // Match duration is 60 minutes
+    
+    return { startTs, endTs };
+};
+
+
+const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[], timezone?: string, currentTime: Date }> = ({ match, onSelectField, allTeams, timezone, currentTime }) => {
     const teamNameA = match.teamName || match.userName;
     const rivalNameB = match.rivalName || opponentNames[match.id.charCodeAt(match.id.length - 1) % opponentNames.length];
 
     const teamA = allTeams.find(t => t.name.toLowerCase() === teamNameA.toLowerCase());
     const teamB = allTeams.find(t => t.name.toLowerCase() === rivalNameB.toLowerCase());
-    
-    const [countdown, setCountdown] = useState('');
-    const [isLive, setIsLive] = useState(false);
 
     const formattedTime = useMemo(() => {
         if (!match.time) return '';
@@ -69,61 +92,27 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
         return `${hour12}:${String(minute).padStart(2, '0')} ${ampm}`;
     }, [match.time]);
 
-    useEffect(() => {
-        if (!timezone) return;
-
-        const updateMatchStatus = () => {
-            const formatter = new Intl.DateTimeFormat('sv-SE', {
-                timeZone: timezone,
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false
-            });
-
-            // 1. Construir la fecha de inicio del partido en la zona horaria local del navegador.
-            // La zona horaria se corregirá al formatear a string.
-            const [hour, minute] = match.time.split(':').map(Number);
-            const matchStartDateTime = new Date(match.date);
-            matchStartDateTime.setHours(hour, minute, 0, 0);
-
-            // 2. Un partido dura 60 minutos. Calcular la hora de finalización.
-            const MATCH_DURATION_MS = 60 * 60 * 1000;
-            const matchEndDateTime = new Date(matchStartDateTime.getTime() + MATCH_DURATION_MS);
-
-            // 3. Convertir todas las fechas a strings en formato ISO en la zona horaria correcta del usuario (obtenida del clima)
-            // para una comparación 100% fiable.
-            const nowStr = formatter.format(new Date()).replace(' ', 'T');
-            const startStr = formatter.format(matchStartDateTime).replace(' ', 'T');
-            const endStr = formatter.format(matchEndDateTime).replace(' ', 'T');
-            
-            // 4. Determinar si el partido está actualmente en vivo.
-            const isMatchLive = nowStr >= startStr && nowStr < endStr;
-
-            if (isMatchLive) {
-                setIsLive(true);
-                // Para el contador, se convierten los strings de la zona horaria correcta a timestamps.
-                const endTs = new Date(endStr).getTime();
-                const nowTs = new Date(nowStr).getTime();
-                
-                const remainingSeconds = Math.max(0, Math.floor((endTs - nowTs) / 1000));
-                const minutesLeft = Math.floor(remainingSeconds / 60);
-                const secondsLeft = remainingSeconds % 60;
-                
-                setCountdown(`${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`);
-            } else if (nowStr >= endStr) {
-                setIsLive(false);
-                setCountdown('Finalizado');
-            } else {
-                setIsLive(false);
-                setCountdown(''); // El partido aún no ha comenzado.
-            }
-        };
+    const { isLive, isFinished, isUpcoming, countdown } = useMemo(() => {
+        if (!timezone || !match.date || !match.time) return { isLive: false, isFinished: false, isUpcoming: true, countdown: '' };
         
-        updateMatchStatus(); // Ejecutar inmediatamente para el estado inicial.
-        const intervalId = setInterval(updateMatchStatus, 1000); // Actualizar cada segundo.
+        const { startTs, endTs } = getMatchTimestamps(match, timezone);
+        const nowTs = currentTime.getTime();
 
-        return () => clearInterval(intervalId); // Limpiar el intervalo al desmontar.
-    }, [match.date, match.time, timezone]);
+        const isMatchLive = nowTs >= startTs && nowTs < endTs;
+        const isFinished = nowTs >= endTs;
+        const isUpcoming = nowTs < startTs;
+
+        let currentCountdown = '';
+
+        if (isMatchLive) {
+            const remainingSeconds = Math.max(0, Math.floor((endTs - nowTs) / 1000));
+            const minutesLeft = Math.floor(remainingSeconds / 60);
+            const secondsLeft = remainingSeconds % 60;
+            currentCountdown = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
+        }
+        
+        return { isLive: isMatchLive, isFinished, isUpcoming, countdown: currentCountdown };
+    }, [match.date, match.time, timezone, currentTime]);
 
 
     return (
@@ -139,17 +128,24 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
             
             <div className="p-4 relative z-10 flex flex-col h-full">
                 <div className="flex justify-between items-start text-xs mb-2">
-                    <p className="font-bold truncate max-w-[70%]">{match.field.name}</p>
-                    <p className="font-bold">{formattedTime}</p>
+                    <p className="font-bold truncate max-w-[60%]">{match.field.name}</p>
                 </div>
                 
-                {isLive && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                        <span>VIVO</span>
-                        <span className="font-mono tracking-wider">{countdown}</span>
-                    </div>
-                )}
+                <div className={`absolute top-2 right-2 flex items-center gap-1.5 text-white text-xs font-bold px-2 py-1 rounded-full ${
+                    isLive ? 'bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live' : 
+                    isFinished ? 'bg-gray-600' :
+                    'bg-black/40'
+                }`}>
+                    {isLive && (
+                        <>
+                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                            <span>VIVO</span>
+                            <span className="font-mono tracking-wider">{countdown}</span>
+                        </>
+                    )}
+                    {isFinished && <span>Finalizado</span>}
+                    {isUpcoming && <span>{formattedTime}</span>}
+                </div>
                 
                 <div className="flex-grow flex items-center justify-around my-2">
                     <div className="flex flex-col items-center text-center w-28">
@@ -176,24 +172,9 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
     );
 };
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams }) => {
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAiSearching, setIsAiSearching] = useState(false);
-    const [currentDate, setCurrentDate] = useState(() => new Date());
-
-    useEffect(() => {
-        // Este efecto asegura que la lista de "Partidos de Hoy" se actualice automáticamente a la medianoche.
-        const intervalId = setInterval(() => {
-            const now = new Date();
-            // Compara las fechas, ignorando la parte de la hora.
-            if (now.toDateString() !== currentDate.toDateString()) {
-                setCurrentDate(now);
-            }
-        }, 30 * 1000); // Revisa cada 30 segundos para mayor fiabilidad
-
-        return () => clearInterval(intervalId);
-    }, [currentDate]);
-
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -292,14 +273,9 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         const userLon = weatherData.longitude;
         const CITY_RADIUS_KM = 50;
     
-        // Utiliza `formatToParts` para una comparación robusta de fechas que ignora la zona horaria del navegador.
-        const now = currentDate;
-        const formatter = new Intl.DateTimeFormat('en-US', { timeZone: targetTimezone, year: 'numeric', month: 'numeric', day: 'numeric' });
-        
-        const todayParts = formatter.formatToParts(now);
-        const todayYear = todayParts.find(p => p.type === 'year')?.value;
-        const todayMonth = todayParts.find(p => p.type === 'month')?.value;
-        const todayDay = todayParts.find(p => p.type === 'day')?.value;
+        const now = currentTime;
+        // 'en-CA' format is YYYY-MM-DD which is robust for comparisons
+        const todayString = now.toLocaleDateString('en-CA', { timeZone: targetTimezone });
     
         const todayMatchesInCity = allBookings.filter(booking => {
             if (!booking.date || !booking.status || booking.field.latitude == null || booking.field.longitude == null) {
@@ -307,25 +283,47 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             }
             
             const distance = calculateDistance(userLat, userLon, booking.field.latitude, booking.field.longitude);
-            if (distance > CITY_RADIUS_KM || booking.status !== 'confirmed') {
+            if (distance > CITY_RADIUS_KM || booking.status === 'cancelled') {
                 return false;
             }
 
-            // Compara los componentes de la fecha (año, mes, día) en la zona horaria del usuario.
             const bookingDate = new Date(booking.date);
-            const bookingParts = formatter.formatToParts(bookingDate);
-            const bookingYear = bookingParts.find(p => p.type === 'year')?.value;
-            const bookingMonth = bookingParts.find(p => p.type === 'month')?.value;
-            const bookingDay = bookingParts.find(p => p.type === 'day')?.value;
+            const bookingDateString = bookingDate.toLocaleDateString('en-CA', { timeZone: targetTimezone });
             
-            const isToday = bookingYear === todayYear && bookingMonth === todayMonth && bookingDay === todayDay;
+            const isToday = bookingDateString === todayString;
             
             return isToday;
         });
     
-        return todayMatchesInCity.sort((a, b) => a.time.localeCompare(b.time));
+        const getStatus = (match: ConfirmedBooking) => {
+            const { startTs, endTs } = getMatchTimestamps(match, targetTimezone);
+            const nowTs = now.getTime();
+            if (nowTs >= startTs && nowTs < endTs) return 'live';
+            if (nowTs >= endTs) return 'finished';
+            return 'upcoming';
+        };
+
+        return todayMatchesInCity.sort((a, b) => {
+            const statusOrder = { live: 1, upcoming: 2, finished: 3 };
+            const statusA = getStatus(a);
+            const statusB = getStatus(b);
+
+            if (statusOrder[statusA] !== statusOrder[statusB]) {
+                return statusOrder[statusA] - statusOrder[statusB];
+            }
+
+            // If status is the same, sort by time
+            if (statusA === 'upcoming') {
+                return a.time.localeCompare(b.time); // Earliest upcoming first
+            }
+            if (statusA === 'finished') {
+                return b.time.localeCompare(a.time); // Most recently finished first
+            }
+            // For live matches, sort by start time
+            return a.time.localeCompare(b.time);
+        });
     
-    }, [allBookings, weatherData, currentDate]);
+    }, [allBookings, weatherData, currentTime]);
 
     const favoriteComplexes = useMemo(() => {
         return groupedFields.filter(group => favoriteFields.includes(group[0].complexId || group[0].id));
@@ -421,7 +419,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                     Partidos de Hoy {weatherData?.locationName && <span className="text-[var(--color-primary-500)]">cerca de ti</span>}
                 </h2>
-                {loading ? (
+                {loading || isWeatherLoading ? (
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
                         {[...Array(3)].map((_, i) => (
                             <div key={i} className="flex-shrink-0 w-80 h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl shimmer-bg"></div>
@@ -430,7 +428,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                 ) : matchesInUserCity.length > 0 ? (
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
                         {matchesInUserCity.map(match => (
-                            <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} timezone={weatherData?.timezone} />
+                            <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} timezone={weatherData?.timezone} currentTime={currentTime} />
                         ))}
                     </div>
                 ) : (

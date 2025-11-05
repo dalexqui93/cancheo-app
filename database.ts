@@ -42,6 +42,9 @@ if (isFirebaseConfigured) {
 // =============================================================================
 // DATOS PARA MODO DEMO Y SEEDING
 // =============================================================================
+
+const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
+
 const adminToSeed: Omit<User, 'id'> = {
     name: 'Admin', email: 'admin@cancheo.com', password: 'admin123', isAdmin: true, isOwner: false, favoriteFields: [], isPremium: true, notifications: [],
     notificationPreferences: { newAvailability: true, specialDiscounts: true, importantNews: true }, cancheoCoins: 1000,
@@ -138,7 +141,7 @@ const mockSchedule: TeamEvent[] = [
 const mockTeams: Team[] = [
     {
         id: 't1', name: 'Los Galácticos', captainId: 'u1', players: mockPlayers.slice(0, 7),
-        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi41LDEzLjAxNEw1MCw1My42bC0xMS45MTIsNy4xIDIuNS0xMy4wMTRMOS42ODYsNDYuNjkyIDEzLjIyLDM3Ljk3WiIgZmlsbD0iI0ZGRiIvPjwvc3ZnPg==',
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi4wOCwxMy4wMTRMNTAsNTMuNmwtMTEuOTEyLDcuMSAyLjUtMTMuMDE0LTkuNjg2LTguNzYgMTMuMjItLjk1NloiIGZpbGw9IiNGRkYiLz48L3N2Zz4=',
         level: 'Competitivo', stats: { wins: 1, losses: 0, draws: 1 },
         formation: '4-3-3',
         playerPositions: {},
@@ -509,14 +512,23 @@ export const removeUserField = async (userId, fieldsToRemove) => {
 };
 
 export const addBooking = async (bookingData) => {
-    const dataToSave = { ...bookingData, fieldId: bookingData.field.id };
+    // Asegura que los detalles del partido existan, ya sea del usuario o generados.
+    const dataWithMatchDetails = { ...bookingData };
+    if (!dataWithMatchDetails.teamName) {
+        dataWithMatchDetails.teamName = dataWithMatchDetails.userName;
+    }
+    if (!dataWithMatchDetails.rivalName) {
+        dataWithMatchDetails.rivalName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
+    }
+
+    const dataToSave = { ...dataWithMatchDetails, fieldId: dataWithMatchDetails.field.id };
     delete dataToSave.field;
 
     if (isFirebaseConfigured) {
         const docRef = await db.collection('bookings').add(dataToSave);
-        return { id: docRef.id, ...bookingData };
+        return { id: docRef.id, ...dataWithMatchDetails };
     }
-    const newBooking = { id: `booking-${Date.now()}`, ...bookingData };
+    const newBooking = { id: `booking-${Date.now()}`, ...dataWithMatchDetails };
     demoData.bookings.push(newBooking);
     return Promise.resolve(newBooking);
 };

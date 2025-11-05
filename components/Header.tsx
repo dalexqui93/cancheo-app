@@ -21,6 +21,7 @@ interface HeaderProps {
     onDismiss: (id: number) => void;
     onMarkAllAsRead: () => void;
     onClearAll: () => void;
+    currentTime: Date;
 }
 
 const NotificationIcon: React.FC<{ notification: Notification }> = ({ notification }) => {
@@ -35,7 +36,7 @@ const NotificationIcon: React.FC<{ notification: Notification }> = ({ notificati
 };
 
 
-const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, onDismiss, onMarkAllAsRead, onClearAll }) => {
+const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, onDismiss, onMarkAllAsRead, onClearAll, currentTime }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -75,18 +76,41 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
         </button>
     );
 
+    const formattedDate = new Intl.DateTimeFormat('es-CO', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    }).format(currentTime);
+
+    const formattedTime = currentTime.toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+    });
+
+
     return (
         <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
             <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                <div 
-                    className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => onNavigate(View.HOME)}
-                    aria-label="Ir al inicio"
-                >
-                    <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo logo" className="h-8 w-8 rounded-full" />
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 tracking-tight">Canche<span className="text-[var(--color-primary-600)]">o</span></h1>
+                <div className="flex-1 flex justify-start">
+                    <div 
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => onNavigate(View.HOME)}
+                        aria-label="Ir al inicio"
+                    >
+                        <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo logo" className="h-8 w-8 rounded-full" />
+                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 tracking-tight">Canche<span className="text-[var(--color-primary-600)]">o</span></h1>
+                    </div>
                 </div>
-                <nav className="flex items-center gap-4">
+
+                <div className="hidden md:flex flex-1 flex-col items-center justify-center">
+                    <div className="font-semibold text-gray-800 dark:text-gray-200">{formattedTime}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formattedDate}</div>
+                </div>
+
+                <nav className="flex-1 flex justify-end items-center gap-4">
                     {user ? (
                         <div className="flex items-center gap-4">
                             {/* Notifications Bell */}
