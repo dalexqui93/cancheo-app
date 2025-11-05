@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToHome, onNavigate }) 
                 loop
                 muted
                 playsInline
-                className="absolute inset-0 w-full h-full object-cover filter blur-sm brightness-60 scale-110"
+                className="absolute inset-0 w-full h-full object-cover scale-110"
                 aria-hidden="true"
             >
                 <source src="https://v1.pinimg.com/videos/mc/720p/98/de/85/98de855abb69ed5ffcf20e62977958c4.mp4" type="video/mp4" />
@@ -51,20 +51,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToHome, onNavigate }) 
             <div className="absolute inset-0"></div>
 
             <div className="relative z-10 w-full max-w-sm animate-slide-in-up">
-                 {/* Branding Section */}
-                <div className="text-center text-white mb-8">
-                    <div 
-                        className="flex items-center justify-center gap-2 cursor-pointer mb-4"
-                        onClick={onNavigateToHome}
-                    >
-                        <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo logo" className="h-10 w-10 rounded-full" />
-                        <h1 className="text-4xl font-bold tracking-tight">Canche<span className="text-[var(--color-primary-400)]">o</span></h1>
-                    </div>
-                    <p className="text-lg text-gray-200">Conectando jugadores con las mejores canchas.</p>
-                </div>
-                
-                {/* Form Section */}
                 <div className="bg-black/20 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
+                    {/* Branding Section */}
+                    <div className="text-center text-white mb-8">
+                        <div 
+                            className="flex items-center justify-center gap-2 cursor-pointer mb-4"
+                            onClick={onNavigateToHome}
+                        >
+                            <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo logo" className="h-10 w-10 rounded-full" />
+                            <h1 className="text-4xl font-bold tracking-tight">Canche<span className="text-[var(--color-primary-400)]">o</span></h1>
+                        </div>
+                        <p className="text-lg text-gray-200">Conectando jugadores con las mejores canchas.</p>
+                    </div>
+                    
+                    {/* Form Section */}
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight text-white">Bienvenido de Nuevo</h2>
                         <p className="mt-2 text-sm text-gray-200">
