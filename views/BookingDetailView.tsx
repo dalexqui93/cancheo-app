@@ -20,6 +20,7 @@ interface BookingDetailViewProps {
     weatherData: WeatherData | null;
     onUpdateScore: (bookingId: string, scoreA: number, scoreB: number) => void;
     onFinalizeMatch: (bookingId: string, scoreA: number, scoreB: number) => void;
+    currentTime: Date;
 }
 
 const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ logo, name, size = 'w-16 h-16' }) => {
@@ -42,6 +43,7 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
     weatherData,
     onUpdateScore,
     onFinalizeMatch,
+    currentTime,
 }) => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isScorekeeperOpen, setIsScorekeeperOpen] = useState(false);
@@ -50,7 +52,7 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
     const [hours, minutes] = booking.time.split(':').map(Number);
     bookingStartDateTime.setHours(hours, minutes, 0, 0);
 
-    const now = new Date();
+    const now = currentTime;
     const isMatchStarted = now >= bookingStartDateTime;
     const canCancel = now < bookingStartDateTime && booking.status === 'confirmed';
 
@@ -191,6 +193,7 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                     onClose={() => setIsScorekeeperOpen(false)}
                     onUpdateScore={onUpdateScore}
                     onFinalizeMatch={onFinalizeMatch}
+                    currentTime={currentTime}
                 />
             )}
         </div>

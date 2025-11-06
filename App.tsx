@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
@@ -1263,6 +1264,7 @@ const App = () => {
                                     onBookNow={handleBookNow} 
                                     onBack={() => handleNavigate(View.HOME, { isBack: true })} 
                                     favoriteFields={user?.favoriteFields || []} 
+                                    // FIX: Corrected a typo where 'onToggleFavorite' was passed instead of the handler 'handleToggleFavorite'.
                                     onToggleFavorite={handleToggleFavorite}
                                     allBookings={allBookings}
                                     weatherData={weatherData}
@@ -1379,6 +1381,7 @@ const App = () => {
                                     weatherData={weatherData}
                                     onUpdateScore={handleUpdateScore}
                                     onFinalizeMatch={handleFinalizeMatch}
+                                    currentTime={currentTime}
                                 />;
                     }
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
