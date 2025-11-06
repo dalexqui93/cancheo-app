@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
@@ -27,10 +28,10 @@ import RatingModal from './components/RatingModal';
 import OwnerRegisterView from './views/OwnerRegisterView';
 import OwnerPendingVerificationView from './views/OwnerPendingVerificationView';
 import SuperAdminDashboard from './views/SuperAdminDashboard';
-// Fix: Corrected import path from './firebase' to './database' to resolve module not found error.
 import * as db from './database';
 import { isFirebaseConfigured } from './database';
 import { getCurrentPosition, calculateDistance } from './utils/geolocation';
+import { WifiOffIcon } from './components/icons/WifiOffIcon';
 
 const FirebaseWarningBanner: React.FC = () => {
     if (isFirebaseConfigured) {
@@ -45,6 +46,23 @@ const FirebaseWarningBanner: React.FC = () => {
         </div>
     );
 };
+
+// Offline Component
+const OfflineView: React.FC = () => (
+    <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 bg-gray-100 dark:bg-gray-900">
+        <WifiOffIcon className="w-24 h-24 text-gray-400 dark:text-gray-500 mb-6" />
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">Sin Conexión a Internet</h1>
+        <p className="mt-2 text-lg text-gray-600 dark:text-gray-400 max-w-md">
+            Parece que no estás conectado. Revisa tu conexión Wi-Fi o de datos móviles.
+        </p>
+        <button
+            onClick={() => window.location.reload()}
+            className="mt-8 bg-[var(--color-primary-600)] text-white font-bold py-3 px-8 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 shadow-md"
+        >
+            Reintentar
+        </button>
+    </div>
+);
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
 const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
@@ -81,11 +99,61 @@ const App = () => {
     const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
     const [socialSection, setSocialSection] = useState<SocialSection>('hub');
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
     // Weather State
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
     const [weatherError, setWeatherError] = useState<string | null>(null);
+    
+    // Connectivity listeners
+    useEffect(() => {
+        const handleOnline = () => {
+            setIsOffline(false);
+            // Reload to get fresh data after coming back online
+            window.location.reload();
+        };
+        const handleOffline = () => setIsOffline(true);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    // App lifecycle management (background/foreground)
+    useEffect(() => {
+        let lastVisibleTimestamp = document.visibilityState === 'visible' ? Date.now() : 0;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                const now = Date.now();
+                const timeInBackground = now - lastVisibleTimestamp;
+                
+                // If offline, the 'online' event handler will take care of reloading.
+                if (navigator.onLine) {
+                    // Force reload if app was in background for more than a minute to prevent stale states.
+                    if (timeInBackground > 60000) {
+                        window.location.reload();
+                    }
+                } else {
+                    // If we come back and we're immediately offline, show the offline view.
+                    setIsOffline(true);
+                }
+                lastVisibleTimestamp = now;
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
 
     // Centralized time management
     useEffect(() => {
@@ -112,6 +180,7 @@ const App = () => {
     }, []);
     
     useEffect(() => {
+        if (isOffline) return;
         const loadData = async () => {
             setLoading(true);
 
@@ -133,32 +202,36 @@ const App = () => {
             setLoading(false);
         };
         loadData();
-    }, []);
+    }, [isOffline]);
 
     // Real-time data listeners
     useEffect(() => {
+        if (isOffline || !isFirebaseConfigured) return;
+        
+        let unsubscribeBookings: () => void = () => {};
+        let unsubscribeTeams: () => void = () => {};
+
         if (isFirebaseConfigured) {
-            const unsubscribeBookings = db.listenToAllBookings(setAllBookings);
-            const unsubscribeTeams = db.listenToAllTeams(setAllTeams);
-            
-            return () => {
-                unsubscribeBookings();
-                unsubscribeTeams();
-            };
+            unsubscribeBookings = db.listenToAllBookings(setAllBookings);
+            unsubscribeTeams = db.listenToAllTeams(setAllTeams);
         } else {
-            // Fallback for demo mode
             db.getAllBookings().then(setAllBookings);
             db.getTeams().then(setAllTeams);
         }
-    }, []);
+        
+        return () => {
+            unsubscribeBookings();
+            unsubscribeTeams();
+        };
+
+    }, [isOffline]);
 
     const fetchWeather = useCallback(async () => {
+        if (isOffline) return;
         setIsWeatherLoading(true);
         setWeatherError(null);
 
         const processWeatherData = (data: any): Omit<WeatherData, 'locationName'> => {
-            const now = new Date();
-            const currentHourIndex = data.hourly.time.findIndex((t: string) => new Date(t) >= now);
             
             const hourlyData = data.hourly.time.map((t: string, i: number) => ({
                 time: new Date(t),
@@ -174,7 +247,14 @@ const App = () => {
                 longitude: data.longitude,
                 timezone: data.timezone,
                 lastUpdated: new Date(),
-                current: hourlyData[currentHourIndex] || hourlyData[0],
+                current: {
+                    time: new Date(data.current.time),
+                    temperature: data.current.temperature_2m,
+                    apparentTemperature: data.current.apparent_temperature,
+                    precipitationProbability: data.current.precipitation_probability,
+                    windSpeed: data.current.windspeed_10m,
+                    weatherCode: data.current.weathercode,
+                },
                 hourly: hourlyData,
             };
         };
@@ -195,7 +275,7 @@ const App = () => {
                 console.warn('No se pudo obtener el nombre de la ubicación para el clima:', geoError);
             }
 
-            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('La respuesta de la red no fue correcta');
             const data = await response.json();
@@ -224,9 +304,10 @@ const App = () => {
         } finally {
             setIsWeatherLoading(false);
         }
-    }, []);
+    }, [isOffline]);
 
     useEffect(() => {
+        if (isOffline) return;
         fetchWeather();
         // Configurar un intervalo para actualizar el clima cada 30 minutos
         const weatherInterval = setInterval(fetchWeather, 30 * 60 * 1000);
@@ -234,10 +315,11 @@ const App = () => {
         return () => {
             clearInterval(weatherInterval);
         };
-    }, [fetchWeather]);
+    }, [fetchWeather, isOffline]);
 
     // Load user-specific data when user logs in or allBookings change
     useEffect(() => {
+        if (isOffline) return;
         const loadUserData = async () => {
             if (user) {
                 const userBookings = allBookings.filter(b => b.userId === user.id);
@@ -247,7 +329,7 @@ const App = () => {
             }
         };
         loadUserData();
-    }, [user, allBookings]);
+    }, [user, allBookings, isOffline]);
 
 
     // Manage theme changes
@@ -287,7 +369,6 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error al reproducir sonido de notificación:', String(error));
         }
     }, []);
@@ -322,7 +403,6 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Error saving notification to database:', String(error));
             }
         }
@@ -390,7 +470,6 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Error deleting notification from database:', String(error));
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -417,7 +496,6 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: The 'unknown' type of the error object from a catch block is not assignable to string parameters. Explicitly convert to string.
                 console.error('Error marking notifications as read:', String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -437,7 +515,6 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Error clearing notifications:', String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -699,11 +776,6 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: The 'error' object is of type 'unknown' in a catch block.
-                // Accessing properties like 'message' directly is unsafe and causes a type error.
-                // We must first check if it's an instance of Error before accessing 'message',
-                // otherwise, we convert it to a string for safe logging.
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Registration error:', String(error));
             }
         } finally {
@@ -757,7 +829,6 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Owner registration error:', String(error));
             }
         } finally {
@@ -882,7 +953,6 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error getting location:', String(error));
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
@@ -950,7 +1020,6 @@ const App = () => {
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Booking confirmation error:', String(error));
             showToast({
                 type: 'error',
@@ -1107,7 +1176,6 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error updating password:', String(error));
             showToast({
                 type: 'error',
@@ -1214,6 +1282,10 @@ const App = () => {
         return [];
     }, [user, allBookings, ownerFieldIds]);
     
+    if (isOffline) {
+        return <OfflineView />;
+    }
+    
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
@@ -1244,6 +1316,7 @@ const App = () => {
         const viewElement = (() => {
             switch (view) {
                 case View.SEARCH_RESULTS:
+                    // FIX: Replaced 'onToggleFavorite' with 'handleToggleFavorite' because 'onToggleFavorite' is not defined in this scope.
                     return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} loading={isSearchingLocation} />;
                 case View.FIELD_DETAIL:
                     if (selectedField) {
@@ -1263,7 +1336,6 @@ const App = () => {
                                     onBookNow={handleBookNow} 
                                     onBack={() => handleNavigate(View.HOME, { isBack: true })} 
                                     favoriteFields={user?.favoriteFields || []} 
-                                    // FIX: Corrected a typo where 'onToggleFavorite' was passed instead of the handler 'handleToggleFavorite'.
                                     onToggleFavorite={handleToggleFavorite}
                                     allBookings={allBookings}
                                     weatherData={weatherData}
@@ -1325,6 +1397,7 @@ const App = () => {
                                     user={user} 
                                     onLogout={handleLogout} 
                                     allFields={fields} 
+                                    // FIX: Replaced 'onToggleFavorite' with 'handleToggleFavorite' because 'onToggleFavorite' is not defined in this scope.
                                     onToggleFavorite={handleToggleFavorite} 
                                     onSelectField={handleSelectField}
                                     onUpdateProfilePicture={handleUpdateProfilePicture}
