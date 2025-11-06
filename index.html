@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
         crossorigin=""/>
@@ -204,6 +204,42 @@
         @keyframes marquee-scroll {
             from { transform: translateX(0); }
             to { transform: translateX(-50%); }
+        }
+        @keyframes goal-flash {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1.1);
+                text-shadow: 0 0 20px rgba(255, 51, 51, 1), 0 0 10px rgba(255, 51, 51, 1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1);
+                text-shadow: 0 0 8px rgba(255, 51, 51, 0.7);
+            }
+        }
+
+        .goal-animation-text {
+            position: absolute;
+            top: 50%;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.125rem;
+            font-weight: 900;
+            color: #ff3333;
+            z-index: 10;
+            animation: goal-flash 0.8s infinite;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .goal-animation-local {
+            left: 100%;
+            transform: translateY(-50%);
+            margin-left: 0.5rem;
+        }
+        .goal-animation-visitor {
+            right: 100%;
+            transform: translateY(-50%);
+            margin-right: 0.5rem;
         }
 
 

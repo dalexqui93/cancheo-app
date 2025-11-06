@@ -90,6 +90,38 @@ const getMatchTimestamps = (match: ConfirmedBooking, timezone: string): { startT
 
 
 const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[], currentTime: Date; timezone?: string }> = ({ match, onSelectField, allTeams, currentTime, timezone }) => {
+    const [displayScore, setDisplayScore] = useState({ a: match.scoreA ?? 0, b: match.scoreB ?? 0 });
+    const [goalAnimation, setGoalAnimation] = useState<{ team: 'A' | 'B' | null }>({ team: null });
+    
+    useEffect(() => {
+        const currentScoreA = match.scoreA ?? 0;
+        const currentScoreB = match.scoreB ?? 0;
+        let goalTeam: 'A' | 'B' | null = null;
+
+        // Detect score increase for animation
+        if (currentScoreA > displayScore.a) {
+            goalTeam = 'A';
+        } else if (currentScoreB > displayScore.b) {
+            goalTeam = 'B';
+        }
+
+        if (goalTeam) {
+            setGoalAnimation({ team: goalTeam });
+            const timer = setTimeout(() => {
+                setDisplayScore({ a: currentScoreA, b: currentScoreB });
+                setGoalAnimation({ team: null });
+            }, 4000); // Animation duration
+
+            return () => clearTimeout(timer);
+        } else {
+            // If scores decrease or are just different (e.g., initial load), update immediately.
+            if (currentScoreA !== displayScore.a || currentScoreB !== displayScore.b) {
+                setDisplayScore({ a: currentScoreA, b: currentScoreB });
+            }
+        }
+    }, [match.scoreA, match.scoreB]);
+
+
     const teamNameA = match.teamName || match.userName;
     const rivalNameB = match.rivalName || opponentNames[match.id.charCodeAt(match.id.length - 1) % opponentNames.length];
 
@@ -181,29 +213,37 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                 
                 <div className="flex-grow flex items-center justify-between my-2">
                     <div className="flex flex-col items-center text-center flex-1 min-w-0">
-                        <TeamLogo logo={teamA?.logo} name={teamNameA} />
+                        <div className="relative">
+                            <TeamLogo logo={teamA?.logo} name={teamNameA} />
+                            {goalAnimation.team === 'A' && <div className="goal-animation-text goal-animation-local">¡Gool!</div>}
+                        </div>
                         <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2">
                             {teamNameA}
                         </ScrollOnOverflow>
                     </div>
                     
-                    <div className="text-center flex-shrink-0 mx-1">
-                        {(isLive || isFinished) ? (
-                            <div className="text-4xl font-black text-white flex items-center justify-center gap-4">
-                                <span>{match.scoreA ?? 0}</span>
-                                <span className="text-gray-400">-</span>
-                                <span>{match.scoreB ?? 0}</span>
-                            </div>
-                        ) : (
-                            <div className="text-2xl font-black text-gray-400">VS</div>
-                        )}
+                    <div className="text-center flex-shrink-0 mx-1 relative">
+                        <div className="h-12 flex items-center justify-center">
+                            {(isLive || isFinished) ? (
+                                <div className="text-4xl font-black text-white flex items-center justify-center gap-4 animate-fade-in">
+                                    <span>{displayScore.a}</span>
+                                    <span className="text-gray-400">-</span>
+                                    <span>{displayScore.b}</span>
+                                </div>
+                            ) : (
+                                <div className="text-2xl font-black text-gray-400">VS</div>
+                            )}
+                        </div>
                         {isFinished && (
                             <p className="text-xs text-gray-400 mt-1">{formattedTime}</p>
                         )}
                     </div>
                     
                     <div className="flex flex-col items-center text-center flex-1 min-w-0">
-                        <TeamLogo logo={teamB?.logo} name={rivalNameB} />
+                        <div className="relative">
+                             <TeamLogo logo={teamB?.logo} name={rivalNameB} />
+                             {goalAnimation.team === 'B' && <div className="goal-animation-text goal-animation-visitor">¡Gool!</div>}
+                        </div>
                         <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2">
                             {rivalNameB}
                         </ScrollOnOverflow>
