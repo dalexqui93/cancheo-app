@@ -209,7 +209,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                         {matchStatus === 'waiting' && (
                              <>
                                 <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                <span>Esperando resultados</span>
+                                <span>Confirmando resultado</span>
                             </>
                         )}
                         {matchStatus === 'finished' && (
@@ -242,7 +242,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                                 <div className="text-2xl font-black text-gray-400">VS</div>
                             )}
                         </div>
-                        {isFinished && (
+                        {(isFinished || matchStatus === 'waiting') && (
                             <p className="text-xs text-gray-400 mt-1">{formattedTime}</p>
                         )}
                     </div>
