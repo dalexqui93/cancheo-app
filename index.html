@@ -201,6 +201,10 @@
                 opacity: 0.5;
             }
         }
+        @keyframes marquee-scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
 
 
         .animate-fade-in {
@@ -229,6 +233,9 @@
         }
         .animate-pulse-live {
             animation: pulse-live 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .animate-marquee-scroll {
+            animation: marquee-scroll 15s linear infinite;
         }
 
 

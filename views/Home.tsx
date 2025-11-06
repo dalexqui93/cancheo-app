@@ -12,6 +12,7 @@ import { UsersElevenIcon } from '../components/icons/UsersElevenIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { GoogleGenAI, Type } from '@google/genai';
 import { calculateDistance } from '../utils/geolocation';
+import ScrollOnOverflow from '../components/ScrollOnOverflow';
 
 
 interface HomeProps {
@@ -93,14 +94,19 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
     }, [match.time]);
 
     const { isLive, isFinished, isUpcoming, countdown } = useMemo(() => {
-        if (!timezone || !match.date || !match.time) return { isLive: false, isFinished: false, isUpcoming: true, countdown: '' };
+        if (match.status === 'completed') {
+            return { isLive: false, isFinished: true, isUpcoming: false, countdown: '' };
+        }
+        if (!timezone || !match.date || !match.time) {
+            return { isLive: false, isFinished: false, isUpcoming: true, countdown: '' };
+        }
         
         const { startTs, endTs } = getMatchTimestamps(match, timezone);
         const nowTs = currentTime.getTime();
 
         const isMatchLive = nowTs >= startTs && nowTs < endTs;
-        const isFinished = nowTs >= endTs;
-        const isUpcoming = nowTs < startTs;
+        const hasFinished = nowTs >= endTs;
+        const isStillUpcoming = nowTs < startTs;
 
         let currentCountdown = '';
 
@@ -111,8 +117,10 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
             currentCountdown = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
         }
         
-        return { isLive: isMatchLive, isFinished, isUpcoming, countdown: currentCountdown };
-    }, [match.date, match.time, timezone, currentTime]);
+        return { isLive: isMatchLive, isFinished: hasFinished, isUpcoming: isStillUpcoming, countdown: currentCountdown };
+    }, [match.date, match.time, timezone, currentTime, match.status]);
+
+    const hasScore = typeof match.scoreA === 'number' && typeof match.scoreB === 'number';
 
 
     return (
@@ -127,37 +135,57 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
             <div className="absolute inset-0 bg-black/[.35] backdrop-blur-sm"></div>
             
             <div className="p-4 relative z-10 flex flex-col h-full">
-                <div className="flex justify-between items-start text-xs mb-2">
-                    <p className="font-bold truncate max-w-[60%]">{match.field.name}</p>
+                <div className="flex justify-between items-start text-xs mb-2 gap-2">
+                    <ScrollOnOverflow className="font-bold flex-grow min-w-0">
+                        {match.field.name}
+                    </ScrollOnOverflow>
+                    <div className={`flex-shrink-0 flex items-center gap-1.5 text-white text-xs font-bold px-2 py-1 rounded-full ${
+                        isLive ? 'bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live' : 
+                        isFinished ? 'bg-gray-600' :
+                        'bg-black/40'
+                    }`}>
+                        {isLive && (
+                            <>
+                                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                <span>VIVO</span>
+                                <span className="font-mono tracking-wider">{countdown}</span>
+                            </>
+                        )}
+                        {isFinished && (
+                            <span>Finalizado</span>
+                        )}
+                        {isUpcoming && <span>{formattedTime}</span>}
+                    </div>
                 </div>
                 
-                <div className={`absolute top-2 right-2 flex items-center gap-1.5 text-white text-xs font-bold px-2 py-1 rounded-full ${
-                    isLive ? 'bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live' : 
-                    isFinished ? 'bg-gray-600' :
-                    'bg-black/40'
-                }`}>
-                    {isLive && (
-                        <>
-                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            <span>VIVO</span>
-                            <span className="font-mono tracking-wider">{countdown}</span>
-                        </>
-                    )}
-                    {isFinished && <span>Finalizado</span>}
-                    {isUpcoming && <span>{formattedTime}</span>}
-                </div>
-                
-                <div className="flex-grow flex items-center justify-around my-2">
-                    <div className="flex flex-col items-center text-center w-28">
+                <div className="flex-grow flex items-center justify-between my-2">
+                    <div className="flex flex-col items-center text-center flex-1 min-w-0">
                         <TeamLogo logo={teamA?.logo} name={teamNameA} />
-                        <p className="font-bold mt-2 truncate w-full">{teamNameA}</p>
+                        <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2">
+                            {teamNameA}
+                        </ScrollOnOverflow>
                     </div>
                     
-                    <div className="text-2xl font-black text-gray-400">VS</div>
+                    <div className="text-center flex-shrink-0 mx-1">
+                        {hasScore ? (
+                            <div className="text-4xl font-black text-white flex items-center justify-center gap-4">
+                                <span>{match.scoreA}</span>
+                                <span className="text-gray-400">-</span>
+                                <span>{match.scoreB}</span>
+                            </div>
+                        ) : (
+                            <div className="text-2xl font-black text-gray-400">VS</div>
+                        )}
+                        {isFinished && (
+                            <p className="text-xs text-gray-400 mt-1">{formattedTime}</p>
+                        )}
+                    </div>
                     
-                    <div className="flex flex-col items-center text-center w-28">
+                    <div className="flex flex-col items-center text-center flex-1 min-w-0">
                         <TeamLogo logo={teamB?.logo} name={rivalNameB} />
-                        <p className="font-bold mt-2 truncate w-full">{rivalNameB}</p>
+                        <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2">
+                            {rivalNameB}
+                        </ScrollOnOverflow>
                     </div>
                 </div>
                 
@@ -296,6 +324,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         });
     
         const getStatus = (match: ConfirmedBooking) => {
+            if (match.status === 'completed') return 'finished';
             const { startTs, endTs } = getMatchTimestamps(match, targetTimezone);
             const nowTs = now.getTime();
             if (nowTs >= startTs && nowTs < endTs) return 'live';
@@ -324,6 +353,40 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         });
     
     }, [allBookings, weatherData, currentTime]);
+    
+    const demoMatch: ConfirmedBooking = {
+        id: 'demo-match-12345',
+        field: {
+            id: 'demo-field-long-name',
+            name: 'Cancha Sintética Profesional La Monumental del Barrio Las Flores Extensas',
+            address: 'Avenida Siempre Viva 742',
+            city: 'Springfield',
+            pricePerHour: 120000,
+            rating: 4.9,
+            images: ['https://i.pinimg.com/736x/47/33/3e/47333e07ed4963aa120c821b597d0f8e.jpg'],
+            description: 'Una cancha de demostración con un nombre muy largo para probar la animación de desbordamiento.',
+            services: [],
+            reviews: [],
+            size: '7v7',
+            latitude: 4.648283,
+            longitude: -74.088951,
+            loyaltyEnabled: false,
+            loyaltyGoal: 7,
+        },
+        date: currentTime,
+        // Set time to 2 hours ago to ensure its status is 'finished'
+        time: `${String(new Date(currentTime.getTime() - 2 * 60 * 60 * 1000).getHours()).padStart(2, '0')}:30`,
+        userId: 'demo-user',
+        userName: 'Equipo Demostración',
+        teamName: 'Equipo Demostración de Nombre Exageradamente Largo',
+        rivalName: 'Los Simuladores FC con un Nombre También Muy Largo',
+        extras: { balls: 0, vests: 0 },
+        totalPrice: 120000,
+        paymentMethod: 'cash',
+        status: 'completed',
+        scoreA: 3,
+        scoreB: 2,
+    };
 
     const favoriteComplexes = useMemo(() => {
         return groupedFields.filter(group => favoriteFields.includes(group[0].complexId || group[0].id));
@@ -425,8 +488,9 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                             <div key={i} className="flex-shrink-0 w-80 h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl shimmer-bg"></div>
                         ))}
                     </div>
-                ) : matchesInUserCity.length > 0 ? (
+                ) : (matchesInUserCity.length > 0 || demoMatch) ? (
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+                        <MatchCard key={demoMatch.id} match={demoMatch} onSelectField={onSelectField} allTeams={allTeams} timezone={weatherData?.timezone} currentTime={currentTime} />
                         {matchesInUserCity.map(match => (
                             <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} timezone={weatherData?.timezone} currentTime={currentTime} />
                         ))}

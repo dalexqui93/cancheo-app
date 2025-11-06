@@ -1,6 +1,6 @@
 // Fix: Implemented the BookingDetailView component to show booking details.
-import React, { useState } from 'react';
-import type { ConfirmedBooking, WeatherData } from '../types';
+import React, { useState, useMemo } from 'react';
+import type { ConfirmedBooking, WeatherData, User, Team } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { LocationIcon } from '../components/icons/LocationIcon';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
@@ -9,16 +9,23 @@ import { CreditCardIcon } from '../components/icons/CreditCardIcon';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { CashIcon } from '../components/icons/CashIcon';
 import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
+import { ScoreboardIcon } from '../components/icons/ScoreboardIcon';
+import ScorekeeperModal from '../components/ScorekeeperModal';
 
 interface BookingDetailViewProps {
     booking: ConfirmedBooking;
+    user: User;
+    allTeams: Team[];
     onBack: () => void;
     onCancelBooking: (bookingId: string) => void;
     weatherData: WeatherData | null;
+    onUpdateScore: (bookingId: string, scoreA: number, scoreB: number) => void;
+    onFinalizeMatch: (bookingId: string, scoreA: number, scoreB: number) => void;
 }
 
-const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, onCancelBooking, weatherData }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, user, allTeams, onBack, onCancelBooking, weatherData, onUpdateScore, onFinalizeMatch }) => {
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [isScorekeeperOpen, setIsScorekeeperOpen] = useState(false);
 
     const getBookingDateTime = () => {
         const bookingDate = new Date(booking.date);
@@ -32,9 +39,23 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, 
     const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     const isUpcoming = bookingDateTime > now;
+    const isCompleted = booking.status === 'completed';
     const isCancelled = booking.status === 'cancelled';
-    const isCancellable = hoursUntilBooking > 6 && !isCancelled;
+    const isCancellable = hoursUntilBooking > 6 && !isCancelled && !isCompleted;
     
+    const canManageScore = useMemo(() => {
+        if (!user || isCompleted) return false;
+        
+        // The user who booked can always manage the score
+        if (booking.userId === user.id) return true;
+
+        // The captain of the team can also manage the score
+        const team = allTeams.find(t => t.name === booking.teamName);
+        if (team && team.captainId === user.id) return true;
+
+        return false;
+    }, [user, booking, allTeams, isCompleted]);
+
     const paymentType = booking.isFree ? 'ticket' : (booking.paymentMethod === 'cash' ? 'cash' : 'card');
     
     const PAYMENT_ICONS = {
@@ -46,7 +67,7 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, 
 
     const handleCancelClick = () => {
         if (isCancellable) {
-            setIsModalOpen(true);
+            setIsCancelModalOpen(true);
         }
     };
 
@@ -62,6 +83,11 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, 
                     {isCancelled && (
                         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800">
                             <p className="font-bold">Esta reserva ha sido cancelada.</p>
+                        </div>
+                    )}
+                     {isCompleted && typeof booking.scoreA === 'number' && (
+                        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 text-center">
+                            <p className="font-bold text-lg">Resultado Final: {booking.scoreA} - {booking.scoreB}</p>
                         </div>
                     )}
                     <h1 className={`text-3xl font-bold text-gray-900 dark:text-gray-100 ${isCancelled ? 'line-through' : ''}`}>{booking.field.name}</h1>
@@ -116,17 +142,28 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, 
                          </div>
                     </div>
                 </div>
-                 {isUpcoming && !isCancelled && (
+                 {(isUpcoming || canManageScore) && !isCancelled && (
                     <div className="p-6 md:p-8 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-800/50">
                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Administrar Reserva</h2>
-                        <button
-                            onClick={handleCancelClick}
-                            disabled={!isCancellable}
-                            className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none"
-                        >
-                            Cancelar Reserva
-                        </button>
-                        {!isCancellable && (
+                        <div className="space-y-3">
+                            {canManageScore && !isCompleted && (
+                                <button
+                                    onClick={() => setIsScorekeeperOpen(true)}
+                                    className="w-full bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-md flex items-center justify-center gap-2"
+                                >
+                                    <ScoreboardIcon className="w-5 h-5" />
+                                    Administrar Marcador
+                                </button>
+                            )}
+                            <button
+                                onClick={handleCancelClick}
+                                disabled={!isCancellable}
+                                className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none"
+                            >
+                                Cancelar Reserva
+                            </button>
+                        </div>
+                        {!isCancellable && !isCompleted && (
                             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
                                 No puedes cancelar una reserva si faltan 6 horas o menos para el inicio del partido.
                             </p>
@@ -135,13 +172,21 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, onBack, 
                 )}
             </div>
              <ConfirmationModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
                 onConfirm={() => onCancelBooking(booking.id)}
                 title="Confirmar Cancelación"
                 message="¿Estás seguro de que quieres cancelar esta reserva? Esta acción no se puede deshacer."
                 confirmButtonText="Sí, cancelar"
             />
+            {isScorekeeperOpen && (
+                <ScorekeeperModal
+                    booking={booking}
+                    onClose={() => setIsScorekeeperOpen(false)}
+                    onUpdateScore={onUpdateScore}
+                    onFinalizeMatch={onFinalizeMatch}
+                />
+            )}
         </div>
     );
 };

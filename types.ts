@@ -308,6 +308,8 @@ export interface ConfirmedBooking extends BookingDetails {
     ratingPrompted?: boolean;
     teamName?: string;
     rivalName?: string;
+    scoreA?: number;
+    scoreB?: number;
 }
 
 export interface Announcement {

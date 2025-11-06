@@ -47,7 +47,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -995,6 +995,29 @@ const App = () => {
         }
     };
 
+    const handleUpdateScore = async (bookingId: string, scoreA: number, scoreB: number) => {
+        await db.updateBooking(bookingId, { scoreA, scoreB });
+        const updateInState = (prevState: ConfirmedBooking[]) => 
+            prevState.map(b => b.id === bookingId ? { ...b, scoreA, scoreB } : b);
+        
+        setAllBookings(updateInState);
+        if (selectedBooking && selectedBooking.id === bookingId) {
+            setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB } : null);
+        }
+    };
+
+    const handleFinalizeMatch = async (bookingId: string, scoreA: number, scoreB: number) => {
+        await db.updateBooking(bookingId, { scoreA, scoreB, status: 'completed' });
+        const updateInState = (prevState: ConfirmedBooking[]) => 
+            prevState.map(b => b.id === bookingId ? { ...b, scoreA, scoreB, status: 'completed' } : b);
+
+        setAllBookings(updateInState);
+         if (selectedBooking && selectedBooking.id === bookingId) {
+            setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB, status: 'completed' } : null);
+        }
+        showToast({type: 'success', title: 'Partido Finalizado', message: `El marcador final fue ${scoreA} - ${scoreB}.`});
+    };
+
     const handleUpdateProfilePicture = async (imageDataUrl: string) => {
         if (!user) return;
     
@@ -1340,7 +1363,16 @@ const App = () => {
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.BOOKING_DETAIL:
                     if(user && selectedBooking){
-                        return <BookingDetailView booking={selectedBooking} onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} onCancelBooking={handleCancelBooking} weatherData={weatherData} />;
+                        return <BookingDetailView 
+                                    booking={selectedBooking} 
+                                    user={user}
+                                    allTeams={allTeams}
+                                    onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} 
+                                    onCancelBooking={handleCancelBooking} 
+                                    weatherData={weatherData}
+                                    onUpdateScore={handleUpdateScore}
+                                    onFinalizeMatch={handleFinalizeMatch}
+                                />;
                     }
                      return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
                 case View.SOCIAL:
