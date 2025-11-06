@@ -139,42 +139,43 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
         return `${hour12}:${String(minute).padStart(2, '0')} ${ampm}`;
     }, [match.time]);
 
-    const { isLive, isFinished, isUpcoming, countdown } = useMemo(() => {
+    const { matchStatus, countdown } = useMemo(() => {
         if (!match.date || !match.time) {
-            return { isLive: false, isFinished: false, isUpcoming: true, countdown: '' };
+            return { matchStatus: 'upcoming' as const, countdown: '' };
         }
         
         const matchTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
         const { startTs } = getMatchTimestamps(match, matchTimezone);
         const nowTs = currentTime.getTime();
 
-        // A match is considered over for scorekeeping 2 hours after its start time.
+        const endOfMatchTs = startTs + 60 * 60 * 1000;
         const endOfGracePeriodTs = startTs + 2 * 60 * 60 * 1000;
         
-        const hasStarted = nowTs >= startTs;
-
-        // A match is finished for display purposes if its status is already completed/cancelled,
-        // or if the 2-hour grace period for scorekeeping is over.
-        const isFinished = match.status === 'completed' || match.status === 'cancelled' || nowTs >= endOfGracePeriodTs;
-        const isLive = hasStarted && !isFinished;
-        const isUpcoming = !hasStarted;
-        
-        let countdown = '';
-
-        if (isLive) {
-            // The visible countdown is for the standard 60-minute match duration.
-            const endOfMatchTs = startTs + 60 * 60 * 1000;
-            if (nowTs < endOfMatchTs) {
-                const remainingSeconds = Math.max(0, Math.floor((endOfMatchTs - nowTs) / 1000));
-                const minutesLeft = Math.floor(remainingSeconds / 60);
-                const secondsLeft = remainingSeconds % 60;
-                countdown = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
-            }
+        if (match.status === 'completed' || match.status === 'cancelled' || nowTs >= endOfGracePeriodTs) {
+            return { matchStatus: 'finished' as const, countdown: '' };
         }
         
-        return { isLive, isFinished, isUpcoming, countdown };
+        if (nowTs < startTs) {
+            return { matchStatus: 'upcoming' as const, countdown: '' };
+        }
+
+        if (nowTs >= startTs && nowTs < endOfMatchTs) {
+            const remainingSeconds = Math.max(0, Math.floor((endOfMatchTs - nowTs) / 1000));
+            const minutesLeft = Math.floor(remainingSeconds / 60);
+            const secondsLeft = remainingSeconds % 60;
+            const countdownStr = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
+            return { matchStatus: 'live' as const, countdown: countdownStr };
+        }
+
+        if (nowTs >= endOfMatchTs) {
+            return { matchStatus: 'waiting' as const, countdown: '' };
+        }
+        
+        return { matchStatus: 'upcoming' as const, countdown: '' };
     }, [match, currentTime, timezone]);
 
+    const isFinished = matchStatus === 'finished';
+    const showScore = matchStatus === 'live' || matchStatus === 'finished' || matchStatus === 'waiting';
 
     return (
         <div 
@@ -193,21 +194,28 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                         {match.field.name}
                     </ScrollOnOverflow>
                     <div className={`flex-shrink-0 flex items-center gap-1.5 text-white text-xs font-bold px-2 py-1 rounded-full ${
-                        isLive ? 'bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live' : 
-                        isFinished ? 'bg-gray-600' :
+                        matchStatus === 'live' ? 'bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live' : 
+                        matchStatus === 'waiting' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.7)] animate-pulse-live' :
+                        matchStatus === 'finished' ? 'bg-gray-600' :
                         'bg-black/40'
                     }`}>
-                        {isLive && (
+                        {matchStatus === 'live' && (
                             <>
                                 <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                                 <span>VIVO</span>
                                 {countdown && <span className="font-mono tracking-wider">{countdown}</span>}
                             </>
                         )}
-                        {isFinished && (
+                        {matchStatus === 'waiting' && (
+                             <>
+                                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                <span>Esperando resultados</span>
+                            </>
+                        )}
+                        {matchStatus === 'finished' && (
                             <span>Finalizado</span>
                         )}
-                        {isUpcoming && <span>{formattedTime}</span>}
+                        {matchStatus === 'upcoming' && <span>{formattedTime}</span>}
                     </div>
                 </div>
                 
@@ -224,7 +232,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                     
                     <div className="text-center flex-shrink-0 mx-1 relative">
                         <div className="h-12 flex items-center justify-center">
-                            {(isLive || isFinished) ? (
+                            {showScore ? (
                                 <div className="text-4xl font-black text-white flex items-center justify-center gap-4 animate-fade-in">
                                     <span>{displayScore.a}</span>
                                     <span className="text-gray-400">-</span>
