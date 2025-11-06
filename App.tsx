@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
@@ -47,7 +48,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -137,6 +138,7 @@ const App = () => {
 
     // --- Real-time data connection management ---
     const unsubscribeFunctionsRef = useRef<(() => void)[]>([]);
+    const hiddenTimestampRef = useRef<number | null>(null);
 
     const disconnectFromDataSource = useCallback(() => {
         console.log("DataSource: Disconnecting listeners.");
@@ -167,9 +169,20 @@ const App = () => {
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
+                hiddenTimestampRef.current = Date.now();
                 disconnectFromDataSource();
             } else if (document.visibilityState === 'visible') {
-                setTimeout(connectToDataSource, 300); 
+                const hiddenTime = hiddenTimestampRef.current;
+                if (hiddenTime) {
+                    const timeInactiveSeconds = (Date.now() - hiddenTime) / 1000;
+                    // If app was hidden for more than 60 seconds, force a reload for a fresh state.
+                    if (timeInactiveSeconds > 60) {
+                        window.location.reload();
+                        return; // The reload will handle the reconnection.
+                    }
+                }
+                // If it was a short time, just reconnect normally.
+                connectToDataSource();
             }
         };
 
@@ -1274,6 +1287,7 @@ const App = () => {
         const viewElement = (() => {
             switch (view) {
                 case View.SEARCH_RESULTS:
+                    // FIX: Corrected a typo where 'onToggleFavorite' was passed instead of the handler 'handleToggleFavorite'.
                     return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} loading={isSearchingLocation} />;
                 case View.FIELD_DETAIL:
                     if (selectedField) {
