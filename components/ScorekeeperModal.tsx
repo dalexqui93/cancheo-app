@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { ConfirmedBooking } from '../types';
 import { XIcon } from './icons/XIcon';
 import { PlusIcon } from './icons/PlusIcon';
@@ -12,24 +12,15 @@ interface ScorekeeperModalProps {
 }
 
 const ScorekeeperModal: React.FC<ScorekeeperModalProps> = ({ booking, onClose, onUpdateScore, onFinalizeMatch }) => {
-    const [scoreA, setScoreA] = useState(booking.scoreA || 0);
-    const [scoreB, setScoreB] = useState(booking.scoreB || 0);
+    const scoreA = booking.scoreA ?? 0;
+    const scoreB = booking.scoreB ?? 0;
 
     const teamNameA = booking.teamName || booking.userName;
     const teamNameB = booking.rivalName || 'Rival';
 
     const handleScoreChange = (team: 'A' | 'B', delta: 1 | -1) => {
-        let newScoreA = scoreA;
-        let newScoreB = scoreB;
-
-        if (team === 'A') {
-            newScoreA = Math.max(0, scoreA + delta);
-            setScoreA(newScoreA);
-        } else {
-            newScoreB = Math.max(0, scoreB + delta);
-            setScoreB(newScoreB);
-        }
-        
+        const newScoreA = team === 'A' ? Math.max(0, scoreA + delta) : scoreA;
+        const newScoreB = team === 'B' ? Math.max(0, scoreB + delta) : scoreB;
         onUpdateScore(booking.id, newScoreA, newScoreB);
     };
 
