@@ -1,16 +1,15 @@
-// Fix: Implemented the BookingDetailView component to show booking details.
-import React, { useState, useMemo } from 'react';
-import type { ConfirmedBooking, WeatherData, User, Team } from '../types';
+import React, { useState } from 'react';
+import type { ConfirmedBooking, User, WeatherData, Team } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
-import { LocationIcon } from '../components/icons/LocationIcon';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
-import { CreditCardIcon } from '../components/icons/CreditCardIcon';
-import ConfirmationModal from '../components/ConfirmationModal';
-import { CashIcon } from '../components/icons/CashIcon';
+import { LocationIcon } from '../components/icons/LocationIcon';
+import { CurrencyDollarIcon } from '../components/icons/CurrencyDollarIcon';
 import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
-import { ScoreboardIcon } from '../components/icons/ScoreboardIcon';
+import ConfirmationModal from '../components/ConfirmationModal';
 import ScorekeeperModal from '../components/ScorekeeperModal';
+import { ScoreboardIcon } from '../components/icons/ScoreboardIcon';
+import ScrollOnOverflow from '../components/ScrollOnOverflow';
 
 interface BookingDetailViewProps {
     booking: ConfirmedBooking;
@@ -23,162 +22,169 @@ interface BookingDetailViewProps {
     onFinalizeMatch: (bookingId: string, scoreA: number, scoreB: number) => void;
 }
 
-const BookingDetailView: React.FC<BookingDetailViewProps> = ({ booking, user, allTeams, onBack, onCancelBooking, weatherData, onUpdateScore, onFinalizeMatch }) => {
+const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ logo, name, size = 'w-16 h-16' }) => {
+    if (logo) {
+        return <img src={logo} alt={`${name} logo`} className={`${size} object-contain`} />;
+    }
+    return (
+        <div className={`${size} rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600`}>
+            <span className="text-2xl font-bold text-white" style={{textShadow: '1px 1px 3px rgba(0,0,0,0.5)'}}>{name.charAt(0)}</span>
+        </div>
+    );
+};
+
+const BookingDetailView: React.FC<BookingDetailViewProps> = ({
+    booking,
+    user,
+    allTeams,
+    onBack,
+    onCancelBooking,
+    weatherData,
+    onUpdateScore,
+    onFinalizeMatch,
+}) => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isScorekeeperOpen, setIsScorekeeperOpen] = useState(false);
 
-    const getBookingDateTime = () => {
-        const bookingDate = new Date(booking.date);
-        const [hours, minutes] = booking.time.split(':').map(Number);
-        bookingDate.setHours(hours, minutes, 0, 0);
-        return bookingDate;
-    };
+    const bookingStartDateTime = new Date(booking.date);
+    const [hours, minutes] = booking.time.split(':').map(Number);
+    bookingStartDateTime.setHours(hours, minutes, 0, 0);
 
-    const bookingDateTime = getBookingDateTime();
     const now = new Date();
-    const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const isMatchStarted = now >= bookingStartDateTime;
+    const canCancel = now < bookingStartDateTime && booking.status === 'confirmed';
 
-    const isUpcoming = bookingDateTime > now;
-    const isCompleted = booking.status === 'completed';
-    const isCancelled = booking.status === 'cancelled';
-    const isCancellable = hoursUntilBooking > 6 && !isCancelled && !isCompleted;
+    const teamNameA = booking.teamName || booking.userName;
+    const teamNameB = booking.rivalName || 'Rival';
     
-    const canManageScore = useMemo(() => {
-        if (!user || isCompleted) return false;
-        
-        // The user who booked can always manage the score
-        if (booking.userId === user.id) return true;
-
-        // The captain of the team can also manage the score
-        const team = allTeams.find(t => t.name === booking.teamName);
-        if (team && team.captainId === user.id) return true;
-
-        return false;
-    }, [user, booking, allTeams, isCompleted]);
-
-    const paymentType = booking.isFree ? 'ticket' : (booking.paymentMethod === 'cash' ? 'cash' : 'card');
+    const teamA = allTeams.find(t => t.name.toLowerCase() === teamNameA.toLowerCase());
+    const isAuthorized = user.id === booking.userId || (teamA && teamA.captainId === user.id);
     
-    const PAYMENT_ICONS = {
-        card: <CreditCardIcon className="h-6 w-6 text-gray-500 dark:text-gray-400 flex-shrink-0" />,
-        cash: <CashIcon className="h-6 w-6 text-gray-500 dark:text-gray-400 flex-shrink-0" />,
-        ticket: <span className="text-2xl flex-shrink-0">🎟️</span>
-    };
+    const canManageScore = isAuthorized && booking.status === 'confirmed';
 
-
-    const handleCancelClick = () => {
-        if (isCancellable) {
-            setIsCancelModalOpen(true);
-        }
-    };
+    const hasScore = typeof booking.scoreA === 'number' && typeof booking.scoreB === 'number';
 
     return (
-        <div className="container mx-auto px-4 py-6 sm:py-8 pb-[5.5rem] md:pb-4">
+        <div className="pb-24 md:pb-4">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver a Mis Reservas
             </button>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border dark:border-gray-700">
-                <img src={booking.field.images[0]} alt={booking.field.name} className="w-full h-48 lg:h-64 object-cover" />
-                <div className="p-6 md:p-8">
-                    {isCancelled && (
-                        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800">
-                            <p className="font-bold">Esta reserva ha sido cancelada.</p>
-                        </div>
-                    )}
-                     {isCompleted && typeof booking.scoreA === 'number' && (
-                        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 text-center">
-                            <p className="font-bold text-lg">Resultado Final: {booking.scoreA} - {booking.scoreB}</p>
-                        </div>
-                    )}
-                    <h1 className={`text-3xl font-bold text-gray-900 dark:text-gray-100 ${isCancelled ? 'line-through' : ''}`}>{booking.field.name}</h1>
-                    <p className="text-lg font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] mt-1">
-                        {booking.isFree ? 'Gratis (Ticket Canjeado)' : `$${booking.totalPrice.toLocaleString('es-CO')}`}
-                    </p>
 
-                    <div className="mt-6 border-t dark:border-gray-700 pt-6 space-y-4">
-                        <div className="flex items-start">
-                            <CalendarIcon className="h-6 w-6 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
-                            <div className="ml-4">
-                                <p className="font-semibold text-gray-800 dark:text-gray-200">Fecha y Hora</p>
-                                <p className="text-gray-600 dark:text-gray-400">{booking.date.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las {booking.time}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start">
-                            <LocationIcon className="h-6 w-6 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
-                            <div className="ml-4">
-                                <p className="font-semibold text-gray-800 dark:text-gray-200">Ubicación</p>
-                                <p className="text-gray-600 dark:text-gray-400">{booking.field.address}, {booking.field.city}</p>
-                            </div>
-                        </div>
-                         <div className="flex items-start">
-                            <ClockIcon className="h-6 w-6 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
-                             <div className="ml-4">
-                                <p className="font-semibold text-gray-800 dark:text-gray-200">Duración</p>
-                                <p className="text-gray-600 dark:text-gray-400">1 hora</p>
-                            </div>
-                        </div>
-                         <div className="pt-4 border-t border-gray-200 dark:border-gray-700 -mx-6 px-6">
-                            <BookingWeatherStatus 
-                                weatherData={weatherData}
-                                selectedDate={booking.date}
-                                selectedTime={booking.time}
-                            />
-                        </div>
-                    </div>
-                     <div className="mt-6 border-t dark:border-gray-700 pt-6">
-                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Detalles de Pago</h2>
-                         <div className="flex items-center">
-                            {PAYMENT_ICONS[paymentType]}
-                            <div className="ml-4 flex-grow flex justify-between items-center">
-                                <p className="text-gray-600 dark:text-gray-400">Método de pago:</p>
-                                <p className="font-semibold text-gray-800 dark:text-gray-200">
-                                    {paymentType === 'card' ? 'Online / Tarjeta' : paymentType === 'cash' ? 'Pago en el sitio' : 'Ticket de Fidelidad'}
-                                </p>
-                            </div>
-                         </div>
-                         <div className="flex justify-between items-center mt-4">
-                            <p className="text-gray-600 dark:text-gray-400 ml-10">Total pagado:</p>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">${booking.totalPrice.toLocaleString('es-CO')}</p>
-                         </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border dark:border-gray-700">
+                <div className="relative">
+                    <img src={booking.field.images[0]} alt={booking.field.name} className="w-full h-48 object-cover"/>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 text-white">
+                        <h1 className="text-3xl font-bold">{booking.field.name}</h1>
+                        <p className="text-sm opacity-90">{booking.field.address}</p>
                     </div>
                 </div>
-                 {(isUpcoming || canManageScore) && !isCancelled && (
-                    <div className="p-6 md:p-8 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-800/50">
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Administrar Reserva</h2>
-                        <div className="space-y-3">
-                            {canManageScore && !isCompleted && (
+
+                <div className="p-6 space-y-6">
+                    {/* Match Score Display */}
+                    <div className="bg-gray-900 text-white p-4 rounded-xl shadow-inner border border-white/10">
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col items-center text-center flex-1 min-w-0">
+                                <TeamLogo logo={teamA?.logo} name={teamNameA} size="w-14 h-14"/>
+                                <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2 text-sm">{teamNameA}</ScrollOnOverflow>
+                            </div>
+                            <div className="text-center flex-shrink-0 mx-2">
+                                {hasScore ? (
+                                    <div className="text-5xl font-black flex items-center justify-center gap-4">
+                                        <span>{booking.scoreA}</span>
+                                        <span className="text-gray-500">-</span>
+                                        <span>{booking.scoreB}</span>
+                                    </div>
+                                ) : (
+                                    <div className="text-2xl font-black text-gray-500">VS</div>
+                                )}
+                            </div>
+                            <div className="flex flex-col items-center text-center flex-1 min-w-0">
+                                <TeamLogo logo={allTeams.find(t => t.name.toLowerCase() === teamNameB.toLowerCase())?.logo} name={teamNameB} size="w-14 h-14"/>
+                                <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2 text-sm">{teamNameB}</ScrollOnOverflow>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Details Section */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <CalendarIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                            <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Fecha</p>
+                                <p className="font-semibold">{new Date(booking.date).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                            </div>
+                        </div>
+                         <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <ClockIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                            <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Hora</p>
+                                <p className="font-semibold">{booking.time}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <CurrencyDollarIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                            <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Total Pagado</p>
+                                <p className="font-semibold">${booking.totalPrice.toLocaleString('es-CO')}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <LocationIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                            <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Ubicación</p>
+                                <p className="font-semibold truncate">{booking.field.city}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <BookingWeatherStatus weatherData={weatherData} selectedDate={booking.date} selectedTime={booking.time} />
+                    
+                    {/* Actions */}
+                    <div className="border-t dark:border-gray-700 pt-6 space-y-3">
+                        {canManageScore && (
+                            <div>
                                 <button
                                     onClick={() => setIsScorekeeperOpen(true)}
-                                    className="w-full bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-md flex items-center justify-center gap-2"
+                                    disabled={!isMatchStarted}
+                                    className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:bg-gray-500 disabled:cursor-not-allowed"
                                 >
-                                    <ScoreboardIcon className="w-5 h-5" />
+                                    <ScoreboardIcon className="w-6 h-6"/>
                                     Administrar Marcador
                                 </button>
-                            )}
-                            <button
-                                onClick={handleCancelClick}
-                                disabled={!isCancellable}
-                                className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none"
-                            >
+                                {!isMatchStarted && (
+                                    <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                                        El marcador se habilitará a la hora del partido.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                       {canCancel && (
+                            <button onClick={() => setIsCancelModalOpen(true)} className="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-colors shadow-md">
                                 Cancelar Reserva
                             </button>
-                        </div>
-                        {!isCancellable && !isCompleted && (
-                            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
-                                No puedes cancelar una reserva si faltan 6 horas o menos para el inicio del partido.
-                            </p>
-                        )}
+                       )}
+                       {booking.status === 'cancelled' && (
+                           <p className="text-center font-bold text-red-500 py-3 bg-red-100 dark:bg-red-900/50 rounded-lg">RESERVA CANCELADA</p>
+                       )}
+                       {booking.status === 'completed' && (
+                           <p className="text-center font-bold text-green-500 py-3 bg-green-100 dark:bg-green-900/50 rounded-lg">PARTIDO FINALIZADO</p>
+                       )}
                     </div>
-                )}
+                </div>
             </div>
-             <ConfirmationModal
-                isOpen={isCancelModalOpen}
-                onClose={() => setIsCancelModalOpen(false)}
-                onConfirm={() => onCancelBooking(booking.id)}
-                title="Confirmar Cancelación"
-                message="¿Estás seguro de que quieres cancelar esta reserva? Esta acción no se puede deshacer."
-                confirmButtonText="Sí, cancelar"
-            />
+
+            {isCancelModalOpen && (
+                <ConfirmationModal
+                    isOpen={isCancelModalOpen}
+                    onClose={() => setIsCancelModalOpen(false)}
+                    onConfirm={() => onCancelBooking(booking.id)}
+                    title="¿Cancelar Reserva?"
+                    message="Esta acción no se puede deshacer. Por favor, revisa las políticas de cancelación antes de continuar."
+                    confirmButtonText="Sí, Cancelar"
+                />
+            )}
             {isScorekeeperOpen && (
                 <ScorekeeperModal
                     booking={booking}

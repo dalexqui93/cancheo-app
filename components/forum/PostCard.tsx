@@ -90,7 +90,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
             setSummary(response.text);
         } catch (error) {
-            console.error("Error al generar resumen:", error);
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error("Error al generar resumen:", String(error));
             setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
         } finally {
             setIsSummaryLoading(false);
