@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Team, Player } from '../../types';
+import type { Team, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { PlusIcon } from '../../components/icons/PlusIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
@@ -13,7 +13,7 @@ interface RosterViewProps {
     onUpdatePlayer: (player: Player) => void;
     onAddPlayer: (player: Player) => void;
     onRemovePlayer: (playerId: string) => void;
-    allPlayers: Player[]; // All available players in the system
+    allUsers: User[]; // All available users in the system
 }
 
 const levelToRating = (level: Player['level']): number => {
@@ -38,7 +38,7 @@ const PlayerCard: React.FC<{ player: Player; isCaptain: boolean; onRemove: () =>
             <p className="text-sm text-gray-400">{player.position}</p>
             <div className="mt-1 flex items-center gap-2">
                 <StarRating rating={levelToRating(player.level)} />
-                <span className="text-xs text-gray-400">{player.level}</span>
+                <span className="text-xs text-gray-400">{typeof player.level === 'number' ? `Nvl ${player.level}`: player.level}</span>
             </div>
         </div>
         <div className="text-4xl font-black text-white/20">{player.number || '-'}</div>
@@ -63,27 +63,33 @@ const AddPlayerModal: React.FC<{
             </div>
             <div className="p-6 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-3">
-                    {availablePlayers.map(player => (
-                        <div key={player.id} className="p-3 bg-black/20 rounded-lg flex items-center justify-between">
-                            <div>
-                                <p className="font-semibold">{player.name}</p>
-                                <p className="text-xs text-gray-400">{player.position} - {player.level}</p>
+                    {availablePlayers.length > 0 ? (
+                        availablePlayers.map(player => (
+                            <div key={player.id} className="p-3 bg-black/20 rounded-lg flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold">{player.name}</p>
+                                    <p className="text-xs text-gray-400">{player.position} - {typeof player.level === 'number' ? `Nvl ${player.level}`: player.level}</p>
+                                </div>
+                                <button onClick={() => { onAdd(player); onClose(); }} className="bg-[var(--color-primary-600)] text-white font-bold py-1.5 px-4 rounded-lg hover:bg-[var(--color-primary-700)] text-sm">
+                                    Añadir
+                                </button>
                             </div>
-                            <button onClick={() => { onAdd(player); onClose(); }} className="bg-[var(--color-primary-600)] text-white font-bold py-1.5 px-4 rounded-lg hover:bg-[var(--color-primary-700)] text-sm">
-                                Añadir
-                            </button>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        <p className="text-center text-gray-400">No hay más jugadores disponibles para añadir.</p>
+                    )}
                 </div>
             </div>
         </div>
     </div>
 );
 
-const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, onAddPlayer, onRemovePlayer, allPlayers }) => {
+const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, onAddPlayer, onRemovePlayer, allUsers }) => {
     const [isAddingPlayer, setIsAddingPlayer] = useState(false);
     
-    const availablePlayers = allPlayers.filter(p => !team.players.some(tp => tp.id === p.id));
+    const availablePlayers = allUsers
+        .filter(u => u.playerProfile && !team.players.some(tp => tp.id === u.id))
+        .map(u => u.playerProfile!);
     
     return (
         <div className="animate-fade-in">

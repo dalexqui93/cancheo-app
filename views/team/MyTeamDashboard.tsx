@@ -26,11 +26,11 @@ type TeamView = 'dashboard' | 'roster' | 'tactics' | 'schedule' | 'performance' 
 interface MyTeamDashboardProps {
     team: Team | undefined;
     user: User;
+    allUsers: User[];
     onBack: () => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onUpdateTeam: (team: Team) => void;
     onCreateTeam: (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => void;
-    allPlayers: Player[];
     setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
 
@@ -159,7 +159,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void }>
 };
 
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, onBack, addNotification, onUpdateTeam, onCreateTeam, allPlayers, setIsPremiumModalOpen }) => {
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, onCreateTeam, setIsPremiumModalOpen }) => {
     const [view, setView] = useState<TeamView>('dashboard');
     const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
 
@@ -221,7 +221,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, onBack, a
     const renderContent = () => {
         switch (view) {
             case 'roster':
-                return <RosterView team={team} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allPlayers={allPlayers} />;
+                return <RosterView team={team} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allUsers={allUsers} />;
             case 'tactics':
                 return <TacticsView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
             case 'schedule':

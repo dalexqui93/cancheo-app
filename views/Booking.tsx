@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
-import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod } from '../types';
+import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod, Team } from '../types';
 import { CreditCardIcon } from '../components/icons/CreditCardIcon';
 import { CashIcon } from '../components/icons/CashIcon';
 import { CardBrandIcon } from '../components/icons/CardBrandIcon';
@@ -15,6 +15,7 @@ interface BookingProps {
         date: Date;
     };
     user: User;
+    allTeams: Team[];
     onConfirm: (bookingInfo: Omit<ConfirmedBooking, 'id' | 'status' | 'userId' | 'userName' | 'userPhone'>) => void;
     onBack: () => void;
     isBookingLoading: boolean;
@@ -76,14 +77,20 @@ const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, sele
 };
 
 
-const Booking: React.FC<BookingProps> = ({ details, user, onConfirm, onBack, isBookingLoading }) => {
+const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, onBack, isBookingLoading }) => {
     const [extras, setExtras] = useState({ balls: 0, vests: 0 });
     const defaultPaymentMethod = user.paymentMethods?.find(pm => pm.isDefault)?.id || 'cash';
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(defaultPaymentMethod);
     const [paymentInfo, setPaymentInfo] = useState({ cardNumber: '', expiry: '', cvc: '', name: '' });
     const [policiesAccepted, setPoliciesAccepted] = useState(false);
     const [useFreeTicket, setUseFreeTicket] = useState(false);
-    const [teamName, setTeamName] = useState('');
+    const [teamName, setTeamName] = useState(() => {
+        if (user.teamId) {
+            const userTeam = allTeams.find(team => team.id === user.teamId);
+            return userTeam ? userTeam.name : '';
+        }
+        return '';
+    });
     const [rivalName, setRivalName] = useState('');
 
     const fieldId = details.field.id;

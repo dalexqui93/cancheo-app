@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
@@ -1273,7 +1272,7 @@ const App = () => {
                     return homeComponent;
                 case View.BOOKING:
                     if (bookingDetails && user) {
-                        return <Booking user={user} details={bookingDetails} onConfirm={handleConfirmBooking} onBack={() => handleNavigate(View.FIELD_DETAIL, { isBack: true })} isBookingLoading={isBookingLoading} />;
+                        return <Booking user={user} allTeams={allTeams} details={bookingDetails} onConfirm={handleConfirmBooking} onBack={() => handleNavigate(View.FIELD_DETAIL, { isBack: true })} isBookingLoading={isBookingLoading} />;
                     }
                     return homeComponent;
                 case View.BOOKING_CONFIRMATION:
@@ -1389,7 +1388,8 @@ const App = () => {
                     if (user) {
                         return <SocialView 
                                     user={user}
-                                    allTeams={allTeams} 
+                                    allTeams={allTeams}
+                                    allUsers={allUsers}
                                     addNotification={showToast} 
                                     onNavigate={handleNavigate} 
                                     setIsPremiumModalOpen={setIsPremiumModalOpen} 

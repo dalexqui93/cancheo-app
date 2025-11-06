@@ -27,42 +27,11 @@ import { FireIcon } from '../components/icons/FireIcon';
 import { ForumIcon } from '../components/icons/ForumIcon';
 import { SwordsIcon } from '../components/icons/SwordsIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
+import StarRating from '../components/StarRating';
 
 
 // --- MOCK DATA ---
 // NOTE: Team data is now fetched from database.ts, but other social mocks remain here for now.
-const mockPlayers: Player[] = [
-    { 
-        id: 'u1', name: 'Carlos Pérez', profilePicture: 'https://i.pravatar.cc/150?u=u1', number: 9, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 12, assists: 4, yellowCards: 3, redCards: 0 },
-        age: 28, height: 182, weight: 78, dominantFoot: 'Derecho', bio: 'Delantero rápido y letal en el área. Siempre buscando el gol.', strength: 85, speed: 92, stamina: 88, specialSkills: ['Tiro Potente', 'Regate Rápido', 'Cabeceo'],
-    },
-    { 
-        id: 'u2', name: 'Ana García', profilePicture: 'https://i.pravatar.cc/150?u=u2', number: 4, position: 'Defensa', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 1, assists: 2, yellowCards: 5, redCards: 0 },
-        age: 26, height: 170, weight: 65, dominantFoot: 'Derecho', bio: 'Defensa central sólida y con buen juego aéreo.', strength: 90, speed: 75, stamina: 85, specialSkills: ['Defensa Férrea', 'Marcaje', 'Cabeceo'],
-    },
-    { 
-        id: 'u3', name: 'Luis Fernandez', profilePicture: 'https://i.pravatar.cc/150?u=u3', number: 10, position: 'Medio', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 6, assists: 9, yellowCards: 1, redCards: 0 },
-        age: 30, height: 175, weight: 72, dominantFoot: 'Ambidiestro', bio: 'Mediocampista creativo con gran visión de juego.', strength: 78, speed: 82, stamina: 90, specialSkills: ['Visión de Juego', 'Pase Preciso', 'Regate Rápido'],
-    },
-    { 
-        id: 'u4', name: 'Marta Gomez', profilePicture: 'https://i.pravatar.cc/150?u=u4', number: 1, position: 'Portero', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
-        age: 24, height: 185, weight: 80, dominantFoot: 'Derecho', bio: 'Portera con excelentes reflejos y segura en el mano a mano.', strength: 88, speed: 80, stamina: 82, specialSkills: ['Portero Ágil', 'Liderazgo'],
-    },
-    { 
-        id: 'u5', name: 'Juan Rodriguez', profilePicture: 'https://i.pravatar.cc/150?u=u5', number: 8, position: 'Medio', level: 'Intermedio', stats: { matchesPlayed: 13, goals: 3, assists: 5, yellowCards: 2, redCards: 0 },
-        age: 22, height: 178, weight: 75, bio: 'Box-to-box midfielder.', strength: 80, speed: 85, stamina: 92, specialSkills: ['Resistencia', 'Pase Preciso'],
-    },
-    { 
-        id: 'u6', name: 'Sofía López', profilePicture: 'https://i.pravatar.cc/150?u=u6', number: 11, position: 'Delantero', level: 'Intermedio', stats: { matchesPlayed: 10, goals: 7, assists: 2, yellowCards: 0, redCards: 0 },
-        age: 25, height: 168, weight: 62, dominantFoot: 'Izquierdo', bio: 'Extremo veloz con buen uno contra uno.', strength: 70, speed: 94, stamina: 80, specialSkills: ['Velocidad', 'Regate Rápido'],
-    },
-    { id: 'u7', name: 'Diego Martínez', profilePicture: 'https://i.pravatar.cc/150?u=u7', number: 5, position: 'Defensa', level: 'Intermedio', stats: { matchesPlayed: 14, goals: 0, assists: 1, yellowCards: 8, redCards: 1 } },
-    { id: 'u8', name: 'Leo Messi', profilePicture: 'https://i.pravatar.cc/150?u=u8', number: 30, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
-    { id: 'u9', name: 'CR7', profilePicture: 'https://i.pravatar.cc/150?u=u9', number: 7, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
-    { id: 'u10', name: 'Neymar Jr', profilePicture: 'https://i.pravatar.cc/150?u=u10', number: 10, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
-    { id: 'u11', name: 'Kylian Mbappe', profilePicture: 'https://i.pravatar.cc/150?u=u11', number: 7, position: 'Delantero', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
-    { id: 'u12', name: 'Luka Modric', profilePicture: 'https://i.pravatar.cc/150?u=u12', number: 10, position: 'Medio', level: 'Competitivo', stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }},
-];
 
 const mockSchedule: TeamEvent[] = [
     { id: 'ev1', type: 'match', date: new Date(new Date().setDate(new Date().getDate() + 3)), title: 'vs. Atlético Panas', location: 'Gol Center Envigado' },
@@ -95,6 +64,7 @@ const getMockTournaments = (teams: Team[]): Tournament[] => {
 interface SocialViewProps {
     user: User;
     allTeams: Team[];
+    allUsers: User[];
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onNavigate: (view: View) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
@@ -302,25 +272,122 @@ const ChallengeView: React.FC<{
     </div>
 );
 
+const levelToRating = (level: Player['level']): number => {
+    if (typeof level === 'number') return level;
+    switch (level) {
+        case 'Casual': return 2;
+        case 'Intermedio': return 3.5;
+        case 'Competitivo': return 5;
+        default: return 0;
+    }
+};
+
+const PlayerRecruitCard: React.FC<{
+    player: Player;
+    onRecruit: (player: Player) => void;
+    onViewProfile: (player: Player) => void;
+}> = ({ player, onRecruit, onViewProfile }) => {
+    return (
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex flex-col h-full">
+            <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {player.profilePicture ? (
+                        <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <UserIcon className="w-8 h-8 text-slate-500 dark:text-gray-400"/>
+                    )}
+                </div>
+                <div className="flex-grow">
+                    <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{player.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{player.position}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                        <StarRating rating={levelToRating(player.level)} />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{typeof player.level === 'number' ? `Nvl ${player.level}` : player.level}</span>
+                    </div>
+                </div>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-slate-50 dark:bg-gray-700/50 p-2 rounded-lg">
+                    <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{player.strength || '-'}</p>
+                    <p className="font-semibold text-gray-500 dark:text-gray-400">Fuerza</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-gray-700/50 p-2 rounded-lg">
+                    <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{player.speed || '-'}</p>
+                    <p className="font-semibold text-gray-500 dark:text-gray-400">Velocidad</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-gray-700/50 p-2 rounded-lg">
+                    <p className="font-bold text-lg text-gray-800 dark:text-gray-200">{player.stamina || '-'}</p>
+                    <p className="font-semibold text-gray-500 dark:text-gray-400">Resist.</p>
+                </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex-grow flex items-end gap-3">
+                <button onClick={() => onViewProfile(player)} className="w-full py-2 px-4 rounded-lg font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm">
+                    Ver Perfil
+                </button>
+                <button onClick={() => onRecruit(player)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">
+                    <UserPlusIcon className="w-4 h-4"/>
+                    Reclutar
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
 const FindPlayersView: React.FC<{
     players: Player[];
     onBack: () => void;
     onRecruit: (player: Player) => void;
     onViewProfile: (player: Player) => void;
-}> = ({ players, onBack, onRecruit, onViewProfile }) => (
-    <div className="p-4 pb-[5.5rem] md:pb-4">
-        <BackButton onClick={onBack} text="Volver a DaviPlay" />
-        <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
-            <UserPlusIcon className="mx-auto h-16 w-16 text-gray-400" />
-            <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Fichajes</h2>
-            <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                El mercado de fichajes para encontrar y reclutar nuevos jugadores para tu equipo estará disponible pronto.
-            </p>
-        </div>
-    </div>
-);
+}> = ({ players, onBack, onRecruit, onViewProfile }) => {
+    const [searchTerm, setSearchTerm] = useState('');
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection }) => {
+    const filteredPlayers = players.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="p-4 pb-[5.5rem] md:pb-4">
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Fichajes</h1>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra jugadores para unirte a tu equipo.</p>
+            
+            <div className="mt-6 relative">
+                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <input 
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Buscar jugador por nombre..."
+                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                />
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPlayers.map(player => (
+                    <PlayerRecruitCard 
+                        key={player.id}
+                        player={player}
+                        onRecruit={onRecruit}
+                        onViewProfile={onViewProfile}
+                    />
+                ))}
+            </div>
+            {filteredPlayers.length === 0 && (
+                <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
+                    <UserPlusIcon className="mx-auto h-16 w-16 text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No se encontraron jugadores</h2>
+                    <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                        Intenta con otro nombre o revisa la lista completa de jugadores disponibles.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [teams, setTeams] = useState<Team[]>(allTeams);
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
@@ -333,7 +400,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, addNotification
     };
 
     const handleCreateTeam = (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
-        const currentUserAsPlayer = mockPlayers.find(p => p.id === user.id) || {
+        const currentUserAsPlayer = user.playerProfile || {
             id: user.id, name: user.name, position: 'Cualquiera', level: teamData.level, stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }
         };
         const newTeam: Team = {
@@ -384,11 +451,11 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, addNotification
                 return <MyTeamDashboard
                     team={userTeam}
                     user={user}
+                    allUsers={allUsers}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
                     onUpdateTeam={handleUpdateTeam}
                     onCreateTeam={handleCreateTeam}
-                    allPlayers={mockPlayers}
                     setIsPremiumModalOpen={setIsPremiumModalOpen}
                  />;
             case 'challenge':
@@ -402,8 +469,10 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, addNotification
                                 onRecruit={handleRecruit}
                             />;
                 }
-                const userTeamPlayers = userTeam?.players || [];
-                const availablePlayers = mockPlayers.filter(p => !userTeamPlayers.find(ut => ut.id === p.id));
+                const availablePlayers = allUsers
+                    .filter(u => u.playerProfile && u.id !== user.id && (!userTeam || !userTeam.players.some(p => p.id === u.id)))
+                    .map(u => u.playerProfile!);
+
                 return <FindPlayersView 
                             players={availablePlayers} 
                             onBack={() => setSection('hub')} 
