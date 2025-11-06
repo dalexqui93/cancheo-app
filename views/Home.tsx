@@ -195,7 +195,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                     </ScrollOnOverflow>
                     <div className={`flex-shrink-0 flex items-center gap-1.5 text-white text-xs font-bold px-2 py-1 rounded-full ${
                         matchStatus === 'live' ? 'bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse-live' : 
-                        matchStatus === 'waiting' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.7)] animate-pulse-live' :
+                        matchStatus === 'waiting' ? 'bg-orange-600 shadow-[0_0_8px_rgba(234,88,12,0.7)] animate-pulse-live' :
                         matchStatus === 'finished' ? 'bg-gray-600' :
                         'bg-black/40'
                     }`}>
