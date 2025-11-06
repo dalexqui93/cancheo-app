@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
 import Header from './components/Header';
@@ -135,22 +135,52 @@ const App = () => {
         loadData();
     }, []);
 
-    // Real-time data listeners
-    useEffect(() => {
+    // --- Real-time data connection management ---
+    const unsubscribeFunctionsRef = useRef<(() => void)[]>([]);
+
+    const disconnectFromDataSource = useCallback(() => {
+        console.log("DataSource: Disconnecting listeners.");
+        unsubscribeFunctionsRef.current.forEach(unsubscribe => unsubscribe());
+        unsubscribeFunctionsRef.current = [];
+    }, []);
+
+    const connectToDataSource = useCallback(() => {
+        if (unsubscribeFunctionsRef.current.length > 0) {
+            console.log("DataSource: Already connected, skipping reconnect.");
+            return;
+        }
+        console.log("DataSource: Connecting listeners.");
         if (isFirebaseConfigured) {
             const unsubscribeBookings = db.listenToAllBookings(setAllBookings);
             const unsubscribeTeams = db.listenToAllTeams(setAllTeams);
-            
-            return () => {
-                unsubscribeBookings();
-                unsubscribeTeams();
-            };
+            unsubscribeFunctionsRef.current = [unsubscribeBookings, unsubscribeTeams];
         } else {
             // Fallback for demo mode
             db.getAllBookings().then(setAllBookings);
             db.getTeams().then(setAllTeams);
         }
     }, []);
+
+    // Effect for handling initial connection and visibility changes
+    useEffect(() => {
+        connectToDataSource();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                disconnectFromDataSource();
+            } else if (document.visibilityState === 'visible') {
+                setTimeout(connectToDataSource, 300); 
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            disconnectFromDataSource();
+        };
+    }, [connectToDataSource, disconnectFromDataSource]);
+
 
     const fetchWeather = useCallback(async () => {
         setIsWeatherLoading(true);
