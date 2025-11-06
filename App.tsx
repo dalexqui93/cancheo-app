@@ -504,7 +504,9 @@ const App = () => {
                     const [hours, minutes] = booking.time.split(':').map(Number);
                     bookingDateTime.setHours(hours, minutes);
     
-                    if (bookingDateTime < now) {
+                    // Mark as completed 2 hours after start time for scorekeeping flexibility
+                    const twoHoursAfterStart = bookingDateTime.getTime() + 2 * 60 * 60 * 1000;
+                    if (now.getTime() > twoHoursAfterStart) {
                         bookingsToComplete.push(booking);
                     }
                 }

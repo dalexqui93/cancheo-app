@@ -49,33 +49,47 @@ const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ lo
     );
 };
 
-const getMatchTimestamps = (match: ConfirmedBooking, timezone: string) => {
+const getMatchTimestamps = (match: ConfirmedBooking, timezone: string): { startTs: number; endTs: number } => {
+    // Step 1: Get the calendar date components (year, month, day) in the target timezone.
+    // This avoids "day before/after" issues if the user's browser is in a different day than the match location.
     const matchDate = new Date(match.date);
-    const [hours, minutes] = match.time.split(':').map(Number);
+    // Fix: Correctly type the dateParts object by using Object.fromEntries instead of reduce with an empty initial object.
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(matchDate);
+    const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
 
-    const naiveDateTime = new Date(
-        matchDate.getFullYear(),
-        matchDate.getMonth(),
-        matchDate.getDate(),
-        hours,
-        minutes
-    );
+    const datePart = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
 
-    // This is a known issue: JavaScript's native Date object handling of timezones is limited.
-    // This logic attempts to get an offset but might be inaccurate around DST changes.
-    // A proper library like date-fns-tz would be required for a fully robust solution.
-    const localTime = new Date();
-    const timeInTargetZone = new Date(localTime.toLocaleString('en-US', { timeZone: timezone }));
-    const timezoneOffset = localTime.getTime() - timeInTargetZone.getTime();
+    // Step 2: Create a naive Date object from the local date and time string.
+    // JavaScript will interpret this using the browser's local timezone, which is what we want for now.
+    const naiveDate = new Date(`${datePart}T${match.time}:00`);
 
-    const startTs = naiveDateTime.getTime() - timezoneOffset;
+    // Step 3: Calculate the offset of the browser's timezone from UTC.
+    // getTimezoneOffset returns minutes, so we convert to milliseconds.
+    const browserOffsetMs = naiveDate.getTimezoneOffset() * 60 * 1000;
+
+    // Step 4: Calculate the offset of the target timezone from UTC for that specific date.
+    // This is the key to correctly handling different timezones and daylight saving time.
+    // We create a date string for the target timezone and one for UTC from the same timestamp,
+    // then find the difference in their milliseconds value.
+    const utcDate = new Date(naiveDate.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(naiveDate.toLocaleString('en-US', { timeZone: timezone }));
+    const targetOffsetMs = utcDate.getTime() - tzDate.getTime();
+
+    // Step 5: The correct start timestamp is the naive timestamp (based on browser's parsing)
+    // adjusted by the difference between the two offsets.
+    const startTs = naiveDate.getTime() - (targetOffsetMs - browserOffsetMs);
     const endTs = startTs + 60 * 60 * 1000; // Match duration is 60 minutes
-    
+
     return { startTs, endTs };
 };
 
 
-const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[], timezone?: string, currentTime: Date }> = ({ match, onSelectField, allTeams, timezone, currentTime }) => {
+const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[], currentTime: Date; timezone?: string }> = ({ match, onSelectField, allTeams, currentTime, timezone }) => {
     const teamNameA = match.teamName || match.userName;
     const rivalNameB = match.rivalName || opponentNames[match.id.charCodeAt(match.id.length - 1) % opponentNames.length];
 
@@ -94,33 +108,40 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
     }, [match.time]);
 
     const { isLive, isFinished, isUpcoming, countdown } = useMemo(() => {
-        if (match.status === 'completed') {
-            return { isLive: false, isFinished: true, isUpcoming: false, countdown: '' };
-        }
-        if (!timezone || !match.date || !match.time) {
+        if (!match.date || !match.time) {
             return { isLive: false, isFinished: false, isUpcoming: true, countdown: '' };
         }
         
-        const { startTs, endTs } = getMatchTimestamps(match, timezone);
+        const matchTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const { startTs } = getMatchTimestamps(match, matchTimezone);
         const nowTs = currentTime.getTime();
 
-        const isMatchLive = nowTs >= startTs && nowTs < endTs;
-        const hasFinished = nowTs >= endTs;
-        const isStillUpcoming = nowTs < startTs;
+        // A match is considered over for scorekeeping 2 hours after its start time.
+        const endOfGracePeriodTs = startTs + 2 * 60 * 60 * 1000;
+        
+        const hasStarted = nowTs >= startTs;
 
-        let currentCountdown = '';
+        // A match is finished for display purposes if its status is already completed/cancelled,
+        // or if the 2-hour grace period for scorekeeping is over.
+        const isFinished = match.status === 'completed' || match.status === 'cancelled' || nowTs >= endOfGracePeriodTs;
+        const isLive = hasStarted && !isFinished;
+        const isUpcoming = !hasStarted;
+        
+        let countdown = '';
 
-        if (isMatchLive) {
-            const remainingSeconds = Math.max(0, Math.floor((endTs - nowTs) / 1000));
-            const minutesLeft = Math.floor(remainingSeconds / 60);
-            const secondsLeft = remainingSeconds % 60;
-            currentCountdown = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
+        if (isLive) {
+            // The visible countdown is for the standard 60-minute match duration.
+            const endOfMatchTs = startTs + 60 * 60 * 1000;
+            if (nowTs < endOfMatchTs) {
+                const remainingSeconds = Math.max(0, Math.floor((endOfMatchTs - nowTs) / 1000));
+                const minutesLeft = Math.floor(remainingSeconds / 60);
+                const secondsLeft = remainingSeconds % 60;
+                countdown = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
+            }
         }
         
-        return { isLive: isMatchLive, isFinished: hasFinished, isUpcoming: isStillUpcoming, countdown: currentCountdown };
-    }, [match.date, match.time, timezone, currentTime, match.status]);
-
-    const hasScore = typeof match.scoreA === 'number' && typeof match.scoreB === 'number';
+        return { isLive, isFinished, isUpcoming, countdown };
+    }, [match, currentTime, timezone]);
 
 
     return (
@@ -148,7 +169,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                             <>
                                 <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                                 <span>VIVO</span>
-                                <span className="font-mono tracking-wider">{countdown}</span>
+                                {countdown && <span className="font-mono tracking-wider">{countdown}</span>}
                             </>
                         )}
                         {isFinished && (
@@ -167,11 +188,11 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                     </div>
                     
                     <div className="text-center flex-shrink-0 mx-1">
-                        {hasScore ? (
+                        {(isLive || isFinished) ? (
                             <div className="text-4xl font-black text-white flex items-center justify-center gap-4">
-                                <span>{match.scoreA}</span>
+                                <span>{match.scoreA ?? 0}</span>
                                 <span className="text-gray-400">-</span>
-                                <span>{match.scoreB}</span>
+                                <span>{match.scoreB ?? 0}</span>
                             </div>
                         ) : (
                             <div className="text-2xl font-black text-gray-400">VS</div>
@@ -354,40 +375,6 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
     
     }, [allBookings, weatherData, currentTime]);
     
-    const demoMatch: ConfirmedBooking = {
-        id: 'demo-match-12345',
-        field: {
-            id: 'demo-field-long-name',
-            name: 'Cancha Sintética Profesional La Monumental del Barrio Las Flores Extensas',
-            address: 'Avenida Siempre Viva 742',
-            city: 'Springfield',
-            pricePerHour: 120000,
-            rating: 4.9,
-            images: ['https://i.pinimg.com/736x/47/33/3e/47333e07ed4963aa120c821b597d0f8e.jpg'],
-            description: 'Una cancha de demostración con un nombre muy largo para probar la animación de desbordamiento.',
-            services: [],
-            reviews: [],
-            size: '7v7',
-            latitude: 4.648283,
-            longitude: -74.088951,
-            loyaltyEnabled: false,
-            loyaltyGoal: 7,
-        },
-        date: currentTime,
-        // Set time to 2 hours ago to ensure its status is 'finished'
-        time: `${String(new Date(currentTime.getTime() - 2 * 60 * 60 * 1000).getHours()).padStart(2, '0')}:30`,
-        userId: 'demo-user',
-        userName: 'Equipo Demostración',
-        teamName: 'Equipo Demostración de Nombre Exageradamente Largo',
-        rivalName: 'Los Simuladores FC con un Nombre También Muy Largo',
-        extras: { balls: 0, vests: 0 },
-        totalPrice: 120000,
-        paymentMethod: 'cash',
-        status: 'completed',
-        scoreA: 3,
-        scoreB: 2,
-    };
-
     const favoriteComplexes = useMemo(() => {
         return groupedFields.filter(group => favoriteFields.includes(group[0].complexId || group[0].id));
     }, [groupedFields, favoriteFields]);
@@ -488,11 +475,10 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                             <div key={i} className="flex-shrink-0 w-80 h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl shimmer-bg"></div>
                         ))}
                     </div>
-                ) : (matchesInUserCity.length > 0 || demoMatch) ? (
+                ) : (matchesInUserCity.length > 0) ? (
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-                        <MatchCard key={demoMatch.id} match={demoMatch} onSelectField={onSelectField} allTeams={allTeams} timezone={weatherData?.timezone} currentTime={currentTime} />
                         {matchesInUserCity.map(match => (
-                            <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} timezone={weatherData?.timezone} currentTime={currentTime} />
+                            <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} currentTime={currentTime} timezone={weatherData?.timezone} />
                         ))}
                     </div>
                 ) : (
