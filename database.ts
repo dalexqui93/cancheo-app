@@ -243,6 +243,7 @@ const docToData = (doc) => {
 };
 
 const getCollection = async (collectionName) => {
+    if (!db) return [];
     try {
         const snapshot = await db.collection(collectionName).get();
         return snapshot.docs.map(docToData);
@@ -411,6 +412,30 @@ if (!isFirebaseConfigured) {
 
 // --- FUNCIONES DE LA API ---
 
+export const listenToAllBookings = (callback) => {
+    if (isFirebaseConfigured) {
+        return db.collection('bookings').onSnapshot(async (snapshot) => {
+            const bookings = snapshot.docs.map(docToData);
+            const fieldsSnapshot = await db.collection('fields').get();
+            const fieldMap = new Map(fieldsSnapshot.docs.map(doc => [doc.id, docToData(doc)]));
+            const populatedBookings = bookings.map(b => ({ ...b, field: fieldMap.get(b.fieldId) || b.field }));
+            callback(populatedBookings);
+        });
+    }
+    // No hay listeners en modo demo, la carga inicial es suficiente.
+    return () => {}; 
+};
+
+export const listenToAllTeams = (callback) => {
+    if (isFirebaseConfigured) {
+        return db.collection('teams').onSnapshot(snapshot => {
+            callback(snapshot.docs.map(docToData));
+        });
+    }
+     // No hay listeners en modo demo
+    return () => {};
+}
+
 export const getFields = async () => {
     if (isFirebaseConfigured) return getCollection('fields');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.fields)));
@@ -422,7 +447,7 @@ export const getUsers = async () => {
 };
 
 export const getTeams = async (): Promise<Team[]> => {
-    // In a real app with Firebase, this would be: return getCollection('teams');
+    if (isFirebaseConfigured) return getCollection('teams');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.teams)));
 };
 

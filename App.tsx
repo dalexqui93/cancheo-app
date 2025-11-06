@@ -119,24 +119,37 @@ const App = () => {
                 await db.seedDatabase();
             }
 
-            const [fieldsData, usersData, applicationsData, bookingsData, announcementsData, teamsData] = await Promise.all([
+            const [fieldsData, usersData, applicationsData, announcementsData] = await Promise.all([
                 db.getFields(),
                 db.getUsers(),
                 db.getOwnerApplications(),
-                db.getAllBookings(),
                 db.getAnnouncements(),
-                db.getTeams(),
             ]);
 
             setFields(fieldsData);
             setAllUsers(usersData);
             setOwnerApplications(applicationsData);
-            setAllBookings(bookingsData);
             setAnnouncements(announcementsData);
-            setAllTeams(teamsData);
             setLoading(false);
         };
         loadData();
+    }, []);
+
+    // Real-time data listeners
+    useEffect(() => {
+        if (isFirebaseConfigured) {
+            const unsubscribeBookings = db.listenToAllBookings(setAllBookings);
+            const unsubscribeTeams = db.listenToAllTeams(setAllTeams);
+            
+            return () => {
+                unsubscribeBookings();
+                unsubscribeTeams();
+            };
+        } else {
+            // Fallback for demo mode
+            db.getAllBookings().then(setAllBookings);
+            db.getTeams().then(setAllTeams);
+        }
     }, []);
 
     const fetchWeather = useCallback(async () => {
@@ -933,7 +946,7 @@ const App = () => {
             };
             const newBooking = await db.addBooking(bookingData);
             setConfirmedBooking(newBooking);
-            setAllBookings(prev => [newBooking, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            // setAllBookings no es necesario aquí si usamos listeners en tiempo real
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
@@ -980,9 +993,7 @@ const App = () => {
         const bookingToCancel = bookings.find(b => b.id === bookingId);
         if (bookingToCancel) {
             await db.updateBooking(bookingId, { status: 'cancelled' });
-            setAllBookings(prev => prev.map(b => 
-                b.id === bookingId ? { ...b, status: 'cancelled' } : b
-            ));
+            // El estado se actualizará automáticamente gracias al listener
             
             if (selectedBooking && selectedBooking.id === bookingId) {
                 setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
@@ -999,10 +1010,7 @@ const App = () => {
 
     const handleUpdateScore = async (bookingId: string, scoreA: number, scoreB: number) => {
         await db.updateBooking(bookingId, { scoreA, scoreB });
-        const updateInState = (prevState: ConfirmedBooking[]) => 
-            prevState.map(b => b.id === bookingId ? { ...b, scoreA, scoreB } : b);
-        
-        setAllBookings(updateInState);
+        // El estado se actualizará automáticamente gracias al listener
         if (selectedBooking && selectedBooking.id === bookingId) {
             setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB } : null);
         }
@@ -1010,10 +1018,7 @@ const App = () => {
 
     const handleFinalizeMatch = async (bookingId: string, scoreA: number, scoreB: number) => {
         await db.updateBooking(bookingId, { scoreA, scoreB, status: 'completed' });
-        const updateInState = (prevState: ConfirmedBooking[]) => 
-            prevState.map(b => b.id === bookingId ? { ...b, scoreA, scoreB, status: 'completed' } : b);
-
-        setAllBookings(updateInState);
+        // El estado se actualizará automáticamente gracias al listener
          if (selectedBooking && selectedBooking.id === bookingId) {
             setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB, status: 'completed' } : null);
         }
@@ -1216,7 +1221,7 @@ const App = () => {
             onSearch={handleSearch} 
             onSelectField={handleSelectField} 
             fields={fields} 
-            loading={loading} 
+            loading={loading && allBookings.length === 0} 
             favoriteFields={user?.favoriteFields || []} 
             onToggleFavorite={handleToggleFavorite} 
             theme={theme} 
