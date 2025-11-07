@@ -72,6 +72,7 @@ interface SocialViewProps {
     section: SocialSection;
     setSection: (section: SocialSection) => void;
     onUpdateUserTeam: (teamId: string) => Promise<void>;
+    onUpdateTeam: (teamId: string, updates: Partial<Team>) => Promise<void>;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -389,7 +390,7 @@ const FindPlayersView: React.FC<{
 };
 
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeam }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeam, onUpdateTeam }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
@@ -422,7 +423,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     allUsers={allUsers}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
-                    onUpdateTeam={() => {}}
+                    onUpdateTeam={(team) => onUpdateTeam(team.id, team)}
                     setIsPremiumModalOpen={setIsPremiumModalOpen}
                     onUpdateUserTeam={onUpdateUserTeam}
                     setSection={setSection}
@@ -459,6 +460,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     team={userTeam}
                     currentUser={currentUserAsPlayer}
                     onBack={() => setSection('my-team')}
+                    onUpdateTeam={(updates) => onUpdateTeam(userTeam.id, updates)}
                 />
             }
             default:

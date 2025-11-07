@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';

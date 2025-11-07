@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage } from './types';
 
@@ -684,6 +685,17 @@ export const deleteField = async (fieldId) => {
         return db.collection('fields').doc(fieldId).delete();
     }
     demoData.fields = demoData.fields.filter(f => f.id !== fieldId);
+    return Promise.resolve();
+};
+
+export const updateTeam = async (teamId, updates) => {
+    if (isFirebaseConfigured) {
+        return db.collection('teams').doc(teamId).update(updates);
+    }
+    const teamIndex = demoData.teams.findIndex(t => t.id === teamId);
+    if (teamIndex > -1) {
+        demoData.teams[teamIndex] = { ...demoData.teams[teamIndex], ...updates };
+    }
     return Promise.resolve();
 };
 

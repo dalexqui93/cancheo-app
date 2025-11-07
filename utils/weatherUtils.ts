@@ -1,3 +1,4 @@
+
 import type { WeatherCondition, HourlyData, Favorability } from '../types';
 
 export function mapWmoCodeToIcon(code: number): WeatherCondition {

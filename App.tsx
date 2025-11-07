@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+// FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
 import { View } from './types';
 import Header from './components/Header';
@@ -1191,6 +1193,26 @@ const App = () => {
         }
     };
 
+    // Fix: Added handleUpdateTeam function to manage team updates.
+    const handleUpdateTeam = async (teamId: string, updates: Partial<Team>) => {
+        try {
+            await db.updateTeam(teamId, updates);
+            // If not using a listener, update local state here.
+            // But a listener is used, Firestore will propagate the change.
+            // For demo mode:
+            if (!isFirebaseConfigured) {
+                setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
+            }
+        } catch (error) {
+            console.error("Error al actualizar el equipo:", String(error));
+            showToast({
+                type: 'error',
+                title: 'Error de Equipo',
+                message: 'No se pudieron guardar los cambios en el equipo.'
+            });
+        }
+    };
+
     const handleRewardAnimationEnd = (field: SoccerField) => {
         setRewardInfo(null);
         setRatingInfo({ field });
@@ -1413,6 +1435,7 @@ const App = () => {
                                     section={socialSection}
                                     setSection={setSocialSection}
                                     onUpdateUserTeam={handleUpdateUserTeam}
+                                    onUpdateTeam={handleUpdateTeam}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;

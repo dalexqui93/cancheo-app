@@ -30,7 +30,7 @@ interface MyTeamDashboardProps {
     allUsers: User[];
     onBack: () => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
-    onUpdateTeam: (team: Team) => void;
+    onUpdateTeam: (team: Partial<Team>) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
     onUpdateUserTeam: (teamId: string) => Promise<void>;
     setSection: (section: SocialSection) => void;
@@ -163,7 +163,6 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
 
 const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeam, setSection }) => {
     const [view, setView] = useState<TeamView>('dashboard');
-    const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
 
     const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
         const currentUserAsPlayer = user.playerProfile || {
@@ -181,6 +180,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers,
             playerPositions: {},
             schedule: [],
             matchHistory: [],
+            messagingPermissions: 'all',
         };
         
         try {
@@ -201,29 +201,6 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers,
     if (!team) {
         return <CreateTeamView onBack={onBack} onCreate={handleCreateTeam} setIsPremiumModalOpen={setIsPremiumModalOpen} user={user} />;
     }
-    
-    const handleSendMessage = (text: string, replyToMessage: ChatMessage | null) => {
-        const currentUserAsPlayer = team.players.find(p => p.id === user.id);
-        if (!currentUserAsPlayer) {
-            addNotification({type: 'error', title: 'Error de Chat', message: 'No se encontró tu perfil en el equipo.'});
-            return;
-        };
-
-        const newMessage: ChatMessage = {
-            id: `msg-${Date.now()}`,
-            senderId: currentUserAsPlayer.id,
-            senderName: currentUserAsPlayer.name,
-            senderProfilePicture: currentUserAsPlayer.profilePicture,
-            text: text,
-            timestamp: new Date(),
-            replyTo: replyToMessage ? {
-                senderName: replyToMessage.senderName,
-                text: replyToMessage.text
-            } : undefined
-        };
-        setMessages(prev => [...prev, newMessage]);
-    };
-
 
     const handleUpdatePlayer = (updatedPlayer: Player) => {
         const updatedPlayers = team.players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p);
@@ -274,7 +251,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers,
     return (
          <div className="min-h-screen p-4 sm:p-6 pb-[5.5rem] md:pb-4">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
-                <ChevronLeftIcon className="h-5 w-5" />
+                <ChevronLeftIcon className="h-5 h-5" />
                 Volver a DaviPlay
             </button>
             
