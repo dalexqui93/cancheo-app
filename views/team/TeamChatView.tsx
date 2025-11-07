@@ -8,6 +8,7 @@ import { UserIcon } from '../../components/icons/UserIcon';
 import { ArrowUturnLeftIcon } from '../../components/icons/ArrowUturnLeftIcon';
 import * as db from '../../database';
 import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
+import TeamInfoView from './TeamInfoView';
 
 interface TeamChatViewProps {
     team: Team;
@@ -51,6 +52,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack }
     const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
     const [showEmojis, setShowEmojis] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
 
     useEffect(() => {
         setIsLoading(true);
@@ -76,10 +78,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack }
                 replyTo: replyingTo ? {
                     senderName: replyingTo.senderName,
                     text: replyingTo.text,
-                } : null,
+                } : undefined,
             };
 
-            // Optimistic UI updates
             const tempId = `temp-${Date.now()}`;
             const optimisticMessage: ChatMessage = {
                 id: tempId,
@@ -96,7 +97,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack }
                 await db.addChatMessage(team.id, messageData);
             } catch (error) {
                 console.error("Error al enviar el mensaje:", String(error));
-                // Revert optimistic update on error
                 setMessages(prev => prev.filter(m => m.id !== tempId));
             }
         }
@@ -106,23 +106,26 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack }
         setInputText(prev => prev + emoji);
     };
 
+    if (currentView === 'info') {
+        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setCurrentView('chat')} />;
+    }
+
     return (
         <div className="flex flex-col min-h-screen bg-gray-900 text-white animate-fade-in">
              {/* Header */}
             <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
-                <button onClick={onBack} className="flex items-center gap-2 text-gray-300 hover:text-white mr-4">
+                <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
                     <ChevronLeftIcon className="w-6 h-6" />
-                    <span className="font-semibold hidden sm:inline">Mi Equipo</span>
                 </button>
-                <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center">
+                <button onClick={() => setCurrentView('info')} className="flex items-center flex-grow min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
                         {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
                     </div>
-                    <div>
-                        <h2 className="font-bold text-lg">{team.name}</h2>
+                    <div className="text-left min-w-0">
+                        <h2 className="font-bold text-lg truncate">{team.name}</h2>
                         <p className="text-xs text-gray-400">{team.players.length} miembros</p>
                     </div>
-                </div>
+                </button>
             </header>
 
             {/* Messages */}
