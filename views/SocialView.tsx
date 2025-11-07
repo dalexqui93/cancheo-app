@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -31,6 +29,8 @@ import { SwordsIcon } from '../components/icons/SwordsIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import StarRating from '../components/StarRating';
 import TeamChatView from './team/TeamChatView';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { TrashIcon } from '../components/icons/TrashIcon';
 
 
 // --- MOCK DATA ---
@@ -78,6 +78,7 @@ interface SocialViewProps {
     sentInvitations: Invitation[];
     onSendInvitation: (team: Team, player: Player) => void;
     onCancelInvitation: (invitationId: string) => void;
+    onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -297,8 +298,10 @@ const PlayerRecruitCard: React.FC<{
     sentInvitations: Invitation[];
     onSendInvitation: (team: Team, player: Player) => void;
     onCancelInvitation: (invitationId: string) => void;
-}> = ({ player, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation }) => {
+    onRemovePlayer: (player: Player) => void;
+}> = ({ player, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayer }) => {
     const existingInvitation = recruitingTeam ? sentInvitations.find(inv => inv.toUserId === player.id && inv.teamId === recruitingTeam.id) : null;
+    const isAlreadyOnTeam = recruitingTeam?.players.some(p => p.id === player.id);
     
     return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex flex-col h-full">
@@ -338,7 +341,15 @@ const PlayerRecruitCard: React.FC<{
                     Ver Perfil
                 </button>
                 {recruitingTeam && (
-                    existingInvitation ? (
+                    isAlreadyOnTeam ? (
+                        <button 
+                            onClick={() => onRemovePlayer(player)} 
+                            className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm text-sm"
+                        >
+                            <TrashIcon className="w-4 h-4"/>
+                            Expulsar
+                        </button>
+                    ) : existingInvitation ? (
                         <button onClick={() => onCancelInvitation(existingInvitation.id)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-gray-500 text-white hover:bg-gray-600 shadow-sm text-sm">
                             <XIcon className="w-4 h-4"/>
                             Cancelar
@@ -364,20 +375,29 @@ const FindPlayersView: React.FC<{
     sentInvitations: Invitation[];
     onSendInvitation: (team: Team, player: Player) => void;
     onCancelInvitation: (invitationId: string) => void;
-}> = ({ players, onBack, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation }) => {
+    onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
+}> = ({ players, onBack, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [playerToRemove, setPlayerToRemove] = useState<Player | null>(null);
 
     const filteredPlayers = players.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleConfirmRemove = () => {
+        if (playerToRemove && recruitingTeam) {
+            onRemovePlayerFromTeam(recruitingTeam.id, playerToRemove.id);
+        }
+        setPlayerToRemove(null);
+    };
+
     return (
         <div className="p-4 pb-[5.5rem] md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Fichajes</h1>
-            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra jugadores para unirte a tu equipo.</p>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra o gestiona jugadores para tu equipo.</p>
             {recruitingTeam && (
-                <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 font-semibold p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">Estás reclutando para: {recruitingTeam.name}</p>
+                <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 font-semibold p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">Gestionando para: {recruitingTeam.name}</p>
             )}
             
             <div className="mt-6 relative">
@@ -401,6 +421,7 @@ const FindPlayersView: React.FC<{
                         sentInvitations={sentInvitations}
                         onSendInvitation={onSendInvitation}
                         onCancelInvitation={onCancelInvitation}
+                        onRemovePlayer={setPlayerToRemove}
                     />
                 ))}
             </div>
@@ -413,12 +434,21 @@ const FindPlayersView: React.FC<{
                     </p>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={!!playerToRemove}
+                onClose={() => setPlayerToRemove(null)}
+                onConfirm={handleConfirmRemove}
+                title={`¿Expulsar a ${playerToRemove?.name}?`}
+                message={`Esta acción eliminará permanentemente al jugador de ${recruitingTeam?.name}. El jugador será notificado. ¿Estás seguro?`}
+                confirmButtonText="Sí, expulsar"
+            />
         </div>
     );
 };
 
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
@@ -459,7 +489,6 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                 const otherTeams = allTeams.filter(t => !user.teamIds?.includes(t.id));
                 return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
             case 'find-players':
-                const userTeamPlayers = userTeams.flatMap(t => t.players.map(p => p.id));
                 return <div className="p-4 sm:p-6 pb-[6.5rem]">{
                     viewingPlayerProfile ? (
                     <PlayerProfileDetailView 
@@ -468,13 +497,14 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                             />
                 ) : (
                     <FindPlayersView 
-                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id && !userTeamPlayers.includes(u.id)).map(u => u.playerProfile!)} 
+                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id).map(u => u.playerProfile!)} 
                         onBack={() => setSection('hub')} 
                         onViewProfile={setViewingPlayerProfile}
                         recruitingTeam={recruitingTeam}
                         sentInvitations={sentInvitations}
                         onSendInvitation={onSendInvitation}
                         onCancelInvitation={onCancelInvitation}
+                        onRemovePlayerFromTeam={onRemovePlayerFromTeam}
                     />
                 )}</div>;
             case 'sports-forum':

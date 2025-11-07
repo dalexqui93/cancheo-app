@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation } from './types';
@@ -1226,13 +1223,9 @@ const App = () => {
         }
     };
 
-    // Fix: Added handleUpdateTeam function to manage team updates.
     const handleUpdateTeam = async (teamId: string, updates: Partial<Team>) => {
         try {
             await db.updateTeam(teamId, updates);
-            // If not using a listener, update local state here.
-            // But a listener is used, Firestore will propagate the change.
-            // For demo mode:
             if (!isFirebaseConfigured) {
                 setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
             }
@@ -1243,6 +1236,51 @@ const App = () => {
                 title: 'Error de Equipo',
                 message: 'No se pudieron guardar los cambios en el equipo.'
             });
+        }
+    };
+
+    const handleRemovePlayerFromTeam = async (teamId: string, playerId: string) => {
+        const team = allTeams.find(t => t.id === teamId);
+        const userToRemove = allUsers.find(u => u.id === playerId);
+    
+        if (!team || !userToRemove) {
+            showToast({ type: 'error', title: 'Error', message: 'No se pudo encontrar el equipo o el jugador.' });
+            return;
+        }
+    
+        const updatedPlayers = team.players.filter(p => p.id !== playerId);
+        const updatedTeamIds = userToRemove.teamIds?.filter(id => id !== teamId) || [];
+    
+        const notificationForRemovedPlayer: Notification = {
+            id: Date.now(),
+            type: 'error',
+            title: 'Has sido eliminado',
+            message: `El capitán te ha eliminado de ${team.name}.`,
+            timestamp: new Date(),
+            read: false,
+        };
+        const updatedNotifications = [notificationForRemovedPlayer, ...(userToRemove.notifications || [])].slice(0, 50);
+    
+        try {
+            await db.updateTeam(teamId, { players: updatedPlayers });
+            await db.updateUser(playerId, { teamIds: updatedTeamIds, notifications: updatedNotifications });
+    
+            if (!isFirebaseConfigured) {
+                 setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
+            }
+    
+            setAllUsers(prev => prev.map(u => {
+                if (u.id === playerId) {
+                    return { ...u, teamIds: updatedTeamIds, notifications: updatedNotifications };
+                }
+                return u;
+            }));
+            
+            showToast({ type: 'info', title: 'Jugador Expulsado', message: `${userToRemove.name} ha sido eliminado de ${team.name}.` });
+    
+        } catch (error) {
+            console.error("Error al eliminar jugador del equipo:", String(error));
+            showToast({ type: 'error', title: 'Error', message: 'No se pudo eliminar al jugador.' });
         }
     };
 
@@ -1521,6 +1559,7 @@ const App = () => {
                                     sentInvitations={sentInvitations}
                                     onSendInvitation={handleSendInvitation}
                                     onCancelInvitation={handleCancelInvitation}
+                                    onRemovePlayerFromTeam={handleRemovePlayerFromTeam}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
