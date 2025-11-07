@@ -165,10 +165,10 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                 </button>
                                  {isNotificationsOpen && (
                                     <div className="absolute right-[-3.5rem] sm:right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in flex flex-col" style={{maxHeight: '80vh', transformOrigin: 'top right'}}>
-                                        <div className="relative p-4 border-b border-black/10 dark:border-white/10 flex justify-center items-center flex-shrink-0">
+                                        <div className="p-4 border-b border-black/10 dark:border-white/10 flex justify-between items-center flex-shrink-0">
                                             <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">Notificaciones</h3>
                                             {notifications.filter(n => !n.read).length > 0 && (
-                                                <button onClick={onMarkAllAsRead} className="absolute right-4 text-sm font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline whitespace-nowrap">
+                                                <button onClick={onMarkAllAsRead} className="text-sm font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline whitespace-nowrap">
                                                     Marcar leídas
                                                 </button>
                                             )}
