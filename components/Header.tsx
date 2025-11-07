@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { User, Notification } from '../types';
+import type { User, Notification, Invitation } from '../types';
 import { View } from '../types';
 import { UserIcon } from './icons/UserIcon';
 import { XIcon } from './icons/XIcon';
@@ -11,6 +11,7 @@ import { timeSince } from '../utils/timeSince';
 import { BellIcon } from './icons/BellIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
+import { ShieldIcon } from './icons/ShieldIcon';
 
 
 interface HeaderProps {
@@ -18,9 +19,12 @@ interface HeaderProps {
     onNavigate: (view: View) => void;
     onLogout: () => void;
     notifications: Notification[];
+    invitations: Invitation[];
     onDismiss: (id: number) => void;
     onMarkAllAsRead: () => void;
     onClearAll: () => void;
+    onAcceptInvitation: (invitation: Invitation) => void;
+    onRejectInvitation: (invitation: Invitation) => void;
     currentTime: Date;
 }
 
@@ -35,8 +39,42 @@ const NotificationIcon: React.FC<{ notification: Notification }> = ({ notificati
     return <InformationCircleIcon className="h-6 w-6 text-gray-500" />;
 };
 
+const InvitationCard: React.FC<{
+    invitation: Invitation;
+    onAccept: (invitation: Invitation) => void;
+    onReject: (invitation: Invitation) => void;
+}> = ({ invitation, onAccept, onReject }) => {
+    return (
+        <div className="p-4">
+            <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {invitation.teamLogo ? (
+                        <img src={invitation.teamLogo} alt={invitation.teamName} className="w-full h-full object-cover" />
+                    ) : (
+                        <ShieldIcon className="w-6 h-6 text-gray-400" />
+                    )}
+                </div>
+                <div className="flex-grow">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="font-bold text-gray-900 dark:text-gray-100">{invitation.fromUserName}</span> te invitó a unirte a <span className="font-bold text-gray-900 dark:text-gray-100">{invitation.teamName}</span>.
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{timeSince(new Date(invitation.timestamp))}</p>
+                </div>
+            </div>
+            <div className="mt-3 flex gap-3">
+                <button onClick={() => onAccept(invitation)} className="w-full bg-green-600 text-white font-semibold py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    Aceptar
+                </button>
+                <button onClick={() => onReject(invitation)} className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm">
+                    Rechazar
+                </button>
+            </div>
+        </div>
+    );
+};
 
-const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, onDismiss, onMarkAllAsRead, onClearAll, currentTime }) => {
+
+const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, invitations, onDismiss, onMarkAllAsRead, onClearAll, onAcceptInvitation, onRejectInvitation, currentTime }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -44,13 +82,13 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
 
     // Mark as read when opening the dropdown after a delay
     useEffect(() => {
-        if (isNotificationsOpen) {
+        if (isNotificationsOpen && notifications.some(n => !n.read)) {
             const timeoutId = setTimeout(() => {
                 onMarkAllAsRead();
             }, 2000); 
             return () => clearTimeout(timeoutId);
         }
-    }, [isNotificationsOpen, onMarkAllAsRead]);
+    }, [isNotificationsOpen, onMarkAllAsRead, notifications]);
     
      // Close dropdowns when clicking outside
     useEffect(() => {
@@ -67,7 +105,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCount = notifications.filter(n => !n.read).length + invitations.length;
 
     const MenuItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
         <button onClick={onClick} className="w-full flex items-center gap-3 p-2 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
@@ -129,13 +167,26 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                     <div className="absolute right-[-3.5rem] sm:right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in flex flex-col" style={{maxHeight: '80vh', transformOrigin: 'top right'}}>
                                         <div className="relative p-4 border-b border-black/10 dark:border-white/10 flex justify-center items-center flex-shrink-0">
                                             <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">Notificaciones</h3>
-                                            {unreadCount > 0 && (
+                                            {notifications.filter(n => !n.read).length > 0 && (
                                                 <button onClick={onMarkAllAsRead} className="absolute right-4 text-sm font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline whitespace-nowrap">
                                                     Marcar leídas
                                                 </button>
                                             )}
                                         </div>
                                         <div className="flex-grow overflow-y-auto">
+                                            {invitations.length > 0 && (
+                                                <>
+                                                    <div className="px-4 pt-4 pb-2">
+                                                        <h4 className="font-bold text-gray-800 dark:text-gray-200">Invitaciones de Equipo</h4>
+                                                    </div>
+                                                    <div className="divide-y divide-black/10 dark:divide-white/10">
+                                                        {invitations.map(inv => (
+                                                            <InvitationCard key={inv.id} invitation={inv} onAccept={onAcceptInvitation} onReject={onRejectInvitation} />
+                                                        ))}
+                                                    </div>
+                                                    <div className="p-2 border-b border-black/10 dark:border-white/10"></div>
+                                                </>
+                                            )}
                                             {notifications.length > 0 ? (
                                                 notifications.map(notif => (
                                                     <div key={notif.id} className="group p-4 flex items-start gap-4 hover:bg-black/5 dark:hover:bg-white/5 relative">
@@ -158,11 +209,13 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="text-center py-16 px-4 flex flex-col items-center">
-                                                    <BellIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 opacity-50 mb-4"/>
-                                                    <h4 className="font-bold text-gray-800 dark:text-gray-200">Todo está al día</h4>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No tienes notificaciones nuevas.</p>
-                                                </div>
+                                                invitations.length === 0 && (
+                                                    <div className="text-center py-16 px-4 flex flex-col items-center">
+                                                        <BellIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 opacity-50 mb-4"/>
+                                                        <h4 className="font-bold text-gray-800 dark:text-gray-200">Todo está al día</h4>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No tienes notificaciones nuevas.</p>
+                                                    </div>
+                                                )
                                             )}
                                         </div>
                                         {notifications.length > 0 && (

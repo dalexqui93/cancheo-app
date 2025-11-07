@@ -1,6 +1,7 @@
 
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage } from '../types';
+import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { ShieldIcon } from '../components/icons/ShieldIcon';
@@ -74,6 +75,9 @@ interface SocialViewProps {
     setSection: (section: SocialSection) => void;
     onUpdateUserTeams: (teamIds: string[]) => Promise<void>;
     onUpdateTeam: (teamId: string, updates: Partial<Team>) => Promise<void>;
+    sentInvitations: Invitation[];
+    onSendInvitation: (team: Team, player: Player) => void;
+    onCancelInvitation: (invitationId: string) => void;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -288,9 +292,14 @@ const levelToRating = (level: Player['level']): number => {
 
 const PlayerRecruitCard: React.FC<{
     player: Player;
-    onRecruit: (player: Player) => void;
     onViewProfile: (player: Player) => void;
-}> = ({ player, onRecruit, onViewProfile }) => {
+    recruitingTeam: Team | null;
+    sentInvitations: Invitation[];
+    onSendInvitation: (team: Team, player: Player) => void;
+    onCancelInvitation: (invitationId: string) => void;
+}> = ({ player, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation }) => {
+    const existingInvitation = recruitingTeam ? sentInvitations.find(inv => inv.toUserId === player.id && inv.teamId === recruitingTeam.id) : null;
+    
     return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex flex-col h-full">
             <div className="flex items-center gap-4">
@@ -328,10 +337,19 @@ const PlayerRecruitCard: React.FC<{
                 <button onClick={() => onViewProfile(player)} className="w-full py-2 px-4 rounded-lg font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm">
                     Ver Perfil
                 </button>
-                <button onClick={() => onRecruit(player)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">
-                    <UserPlusIcon className="w-4 h-4"/>
-                    Reclutar
-                </button>
+                {recruitingTeam && (
+                    existingInvitation ? (
+                        <button onClick={() => onCancelInvitation(existingInvitation.id)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-gray-500 text-white hover:bg-gray-600 shadow-sm text-sm">
+                            <XIcon className="w-4 h-4"/>
+                            Cancelar
+                        </button>
+                    ) : (
+                        <button onClick={() => onSendInvitation(recruitingTeam, player)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">
+                            <UserPlusIcon className="w-4 h-4"/>
+                            Reclutar
+                        </button>
+                    )
+                )}
             </div>
         </div>
     );
@@ -341,9 +359,12 @@ const PlayerRecruitCard: React.FC<{
 const FindPlayersView: React.FC<{
     players: Player[];
     onBack: () => void;
-    onRecruit: (player: Player) => void;
     onViewProfile: (player: Player) => void;
-}> = ({ players, onBack, onRecruit, onViewProfile }) => {
+    recruitingTeam: Team | null;
+    sentInvitations: Invitation[];
+    onSendInvitation: (team: Team, player: Player) => void;
+    onCancelInvitation: (invitationId: string) => void;
+}> = ({ players, onBack, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredPlayers = players.filter(p =>
@@ -355,6 +376,9 @@ const FindPlayersView: React.FC<{
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Fichajes</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra jugadores para unirte a tu equipo.</p>
+            {recruitingTeam && (
+                <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 font-semibold p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">Estás reclutando para: {recruitingTeam.name}</p>
+            )}
             
             <div className="mt-6 relative">
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
@@ -372,8 +396,11 @@ const FindPlayersView: React.FC<{
                     <PlayerRecruitCard 
                         key={player.id}
                         player={player}
-                        onRecruit={onRecruit}
                         onViewProfile={onViewProfile}
+                        recruitingTeam={recruitingTeam}
+                        sentInvitations={sentInvitations}
+                        onSendInvitation={onSendInvitation}
+                        onCancelInvitation={onCancelInvitation}
                     />
                 ))}
             </div>
@@ -391,19 +418,18 @@ const FindPlayersView: React.FC<{
 };
 
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
     const userTeams = useMemo(() => user.teamIds ? allTeams.filter(t => user.teamIds.includes(t.id)) : [], [allTeams, user.teamIds]);
     
-    const handleRecruit = (player: Player) => {
-        addNotification({
-            type: 'info',
-            title: 'Invitación Enviada',
-            message: `Se ha enviado una invitación a ${player.name} para unirse a tu equipo.`
-        });
-    };
+    const recruitingTeam = useMemo(() => {
+        if (!user.playerProfile) return null;
+        const captainedTeams = allTeams.filter(t => t.captainId === user.id);
+        return captainedTeams.length > 0 ? captainedTeams[0] : null;
+    }, [allTeams, user]);
+
 
     const renderContent = () => {
         if (!user.playerProfile) {
@@ -439,14 +465,16 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     <PlayerProfileDetailView 
                                 player={viewingPlayerProfile} 
                                 onBack={() => setViewingPlayerProfile(null)} 
-                                onRecruit={handleRecruit}
                             />
                 ) : (
                     <FindPlayersView 
                         players={allUsers.filter(u => u.playerProfile && u.id !== user.id && !userTeamPlayers.includes(u.id)).map(u => u.playerProfile!)} 
                         onBack={() => setSection('hub')} 
-                        onRecruit={handleRecruit} 
-                        onViewProfile={setViewingPlayerProfile} 
+                        onViewProfile={setViewingPlayerProfile}
+                        recruitingTeam={recruitingTeam}
+                        sentInvitations={sentInvitations}
+                        onSendInvitation={onSendInvitation}
+                        onCancelInvitation={onCancelInvitation}
                     />
                 )}</div>;
             case 'sports-forum':

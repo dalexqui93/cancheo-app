@@ -1,8 +1,9 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation } from './types';
 import { View } from './types';
 import Header from './components/Header';
 import Home from './views/Home';
@@ -50,7 +51,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -84,6 +85,8 @@ const App = () => {
     const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
     const [socialSection, setSocialSection] = useState<SocialSection>('hub');
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
+    const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
 
     // Weather State
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -154,6 +157,35 @@ const App = () => {
             db.getTeams().then(setAllTeams);
         }
     }, []);
+
+    // Invitation listeners
+    useEffect(() => {
+        if (user && db.isFirebaseConfigured) {
+            const unsubscribe = db.listenToInvitationsForUser(user.id, setReceivedInvitations);
+            return () => unsubscribe();
+        } else if (user) {
+            db.getInvitationsForUser(user.id).then(setReceivedInvitations);
+        } else {
+            setReceivedInvitations([]);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (user && allTeams.length > 0) {
+            const captainedTeamIds = allTeams.filter(t => t.captainId === user.id).map(t => t.id);
+            if (captainedTeamIds.length > 0 && db.isFirebaseConfigured) {
+                const unsubscribe = db.listenToInvitationsByTeams(captainedTeamIds, setSentInvitations);
+                return () => unsubscribe();
+            } else if (captainedTeamIds.length > 0) {
+                db.getInvitationsByTeams(captainedTeamIds).then(setSentInvitations);
+            } else {
+                setSentInvitations([]);
+            }
+        } else {
+            setSentInvitations([]);
+        }
+    }, [user, allTeams]);
+
 
     const fetchWeather = useCallback(async () => {
         setIsWeatherLoading(true);
@@ -702,7 +734,7 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // FIX: The 'error' object is of type 'unknown' in a catch block.
+                // Fix: The 'error' object is of type 'unknown' in a catch block.
                 // Accessing properties like 'message' directly is unsafe and causes a type error.
                 // We must first check if it's an instance of Error before accessing 'message',
                 // otherwise, we convert it to a string for safe logging.
@@ -1239,6 +1271,53 @@ const App = () => {
         showToast({ type: 'success', title: '¡Gracias por tu opinión!', message: 'Tu calificación nos ayuda a mejorar.' });
     };
 
+    const handleSendInvitation = async (team: Team, playerToRecruit: Player) => {
+        if (!user) return;
+        const invitationData: Omit<Invitation, 'id'> = {
+            teamId: team.id,
+            teamName: team.name,
+            teamLogo: team.logo,
+            fromUserId: user.id,
+            fromUserName: user.name,
+            toUserId: playerToRecruit.id,
+            toUserName: playerToRecruit.name,
+            timestamp: new Date(),
+        };
+        await db.addInvitation(invitationData);
+        showToast({ type: 'success', title: 'Invitación Enviada', message: `Se ha invitado a ${playerToRecruit.name} a unirse a ${team.name}.` });
+    };
+
+    const handleCancelInvitation = async (invitationId: string) => {
+        await db.deleteInvitation(invitationId);
+        showToast({ type: 'info', title: 'Invitación Cancelada', message: 'La invitación ha sido retirada.' });
+    };
+
+    const handleAcceptInvitation = async (invitation: Invitation) => {
+        if (!user || !user.playerProfile) return;
+        const team = allTeams.find(t => t.id === invitation.teamId);
+        if (!team) {
+            showToast({ type: 'error', title: 'Error', message: 'El equipo ya no existe.' });
+            await db.deleteInvitation(invitation.id);
+            return;
+        }
+
+        const updatedPlayers = [...team.players, user.playerProfile];
+        await handleUpdateTeam(team.id, { players: updatedPlayers });
+
+        const updatedTeamIds = [...(user.teamIds || []), team.id];
+        await handleUpdateUserTeams(updatedTeamIds);
+
+        await db.deleteInvitation(invitation.id);
+        
+        showToast({ type: 'success', title: '¡Te has unido!', message: `Ahora eres miembro de ${team.name}.` });
+    };
+
+    const handleRejectInvitation = async (invitation: Invitation) => {
+        await db.deleteInvitation(invitation.id);
+        showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
+    };
+
+
     const ownerFields = useMemo(() => {
         if (user?.isOwner) {
             return fields.filter(f => f.ownerId === user.id);
@@ -1439,6 +1518,9 @@ const App = () => {
                                     setSection={setSocialSection}
                                     onUpdateUserTeams={handleUpdateUserTeams}
                                     onUpdateTeam={handleUpdateTeam}
+                                    sentInvitations={sentInvitations}
+                                    onSendInvitation={handleSendInvitation}
+                                    onCancelInvitation={handleCancelInvitation}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
@@ -1476,7 +1558,18 @@ const App = () => {
             {showDarkSocialBg && <div className="absolute inset-0"></div>}
             <div className="relative z-10">
                 <FirebaseWarningBanner />
-                {showHeader && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={notifications} onDismiss={dismissNotification} onMarkAllAsRead={handleMarkAllNotificationsAsRead} onClearAll={handleClearNotifications} currentTime={currentTime}/>}
+                {showHeader && <Header 
+                                user={user} 
+                                onNavigate={handleNavigate} 
+                                onLogout={handleLogout} 
+                                notifications={notifications} 
+                                invitations={receivedInvitations}
+                                onDismiss={dismissNotification} 
+                                onMarkAllAsRead={handleMarkAllNotificationsAsRead} 
+                                onClearAll={handleClearNotifications} 
+                                onAcceptInvitation={handleAcceptInvitation}
+                                onRejectInvitation={handleRejectInvitation}
+                                currentTime={currentTime}/>}
                 <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
                     {renderView()}
                 </main>

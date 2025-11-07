@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage } from './types';
+import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -273,6 +273,7 @@ const demoData = {
     teams: [],
     posts: [],
     chats: {},
+    invitations: [],
 };
 
 const initializeDemoData = () => {
@@ -285,6 +286,7 @@ const initializeDemoData = () => {
         { id: 'msg1', senderId: 'player-2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
         { id: 'msg2', senderId: 'player-1', senderName: 'Juan Perez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
     ];
+    demoData.invitations = [];
 
     const nowForBooking = new Date();
     const liveStartTime = new Date(nowForBooking.getTime() - 30 * 60 * 1000); 
@@ -549,6 +551,70 @@ export const addTeam = async (teamData: Omit<Team, 'id'>): Promise<Team> => {
     const newTeam: Team = { id: `t-${Date.now()}`, ...teamData };
     demoData.teams.push(newTeam);
     return Promise.resolve(newTeam);
+};
+
+
+// --- INVITATION API ---
+
+export const listenToInvitationsForUser = (userId: string, callback: (invitations: Invitation[]) => void) => {
+    if (isFirebaseConfigured) {
+        return db.collection('invitations').where('toUserId', '==', userId).onSnapshot(snapshot => {
+            callback(snapshot.docs.map(docToData));
+        });
+    }
+    // Demo mode is not real-time, just returns current state
+    callback(demoData.invitations.filter(i => i.toUserId === userId));
+    return () => {}; // Return a dummy unsubscribe function
+};
+
+export const getInvitationsForUser = async (userId: string): Promise<Invitation[]> => {
+     if (isFirebaseConfigured) {
+        const snapshot = await db.collection('invitations').where('toUserId', '==', userId).get();
+        return snapshot.docs.map(docToData);
+    }
+    return Promise.resolve(JSON.parse(JSON.stringify(demoData.invitations.filter(i => i.toUserId === userId))));
+}
+
+export const listenToInvitationsByTeams = (teamIds: string[], callback: (invitations: Invitation[]) => void) => {
+    if (isFirebaseConfigured && teamIds.length > 0) {
+        return db.collection('invitations').where('teamId', 'in', teamIds).onSnapshot(snapshot => {
+            callback(snapshot.docs.map(docToData));
+        });
+    }
+    if (teamIds.length > 0) {
+        callback(demoData.invitations.filter(i => teamIds.includes(i.teamId)));
+    }
+    return () => {};
+};
+
+export const getInvitationsByTeams = async (teamIds: string[]): Promise<Invitation[]> => {
+    if (isFirebaseConfigured && teamIds.length > 0) {
+        const snapshot = await db.collection('invitations').where('teamId', 'in', teamIds).get();
+        return snapshot.docs.map(docToData);
+    }
+     if (teamIds.length > 0) {
+        return Promise.resolve(JSON.parse(JSON.stringify(demoData.invitations.filter(i => teamIds.includes(i.teamId)))));
+    }
+    return Promise.resolve([]);
+}
+
+export const addInvitation = async (invitationData: Omit<Invitation, 'id'>): Promise<Invitation> => {
+    if (isFirebaseConfigured) {
+        const dataToSave = { ...invitationData, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+        const docRef = await db.collection('invitations').add(dataToSave);
+        return { id: docRef.id, ...invitationData, timestamp: new Date() };
+    }
+    const newInvitation: Invitation = { id: `inv-${Date.now()}`, ...invitationData, timestamp: new Date() };
+    demoData.invitations.push(newInvitation);
+    return Promise.resolve(newInvitation);
+};
+
+export const deleteInvitation = async (invitationId: string): Promise<void> => {
+    if (isFirebaseConfigured) {
+        return db.collection('invitations').doc(invitationId).delete();
+    }
+    demoData.invitations = demoData.invitations.filter(i => i.id !== invitationId);
+    return Promise.resolve();
 };
 
 

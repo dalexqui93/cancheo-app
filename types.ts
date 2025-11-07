@@ -1,3 +1,8 @@
+// Basic types
+export type Theme = 'system' | 'light' | 'dark';
+export type AccentColor = 'green' | 'blue' | 'orange' | 'purple';
+export type Tab = 'explore' | 'bookings' | 'community' | 'profile';
+export type SocialSection = 'hub' | 'my-team' | 'sports-forum' | 'tournaments' | 'challenge' | 'find-players' | 'chat';
 
 export enum View {
     HOME = 'HOME',
@@ -8,30 +13,21 @@ export enum View {
     LOGIN = 'LOGIN',
     REGISTER = 'REGISTER',
     OWNER_DASHBOARD = 'OWNER_DASHBOARD',
+    SUPER_ADMIN_DASHBOARD = 'SUPER_ADMIN_DASHBOARD',
     PROFILE = 'PROFILE',
     BOOKINGS = 'BOOKINGS',
     BOOKING_DETAIL = 'BOOKING_DETAIL',
-    SOCIAL = 'SOCIAL',
-    PLAYER_PROFILE_CREATOR = 'PLAYER_PROFILE_CREATOR',
     APPEARANCE = 'APPEARANCE',
     HELP_SUPPORT = 'HELP_SUPPORT',
     PAYMENT_METHODS = 'PAYMENT_METHODS',
+    SOCIAL = 'SOCIAL',
+    PLAYER_PROFILE_CREATOR = 'PLAYER_PROFILE_CREATOR',
     FORGOT_PASSWORD = 'FORGOT_PASSWORD',
     OWNER_REGISTER = 'OWNER_REGISTER',
     OWNER_PENDING_VERIFICATION = 'OWNER_PENDING_VERIFICATION',
-    SUPER_ADMIN_DASHBOARD = 'SUPER_ADMIN_DASHBOARD',
 }
 
-export type Tab = 'explore' | 'community' | 'bookings' | 'profile';
-
-export type Theme = 'system' | 'light' | 'dark';
-
-export type AccentColor = 'green' | 'blue' | 'orange' | 'purple';
-
-export type FieldSize = '5v5' | '7v7' | '11v11';
-
-export type OwnerStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction';
-
+// Data models
 export interface Service {
     name: string;
     icon: string;
@@ -44,6 +40,8 @@ export interface Review {
     comment: string;
     timestamp: Date;
 }
+
+export type FieldSize = '5v5' | '7v7' | '11v11';
 
 export interface SoccerField {
     id: string;
@@ -62,53 +60,23 @@ export interface SoccerField {
     size: FieldSize;
     latitude: number;
     longitude: number;
-    loyaltyEnabled: boolean;
-    loyaltyGoal: number;
+    distance?: number;
+    loyaltyEnabled?: boolean;
+    loyaltyGoal?: number;
     availableSlots?: {
         mañana: string[];
         tarde: string[];
         noche: string[];
     };
-    distance?: number;
 }
 
-export interface Loyalty {
-    progress: number;
-    freeTickets: number;
+export interface PlayerStats {
+    matchesPlayed: number;
+    goals: number;
+    assists: number;
+    yellowCards: number;
+    redCards: number;
 }
-
-export interface UserLoyalty {
-    [fieldId: string]: Loyalty;
-}
-
-export type PaymentMethodType = 'card' | 'nequi' | 'daviplata' | 'pse';
-export type CardBrand = 'Visa' | 'Mastercard' | 'American Express' | 'Otro';
-
-interface BasePaymentMethod {
-    id: string;
-    type: PaymentMethodType;
-    isDefault?: boolean;
-}
-
-export interface CardPaymentMethod extends BasePaymentMethod {
-    type: 'card';
-    brand: CardBrand;
-    last4: string;
-    expiryMonth: string;
-    expiryYear: string;
-}
-
-export interface WalletPaymentMethod extends BasePaymentMethod {
-    type: 'nequi' | 'daviplata';
-    phoneNumber: string;
-}
-
-export interface PsePaymentMethod extends BasePaymentMethod {
-    type: 'pse';
-    accountHolderName: string;
-}
-
-export type PaymentMethod = CardPaymentMethod | WalletPaymentMethod | PsePaymentMethod;
 
 export interface Player {
     id: string;
@@ -117,13 +85,7 @@ export interface Player {
     number?: number;
     position: 'Portero' | 'Defensa' | 'Medio' | 'Delantero' | 'Cualquiera';
     level: 'Casual' | 'Intermedio' | 'Competitivo' | number;
-    stats: {
-        matchesPlayed: number;
-        goals: number;
-        assists: number;
-        yellowCards: number;
-        redCards: number;
-    };
+    stats: PlayerStats;
     age?: number;
     height?: number;
     weight?: number;
@@ -137,6 +99,33 @@ export interface Player {
     achievements?: string[];
 }
 
+export type OwnerStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction';
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    password?: string; // Should not be stored/retrieved on client but needed for mock data
+    phone?: string;
+    profilePicture?: string;
+    isAdmin: boolean;
+    isOwner: boolean;
+    ownerStatus?: OwnerStatus;
+    isPremium: boolean;
+    favoriteFields: string[];
+    notifications?: Notification[];
+    notificationPreferences?: {
+        newAvailability: boolean;
+        specialDiscounts: boolean;
+        importantNews: boolean;
+    };
+    loyalty?: UserLoyalty;
+    paymentMethods?: PaymentMethod[];
+    playerProfile?: Player;
+    cancheoCoins?: number;
+    teamIds?: string[];
+}
+
 export interface Notification {
     id: number;
     type: 'success' | 'info' | 'error';
@@ -146,59 +135,37 @@ export interface Notification {
     read?: boolean;
 }
 
-export interface User {
-    id: string;
-    name: string;
-    email: string;
-    password: string;
-    phone?: string;
-    profilePicture?: string;
-    isOwner: boolean;
-    isAdmin: boolean;
-    ownerStatus?: OwnerStatus;
-    isPremium: boolean;
-    favoriteFields: string[];
-    playerProfile?: Player;
-    notifications?: Notification[];
-    notificationPreferences?: {
-        newAvailability: boolean;
-        specialDiscounts: boolean;
-        importantNews: boolean;
-    };
-    loyalty?: UserLoyalty;
-    paymentMethods?: PaymentMethod[];
-    cancheoCoins?: number;
-    teamIds?: string[];
-}
-
 export interface BookingDetails {
     field: SoccerField;
     time: string;
     date: Date;
 }
 
-export interface ConfirmedBooking extends BookingDetails {
+export interface ConfirmedBooking {
     id: string;
-    status: 'confirmed' | 'cancelled' | 'completed';
     userId: string;
     userName: string;
-    userPhone: string;
+    userPhone?: string;
+    teamName?: string;
+    rivalName?: string;
+    field: SoccerField;
+    date: Date;
+    time: string;
     extras: {
         balls: number;
         vests: number;
     };
     totalPrice: number;
     paymentMethod: string;
-    isFree?: boolean;
-    loyaltyApplied?: boolean;
+    status: 'confirmed' | 'cancelled' | 'completed';
     remindersSent?: {
         twentyFourHour: boolean;
         oneHour: boolean;
     };
+    isFree?: boolean;
+    loyaltyApplied?: boolean;
     scoreA?: number;
     scoreB?: number;
-    teamName?: string;
-    rivalName?: string;
 }
 
 export interface Announcement {
@@ -206,10 +173,16 @@ export interface Announcement {
     title: string;
     message: string;
     type: 'news' | 'promo' | 'warning';
-    ownerId: string;
-    complexName: string;
+    ownerId?: string;
+    complexName?: string;
     createdAt?: Date;
 }
+
+export interface Loyalty {
+    progress: number;
+    freeTickets: number;
+}
+export type UserLoyalty = { [fieldId: string]: Loyalty };
 
 export interface OwnerApplication {
     id: string;
@@ -225,6 +198,34 @@ export interface OwnerApplication {
     rejectionReason?: string;
 }
 
+// Payment Methods
+export type CardBrand = 'Visa' | 'Mastercard' | 'American Express' | 'Otro';
+export type PaymentMethodType = 'card' | 'nequi' | 'daviplata' | 'pse';
+
+export interface BasePaymentMethod {
+    id: string;
+    type: PaymentMethodType;
+    isDefault?: boolean;
+}
+export interface CardPaymentMethod extends BasePaymentMethod {
+    type: 'card';
+    brand: CardBrand;
+    last4: string;
+    expiryMonth: string;
+    expiryYear: string;
+}
+export interface WalletPaymentMethod extends BasePaymentMethod {
+    type: 'nequi' | 'daviplata';
+    phoneNumber: string;
+}
+export interface PsePaymentMethod extends BasePaymentMethod {
+    type: 'pse';
+    accountHolderName: string;
+}
+export type PaymentMethod = CardPaymentMethod | WalletPaymentMethod | PsePaymentMethod;
+
+// Weather types
+export type WeatherCondition = 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'unknown';
 export interface HourlyData {
     time: Date;
     temperature: number;
@@ -233,7 +234,6 @@ export interface HourlyData {
     windSpeed: number;
     weatherCode: number;
 }
-
 export interface WeatherData {
     latitude: number;
     longitude: number;
@@ -243,18 +243,35 @@ export interface WeatherData {
     current: HourlyData;
     hourly: HourlyData[];
 }
-
-export type WeatherCondition = 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'unknown';
-
 export interface Favorability {
     status: 'Favorable' | 'Condicional' | 'Desfavorable';
     reason: string;
 }
 
-export type SocialSection = 'hub' | 'my-team' | 'sports-forum' | 'tournaments' | 'challenge' | 'find-players' | 'chat';
-
+// Team and Community types
 export type Formation = '4-4-2' | '4-3-3' | '3-5-2' | 'Custom';
-
+export interface MatchEvent {
+    type: 'goal' | 'yellow' | 'red';
+    minute: number;
+    playerId: string;
+    teamId: string;
+}
+export interface MatchTeam {
+    id: string;
+    name: string;
+    logo?: string;
+}
+export interface Match {
+    id: string;
+    teamA: MatchTeam;
+    teamB: MatchTeam;
+    scoreA?: number;
+    scoreB?: number;
+    date: Date;
+    status: 'por jugar' | 'en vivo' | 'jugado';
+    events?: MatchEvent[];
+    isEditable?: boolean;
+}
 export interface TeamEvent {
     id: string;
     type: 'match' | 'training' | 'event';
@@ -262,23 +279,6 @@ export interface TeamEvent {
     title: string;
     location: string;
 }
-
-export interface MatchEvent {
-    // Define if needed
-}
-
-export interface Match {
-    id: string;
-    teamA: Team | { id: string, name: string, logo?: string };
-    teamB: Team | { id: string, name: string, logo?: string };
-    scoreA?: number;
-    scoreB?: number;
-    date: Date;
-    status: 'programado' | 'jugado' | 'en vivo';
-    isEditable?: boolean;
-    events?: MatchEvent[];
-}
-
 export interface Team {
     id: string;
     name: string;
@@ -286,47 +286,36 @@ export interface Team {
     captainId: string;
     players: Player[];
     level: 'Casual' | 'Intermedio' | 'Competitivo';
-    stats: { wins: number; losses: number; draws: number };
+    stats: {
+        wins: number;
+        losses: number;
+        draws: number;
+    };
     formation: Formation;
     playerPositions: { [playerId: string]: { x: number; y: number; pos?: string } };
     tacticsNotes?: string;
     schedule: TeamEvent[];
     matchHistory: Match[];
     messagingPermissions?: 'all' | 'captain';
-    chat?: ChatMessage[];
 }
 
-export interface Group {
+export interface Invitation {
     id: string;
-    name: string;
-    teams: Team[];
-    standings: any[];
-    matches: Match[];
+    teamId: string;
+    teamName: string;
+    teamLogo?: string;
+    fromUserId: string;
+    fromUserName: string;
+    toUserId: string;
+    toUserName: string;
+    timestamp: Date;
 }
 
-export interface KnockoutRound {
-    // Define if needed
-}
-
-export interface Tournament {
-    id: string;
-    name: string;
-    format: string;
-    prize: string;
-    status: 'en juego' | 'inscripciones abiertas' | 'finalizado';
-    structure: 'groups-then-knockout' | 'knockout';
-    teams: Team[];
-    groups?: Group[];
-    knockoutRounds?: KnockoutRound[];
-}
-
-export type SportsEmoji = '👍' | '⚽' | '🔥' | '🏆' | '🤯' | '😂' | '😡';
-
+export type SportsEmoji = '👍' | '😂' | '⚽' | '🔥' | '👏' | '🏆' | '🎉' | '💪' | '🤯' | '😡';
 export interface ForumReaction {
     emoji: SportsEmoji;
     userIds: string[];
 }
-
 export interface ForumComment {
     id: string;
     authorId: string;
@@ -336,9 +325,7 @@ export interface ForumComment {
     content: string;
     reactions: ForumReaction[];
     isFlagged?: boolean;
-    createdAt?: Date; // For firestore
 }
-
 export interface ForumPost {
     id: string;
     authorId: string;
@@ -351,10 +338,6 @@ export interface ForumPost {
     reactions: ForumReaction[];
     comments: ForumComment[];
     isFlagged?: boolean;
-    createdAt?: Date; // For firestore
-    updatedAt?: Date; // For firestore
-    commentCount?: number;
-    reactionCounts?: { [key: string]: number };
 }
 
 export interface ChatMessage {
@@ -368,16 +351,38 @@ export interface ChatMessage {
         senderName: string;
         text: string;
     };
-    createdAt?: Date; // for firestore
+}
+
+export interface Group {
+    id: string;
+    name: string;
+    teams: Team[];
+    standings: any[];
+    matches: Match[];
+}
+export interface KnockoutRound {
+    name: string;
+    matches: Match[];
+}
+export interface Tournament {
+    id: string;
+    name: string;
+    format: 'Fútbol 5' | 'Fútbol 7' | 'Fútbol 11';
+    prize: string;
+    status: 'inscripciones abiertas' | 'en juego' | 'finalizado';
+    structure: 'groups-then-knockout' | 'knockout';
+    teams: Team[];
+    groups?: Group[];
+    knockoutRounds?: KnockoutRound[];
 }
 
 export interface AvatarConfig {
-    hairstyle: 'short' | 'buzz' | 'mohawk' | 'long' | 'ponytail' | 'bald';
-    hairColor: string;
     skinTone: string;
-    eyeColor?: string;
+    hairColor: string;
+    hairstyle: 'short' | 'buzz' | 'mohawk' | 'long' | 'ponytail' | 'bald';
     facialHair: 'none' | 'moustache' | 'beard';
+    eyeColor: string;
     jerseyColor: string;
     shortsColor: string;
-    shoeColor?: string;
+    shoeColor: string;
 }
