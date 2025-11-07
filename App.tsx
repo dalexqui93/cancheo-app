@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team } from './types';
@@ -1213,10 +1214,10 @@ const App = () => {
         }
     };
 
-    const handleRewardAnimationEnd = (field: SoccerField) => {
+    const handleRewardAnimationEnd = useCallback((field: SoccerField) => {
         setRewardInfo(null);
         setRatingInfo({ field });
-    };
+    }, []);
 
     const handleRatingSubmit = async (fieldId: string, rating: number, comment: string) => {
         if (!user) return;
