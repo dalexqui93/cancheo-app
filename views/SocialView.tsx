@@ -79,6 +79,7 @@ interface SocialViewProps {
     onSendInvitation: (team: Team, player: Player) => void;
     onCancelInvitation: (invitationId: string) => void;
     onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
+    onLeaveTeam: (teamId: string, playerId: string) => void;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -500,11 +501,9 @@ const FindPlayersView: React.FC<{
 };
 
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
-    
-    const userTeams = useMemo(() => user.teamIds ? allTeams.filter(t => user.teamIds.includes(t.id)) : [], [allTeams, user.teamIds]);
     
     const recruitingTeam = useMemo(() => {
         if (!user.playerProfile) return null;
@@ -527,15 +526,16 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                             user={user} /></div>;
             case 'my-team':
                 return <MyTeamDashboard
-                    userTeams={userTeams}
                     user={user}
                     allUsers={allUsers}
+                    allTeams={allTeams}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
                     onUpdateTeam={onUpdateTeam}
                     setIsPremiumModalOpen={setIsPremiumModalOpen}
                     onUpdateUserTeams={onUpdateUserTeams}
-                    setSection={setSection}
+                    onLeaveTeam={onLeaveTeam}
+                    onRemovePlayerFromTeam={onRemovePlayerFromTeam}
                  />;
             case 'challenge':
                 return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
@@ -560,22 +560,6 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                 )}</div>;
             case 'sports-forum':
                 return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
-            case 'chat': {
-                // This view is now launched from within MyTeamDashboard, which handles selecting the team.
-                // If accessed directly, we should redirect. For now, this logic will prevent crashes.
-                const teamForChat = userTeams[0]; // Fallback to first team
-                if (!teamForChat || !user.playerProfile) {
-                    setTimeout(() => setSection('hub'), 0);
-                    return null;
-                }
-                const currentUserAsPlayer = teamForChat.players.find(p => p.id === user.id) || user.playerProfile;
-                return <TeamChatView
-                    team={teamForChat}
-                    currentUser={currentUserAsPlayer}
-                    onBack={() => setSection('my-team')}
-                    onUpdateTeam={(updates) => onUpdateTeam(teamForChat.id, updates)}
-                />
-            }
             default:
                 return <PlayerHub user={user} onSectionNavigate={setSection} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
         }
@@ -583,22 +567,19 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
     
     const socialSectionsWithDarkBg = ['hub', 'my-team'];
     const hasDarkBg = socialSectionsWithDarkBg.includes(section);
-    const showExitButton = section !== 'chat';
 
     return (
         <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'} ${section === 'chat' ? 'p-0' : ''}`}>
             {renderContent()}
 
             {/* Exit DaviPlay Button */}
-            {showExitButton && (
-                <button
-                    onClick={() => onNavigate(View.HOME)}
-                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
-                    aria-label="Salir de DaviPlay"
-                >
-                    <LogoutIcon className="w-8 h-8" />
-                </button>
-            )}
+            <button
+                onClick={() => onNavigate(View.HOME)}
+                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
+                aria-label="Salir de DaviPlay"
+            >
+                <LogoutIcon className="w-8 h-8" />
+            </button>
         </div>
     );
 };
