@@ -168,7 +168,7 @@ export interface User {
     loyalty?: UserLoyalty;
     paymentMethods?: PaymentMethod[];
     cancheoCoins?: number;
-    teamId?: string;
+    teamIds?: string[];
 }
 
 export interface BookingDetails {

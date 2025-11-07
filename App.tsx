@@ -50,7 +50,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -1177,15 +1177,15 @@ const App = () => {
         handleNavigate(View.SOCIAL);
     };
 
-    const handleUpdateUserTeam = async (teamId: string) => {
+    const handleUpdateUserTeams = async (teamIds: string[]) => {
         if (!user) return;
         try {
-            await db.updateUser(user.id, { teamId });
-            const updatedUser = { ...user, teamId };
+            await db.updateUser(user.id, { teamIds });
+            const updatedUser = { ...user, teamIds };
             setUser(updatedUser);
             setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         } catch (error) {
-            console.error("Error al actualizar el equipo del usuario:", String(error));
+            console.error("Error al actualizar los equipos del usuario:", String(error));
             showToast({
                 type: 'error',
                 title: 'Error de Equipo',
@@ -1363,6 +1363,8 @@ const App = () => {
                     if (user) {
                         return <ProfileView 
                                     user={user} 
+                                    allTeams={allTeams}
+                                    setSocialSection={setSocialSection}
                                     onLogout={handleLogout} 
                                     allFields={fields} 
                                     onToggleFavorite={handleToggleFavorite} 
@@ -1435,7 +1437,7 @@ const App = () => {
                                     setIsPremiumModalOpen={setIsPremiumModalOpen} 
                                     section={socialSection}
                                     setSection={setSocialSection}
-                                    onUpdateUserTeam={handleUpdateUserTeam}
+                                    onUpdateUserTeams={handleUpdateUserTeams}
                                     onUpdateTeam={handleUpdateTeam}
                                 />;
                     }

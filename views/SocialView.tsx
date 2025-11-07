@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -71,7 +72,7 @@ interface SocialViewProps {
     setIsPremiumModalOpen: (isOpen: boolean) => void;
     section: SocialSection;
     setSection: (section: SocialSection) => void;
-    onUpdateUserTeam: (teamId: string) => Promise<void>;
+    onUpdateUserTeams: (teamIds: string[]) => Promise<void>;
     onUpdateTeam: (teamId: string, updates: Partial<Team>) => Promise<void>;
 }
 
@@ -390,11 +391,11 @@ const FindPlayersView: React.FC<{
 };
 
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeam, onUpdateTeam }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
-    const userTeam = useMemo(() => allTeams.find(t => t.id === user.teamId), [allTeams, user.teamId]);
+    const userTeams = useMemo(() => user.teamIds ? allTeams.filter(t => user.teamIds.includes(t.id)) : [], [allTeams, user.teamIds]);
     
     const handleRecruit = (player: Player) => {
         addNotification({
@@ -418,20 +419,21 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                             user={user} /></div>;
             case 'my-team':
                 return <MyTeamDashboard
-                    team={userTeam}
+                    userTeams={userTeams}
                     user={user}
                     allUsers={allUsers}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
-                    onUpdateTeam={(team) => onUpdateTeam(team.id, team)}
+                    onUpdateTeam={onUpdateTeam}
                     setIsPremiumModalOpen={setIsPremiumModalOpen}
-                    onUpdateUserTeam={onUpdateUserTeam}
+                    onUpdateUserTeams={onUpdateUserTeams}
                     setSection={setSection}
                  />;
             case 'challenge':
-                const otherTeams = allTeams.filter(t => t.id !== userTeam?.id);
+                const otherTeams = allTeams.filter(t => !user.teamIds?.includes(t.id));
                 return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
             case 'find-players':
+                const userTeamPlayers = userTeams.flatMap(t => t.players.map(p => p.id));
                 return <div className="p-4 sm:p-6 pb-[6.5rem]">{
                     viewingPlayerProfile ? (
                     <PlayerProfileDetailView 
@@ -441,7 +443,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                             />
                 ) : (
                     <FindPlayersView 
-                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id && (!userTeam || !userTeam.players.some(p => p.id === u.id))).map(u => u.playerProfile!)} 
+                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id && !userTeamPlayers.includes(u.id)).map(u => u.playerProfile!)} 
                         onBack={() => setSection('hub')} 
                         onRecruit={handleRecruit} 
                         onViewProfile={setViewingPlayerProfile} 
@@ -450,17 +452,19 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
             case 'sports-forum':
                 return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
             case 'chat': {
-                if (!userTeam || !user.playerProfile) {
-                    // This case should ideally not be reached if UI logic is correct
+                // This view is now launched from within MyTeamDashboard, which handles selecting the team.
+                // If accessed directly, we should redirect. For now, this logic will prevent crashes.
+                const teamForChat = userTeams[0]; // Fallback to first team
+                if (!teamForChat || !user.playerProfile) {
                     setTimeout(() => setSection('hub'), 0);
                     return null;
                 }
-                const currentUserAsPlayer = userTeam.players.find(p => p.id === user.id) || user.playerProfile;
+                const currentUserAsPlayer = teamForChat.players.find(p => p.id === user.id) || user.playerProfile;
                 return <TeamChatView
-                    team={userTeam}
+                    team={teamForChat}
                     currentUser={currentUserAsPlayer}
                     onBack={() => setSection('my-team')}
-                    onUpdateTeam={(updates) => onUpdateTeam(userTeam.id, updates)}
+                    onUpdateTeam={(updates) => onUpdateTeam(teamForChat.id, updates)}
                 />
             }
             default:

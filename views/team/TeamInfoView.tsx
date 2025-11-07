@@ -32,6 +32,7 @@ const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, 
     const isCaptain = currentUser.id === team.captainId;
 
     const handleMessagingPermissionChange = (isAllMembers: boolean) => {
+        if (!isCaptain) return;
         onUpdateTeam({ messagingPermissions: isAllMembers ? 'all' : 'captain' });
     };
 
@@ -45,7 +46,7 @@ const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, 
     };
 
     const handleRemovePlayer = () => {
-        if (playerToRemove) {
+        if (playerToRemove && isCaptain) {
             const updatedPlayers = team.players.filter(p => p.id !== playerToRemove.id);
             onUpdateTeam({ players: updatedPlayers });
         }

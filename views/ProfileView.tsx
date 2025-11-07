@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import type { User, SoccerField } from '../types';
+import React, { useRef, useState, useMemo } from 'react';
+import type { User, SoccerField, Team, SocialSection } from '../types';
 import { View } from '../types';
 import { UserIcon } from '../components/icons/UserIcon';
 import { CreditCardIcon } from '../components/icons/CreditCardIcon';
@@ -23,9 +23,12 @@ import FieldCard from '../components/FieldCard';
 import { EyeIcon } from '../components/icons/EyeIcon';
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
+import { ShieldIcon } from '../components/icons/ShieldIcon';
 
 interface ProfileViewProps {
     user: User;
+    allTeams: Team[];
+    setSocialSection: (section: SocialSection) => void;
     onLogout: () => void;
     allFields: SoccerField[];
     onToggleFavorite: (complexId: string) => void;
@@ -369,13 +372,23 @@ const NotificationPreferences: React.FC<{
 };
 
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout, allFields, onToggleFavorite, onSelectField, onUpdateProfilePicture, onRemoveProfilePicture, onUpdateUser, onChangePassword, onUpdateNotificationPreferences, onNavigate, setIsPremiumModalOpen }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, allTeams, setSocialSection, onLogout, allFields, onToggleFavorite, onSelectField, onUpdateProfilePicture, onRemoveProfilePicture, onUpdateUser, onChangePassword, onUpdateNotificationPreferences, onNavigate, setIsPremiumModalOpen }) => {
     
     const [mode, setMode] = useState<'main' | 'editInfo' | 'editNotifications'>('main');
     
     const favoriteComplexes = user.favoriteFields.map(complexId => {
         return allFields.filter(field => (field.complexId || field.id) === complexId);
     }).filter(complexGroup => complexGroup.length > 0);
+
+    const userTeams = useMemo(() => {
+        if (!user.teamIds || !allTeams) return [];
+        return allTeams.filter(team => user.teamIds.includes(team.id));
+    }, [user, allTeams]);
+
+    const handleTeamClick = () => {
+        setSocialSection('my-team');
+        onNavigate(View.SOCIAL);
+    };
 
     if (mode === 'editInfo') {
         return (
@@ -420,6 +433,42 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout, allFields, on
                 {user.loyalty && (
                     <LoyaltyStatus loyaltyData={user.loyalty} allFields={allFields} />
                 )}
+
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:border dark:border-gray-700">
+                    <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 pt-4 mb-1">Mis Equipos</h2>
+                    {userTeams.length > 0 ? (
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700 p-2">
+                            {userTeams.map(team => (
+                                <button 
+                                    key={team.id}
+                                    onClick={handleTeamClick}
+                                    className="w-full text-left flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                            {team.logo ? (
+                                                <img src={team.logo} alt={team.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <ShieldIcon className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-800 dark:text-gray-100">{team.name}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{team.level}</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 px-4">
+                            <ShieldIcon className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+                            <p className="mt-2 text-gray-600 dark:text-gray-400 font-medium">No eres parte de ningún equipo.</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-500">Ve a DaviPlay para unirte o crear uno.</p>
+                        </div>
+                    )}
+                </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:border dark:border-gray-700">
                     <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 pt-4 mb-1">Mis Complejos Favoritos</h2>

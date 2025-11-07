@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod, Team } from '../types';
@@ -85,8 +86,8 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
     const [policiesAccepted, setPoliciesAccepted] = useState(false);
     const [useFreeTicket, setUseFreeTicket] = useState(false);
     const [teamName, setTeamName] = useState(() => {
-        if (user.teamId) {
-            const userTeam = allTeams.find(team => team.id === user.teamId);
+        if (user.teamIds && user.teamIds.length > 0) {
+            const userTeam = allTeams.find(team => team.id === user.teamIds[0]);
             return userTeam ? userTeam.name : '';
         }
         return '';

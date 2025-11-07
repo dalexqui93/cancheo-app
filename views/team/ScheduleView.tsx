@@ -9,6 +9,7 @@ import { UsersIcon } from '../../components/icons/UsersIcon';
 
 interface ScheduleViewProps {
     team: Team;
+    isCaptain: boolean;
     onBack: () => void;
     onUpdateTeam: (team: Team) => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
@@ -102,7 +103,7 @@ const EventCard: React.FC<{ event: TeamEvent }> = ({ event }) => {
 };
 
 
-const ScheduleView: React.FC<ScheduleViewProps> = ({ team, onBack, onUpdateTeam, addNotification }) => {
+const ScheduleView: React.FC<ScheduleViewProps> = ({ team, isCaptain, onBack, onUpdateTeam, addNotification }) => {
     const [isAddingEvent, setIsAddingEvent] = useState(false);
     
     const sortedSchedule = [...team.schedule].sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -118,10 +119,12 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ team, onBack, onUpdateTeam,
         <div className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Calendario del Equipo</h1>
-                <button onClick={() => setIsAddingEvent(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
-                    <PlusIcon className="w-5 h-5" />
-                    Añadir Evento
-                </button>
+                {isCaptain && (
+                    <button onClick={() => setIsAddingEvent(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
+                        <PlusIcon className="w-5 h-5" />
+                        Añadir Evento
+                    </button>
+                )}
             </div>
             
             {sortedSchedule.length > 0 ? (

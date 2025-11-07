@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Team, Formation, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -12,6 +10,7 @@ import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 interface TacticsViewProps {
     team: Team;
     user: User;
+    isCaptain: boolean;
     onBack: () => void;
     onUpdateTeam: (team: Team) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
@@ -94,24 +93,24 @@ const FORMATIONS: { name: Formation, layout: { pos: string, x: number, y: number
     ]},
 ];
 
-const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.PointerEvent, playerId: string) => void; isDragged: boolean; isCaptain: boolean }> = ({ player, onPointerDown, isDragged, isCaptain }) => (
+const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.PointerEvent, playerId: string) => void; isDragged: boolean; isCaptainOfTeam: boolean; isCaptain: boolean }> = ({ player, onPointerDown, isDragged, isCaptainOfTeam, isCaptain }) => (
     <div
-        onPointerDown={(e) => onPointerDown(e, player.id)}
-        className={`relative w-16 h-16 bg-gray-700 rounded-full flex flex-col items-center justify-center shadow-md text-center p-1 transition-opacity ${isDragged ? 'opacity-40' : 'opacity-100'} touch-none cursor-grab active:cursor-grabbing border-2 border-gray-500`}
+        onPointerDown={(e) => isCaptain && onPointerDown(e, player.id)}
+        className={`relative w-16 h-16 bg-gray-700 rounded-full flex flex-col items-center justify-center shadow-md text-center p-1 transition-opacity ${isDragged ? 'opacity-40' : 'opacity-100'} touch-none ${isCaptain ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} border-2 border-gray-500`}
         title={player.name}
     >
         <span className="font-black text-xl text-orange-400">{player.number || '?'}</span>
         <span className="text-[9px] font-semibold uppercase text-gray-300 truncate w-full">
             {player.name.split(' ').pop()}
         </span>
-        {isCaptain && (
+        {isCaptainOfTeam && (
             <div title="Capitán" className="absolute top-0 right-0 w-4 h-4 bg-yellow-400 text-black text-[10px] font-bold rounded-full flex items-center justify-center border border-gray-200">C</div>
         )}
     </div>
 );
 
 
-const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateTeam, setIsPremiumModalOpen }) => {
+const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack, onUpdateTeam, setIsPremiumModalOpen }) => {
     const [formation, setFormation] = useState<Formation>(team.formation || 'Custom');
     const [notes, setNotes] = useState(team.tacticsNotes || '');
     const [playerPositions, setPlayerPositions] = useState<{[playerId: string]: { x: number; y: number; pos?: string }}>(team.playerPositions);
@@ -126,7 +125,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
 
     // Effect to manage body scroll during drag operations
     useEffect(() => {
-        if (draggedPlayer) {
+        if (draggedPlayer && isCaptain) {
             document.body.style.overflow = 'hidden';
             document.body.style.touchAction = 'none';
         } else {
@@ -139,13 +138,15 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
             document.body.style.overflow = '';
             document.body.style.touchAction = '';
         };
-    }, [draggedPlayer]);
+    }, [draggedPlayer, isCaptain]);
 
     const handleSave = () => {
+        if (!isCaptain) return;
         onUpdateTeam({ ...team, formation, tacticsNotes: notes, playerPositions });
     };
 
     const handleFormationChange = (newFormation: Formation) => {
+        if (!isCaptain) return;
         setFormation(newFormation);
         const formationLayout = FORMATIONS.find(f => f.name === newFormation);
         if (formationLayout) {
@@ -162,13 +163,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                 }
             });
             setPlayerPositions(newPositions);
-        } else {
-             // When switching to 'Custom', we don't change positions, but we might want to clear specific pos tags
-            // For now, we'll just keep the current positions.
         }
     };
     
     const handlePointerDown = (e: React.PointerEvent, playerId: string, origin: 'pitch' | 'bench') => {
+        if (!isCaptain) return;
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
         setDraggedPlayer({ id: playerId, origin });
@@ -176,12 +175,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!draggedPlayer) return;
+        if (!draggedPlayer || !isCaptain) return;
         setDragPosition({ x: e.clientX, y: e.clientY });
     };
 
     const handlePointerUp = (e: React.PointerEvent) => {
-        if (!draggedPlayer) return;
+        if (!draggedPlayer || !isCaptain) return;
         
         const pitchRect = pitchRef.current?.getBoundingClientRect();
         const benchRect = benchRef.current?.getBoundingClientRect();
@@ -225,9 +224,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
         <div onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Tácticas y Formaciones</h1>
-                <button onClick={handleSave} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
-                    Guardar Táctica
-                </button>
+                {isCaptain && (
+                    <button onClick={handleSave} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                        Guardar Táctica
+                    </button>
+                )}
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -237,7 +238,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                             pitchRef={pitchRef}
                             players={team.players}
                             positions={playerPositions}
-                            onPointerDown={(e, playerId) => handlePointerDown(e, playerId, 'pitch')}
+                            onPointerDown={isCaptain ? (e, playerId) => handlePointerDown(e, playerId, 'pitch') : () => {}}
                             draggedPlayerId={draggedPlayer?.id}
                             captainId={team.captainId}
                         />
@@ -255,7 +256,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                                         player={player}
                                         onPointerDown={(e, playerId) => handlePointerDown(e, playerId, 'bench')}
                                         isDragged={draggedPlayer?.id === player.id}
-                                        isCaptain={team.captainId === player.id}
+                                        isCaptainOfTeam={team.captainId === player.id}
+                                        isCaptain={isCaptain}
                                     />
                                 ))
                             ) : (
@@ -276,7 +278,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                             id="formation-select"
                             value={formation}
                             onChange={(e) => handleFormationChange(e.target.value as Formation)}
-                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600"
+                            disabled={!isCaptain}
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             <option value="Custom">Personalizada</option>
                             {FORMATIONS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
@@ -289,14 +292,15 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateT
                             rows={8}
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600"
+                            readOnly={!isCaptain}
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
                             placeholder="Ej: Presión alta, buscar al delantero, etc."
                         />
                     </div>
                 </div>
             </div>
             {/* Drag Ghost Element */}
-            {draggedPlayer && dragPosition && draggedPlayerDetails && (
+            {draggedPlayer && dragPosition && draggedPlayerDetails && isCaptain && (
                 <div 
                     className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
                     style={{ left: dragPosition.x, top: dragPosition.y }}

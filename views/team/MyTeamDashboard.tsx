@@ -20,19 +20,21 @@ import { UserIcon } from '../../components/icons/UserIcon';
 import { SoccerBallIcon } from '../../components/icons/SoccerBallIcon';
 import { ShoeIcon } from '../../components/icons/ShoeIcon';
 import * as db from '../../database';
+import { PlusIcon } from '../../components/icons/PlusIcon';
+import { ChevronRightIcon } from '../../components/icons/ChevronRightIcon';
 
 
 type TeamView = 'dashboard' | 'roster' | 'tactics' | 'schedule' | 'performance' | 'chat';
 
 interface MyTeamDashboardProps {
-    team: Team | undefined;
+    userTeams: Team[];
     user: User;
     allUsers: User[];
     onBack: () => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
-    onUpdateTeam: (team: Partial<Team>) => void;
+    onUpdateTeam: (teamId: string, updates: Partial<Team>) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
-    onUpdateUserTeam: (teamId: string) => Promise<void>;
+    onUpdateUserTeams: (teamIds: string[]) => Promise<void>;
     setSection: (section: SocialSection) => void;
 }
 
@@ -161,7 +163,9 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
 };
 
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeam, setSection }) => {
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection }) => {
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+    const [isCreating, setIsCreating] = useState(userTeams.length === 0);
     const [view, setView] = useState<TeamView>('dashboard');
 
     const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
@@ -186,8 +190,10 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers,
         try {
             const newTeam = await db.addTeam(newTeamData);
             if (newTeam && newTeam.id) {
-                await onUpdateUserTeam(newTeam.id);
+                const newTeamIds = [...(user.teamIds || []), newTeam.id];
+                await onUpdateUserTeams(newTeamIds);
                 addNotification({type: 'success', title: '¡Equipo Creado!', message: `Bienvenido a ${newTeam.name}.`});
+                setIsCreating(false);
             } else {
                 throw new Error("La creación del equipo no devolvió un resultado válido.");
             }
@@ -198,102 +204,150 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers,
         }
     };
 
-    if (!team) {
-        return <CreateTeamView onBack={onBack} onCreate={handleCreateTeam} setIsPremiumModalOpen={setIsPremiumModalOpen} user={user} />;
-    }
-
-    const handleUpdatePlayer = (updatedPlayer: Player) => {
-        const updatedPlayers = team.players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p);
-        onUpdateTeam({ ...team, players: updatedPlayers });
-        addNotification({type: 'success', title: 'Jugador Actualizado', message: `${updatedPlayer.name} ha sido actualizado.`})
-    };
-
-    const handleAddPlayer = (newPlayer: Player) => {
-        const updatedPlayers = [...team.players, newPlayer];
-        onUpdateTeam({ ...team, players: updatedPlayers });
-        addNotification({type: 'success', title: 'Jugador Añadido', message: `${newPlayer.name} se ha unido al equipo.`})
-    };
-    
-    const handleRemovePlayer = (playerId: string) => {
-        const updatedPlayers = team.players.filter(p => p.id !== playerId);
-        onUpdateTeam({ ...team, players: updatedPlayers });
-        addNotification({type: 'info', title: 'Jugador Eliminado', message: 'El jugador ha sido eliminado de la plantilla.'})
+    if (isCreating) {
+        return <CreateTeamView 
+            onBack={userTeams.length > 0 ? () => setIsCreating(false) : onBack} 
+            onCreate={handleCreateTeam} 
+            user={user} 
+            setIsPremiumModalOpen={setIsPremiumModalOpen} 
+        />;
     }
     
-    const TABS: { id: TeamView; label: string; icon: React.ReactNode }[] = [
-        { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon className="w-5 h-5"/> },
-        { id: 'roster', label: 'Plantilla', icon: <TshirtIcon className="w-5 h-5"/> },
-        { id: 'tactics', label: 'Tácticas', icon: <ClipboardListIcon className="w-5 h-5"/> },
-        { id: 'schedule', label: 'Calendario', icon: <CalendarIcon className="w-5 h-5"/> },
-        { id: 'performance', label: 'Rendimiento', icon: <ChartBarIcon className="w-5 h-5"/> },
-        { id: 'chat', label: 'Chat', icon: <ChatBubbleLeftRightIcon className="w-5 h-5"/> },
-    ];
+    if (userTeams.length === 0 && !isCreating) {
+        return <CreateTeamView onBack={onBack} onCreate={handleCreateTeam} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
+    }
 
-    const renderContent = () => {
-        switch (view) {
-            case 'roster':
-                return <RosterView team={team} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allUsers={allUsers} />;
-            case 'tactics':
-                return <TacticsView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
-            case 'schedule':
-                return <ScheduleView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} addNotification={addNotification} />;
-            case 'performance':
-                return <PerformanceView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} />;
-            case 'chat':
-                 // This is now handled by SocialView
-                 return null;
-            case 'dashboard':
-            default:
-                return <DashboardGrid team={team} setView={setView} setSection={setSection} />;
+    if (selectedTeam) {
+        const team = selectedTeam;
+        const isCaptain = team.captainId === user.id;
+
+        const handleUpdatePlayer = (updatedPlayer: Player) => {
+            const updatedPlayers = team.players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p);
+            onUpdateTeam(team.id, { ...team, players: updatedPlayers });
+            addNotification({type: 'success', title: 'Jugador Actualizado', message: `${updatedPlayer.name} ha sido actualizado.`})
+        };
+    
+        const handleAddPlayer = (newPlayer: Player) => {
+            const updatedPlayers = [...team.players, newPlayer];
+            onUpdateTeam(team.id, { ...team, players: updatedPlayers });
+            addNotification({type: 'success', title: 'Jugador Añadido', message: `${newPlayer.name} se ha unido al equipo.`})
+        };
+        
+        const handleRemovePlayer = (playerId: string) => {
+            const updatedPlayers = team.players.filter(p => p.id !== playerId);
+            onUpdateTeam(team.id, { ...team, players: updatedPlayers });
+            addNotification({type: 'info', title: 'Jugador Eliminado', message: 'El jugador ha sido eliminado de la plantilla.'})
         }
-    };
 
+        const TABS: { id: TeamView; label: string; icon: React.ReactNode }[] = [
+            { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon className="w-5 h-5"/> },
+            { id: 'roster', label: 'Plantilla', icon: <TshirtIcon className="w-5 h-5"/> },
+            { id: 'tactics', label: 'Tácticas', icon: <ClipboardListIcon className="w-5 h-5"/> },
+            { id: 'schedule', label: 'Calendario', icon: <CalendarIcon className="w-5 h-5"/> },
+            { id: 'performance', label: 'Rendimiento', icon: <ChartBarIcon className="w-5 h-5"/> },
+            { id: 'chat', label: 'Chat', icon: <ChatBubbleLeftRightIcon className="w-5 h-5"/> },
+        ];
+
+        const renderContent = () => {
+            switch (view) {
+                case 'roster':
+                    return <RosterView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allUsers={allUsers} />;
+                case 'tactics':
+                    return <TacticsView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updatedTeam) => onUpdateTeam(team.id, updatedTeam)} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
+                case 'schedule':
+                    return <ScheduleView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updatedTeam) => onUpdateTeam(team.id, updatedTeam)} addNotification={addNotification} />;
+                case 'performance':
+                    return <PerformanceView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updatedTeam) => onUpdateTeam(team.id, updatedTeam)} />;
+                case 'chat':
+                     return null;
+                case 'dashboard':
+                default:
+                    return <DashboardGrid team={team} setView={setView} setSection={setSection} />;
+            }
+        };
+
+        return (
+             <div className="min-h-screen p-4 sm:p-6 pb-[5.5rem] md:pb-4">
+                <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+                    <ChevronLeftIcon className="h-5 h-5" />
+                    Volver a Mis Equipos
+                </button>
+                
+                <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6 relative holographic-shine">
+                    <div className="flex items-center gap-4 mb-6">
+                        {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg" /> : <div className="w-24 h-24 rounded-full bg-black/30 flex items-center justify-center border-4 border-white/20 shadow-lg"><ShieldIcon className="w-12 h-12 text-gray-400" /></div>}
+                        <div>
+                            <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
+                            <p className="opacity-80 font-semibold">{team.level}</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <HeaderStatCard label="Victorias" value={team.stats.wins} colorClass="text-green-400" />
+                        <HeaderStatCard label="Empates" value={team.stats.draws} colorClass="text-yellow-400" />
+                        <HeaderStatCard label="Derrotas" value={team.stats.losses} colorClass="text-red-400" />
+                    </div>
+                </div>
+                
+                <nav className="flex space-x-1 sm:space-x-2 border-b border-white/10 mt-6 overflow-x-auto scrollbar-hide">
+                    {TABS.map(tab => (
+                        <NavTab 
+                            key={tab.id}
+                            label={tab.label}
+                            icon={tab.icon}
+                            isActive={view === tab.id}
+                            onClick={() => {
+                                if (tab.id === 'chat') {
+                                    setSection('chat');
+                                } else {
+                                    setView(tab.id);
+                                }
+                            }}
+                        />
+                    ))}
+                </nav>
+                
+                <main className="mt-6">
+                    {renderContent()}
+                </main>
+            </div>
+        );
+    }
+    
+    // Vista de la lista de equipos
     return (
-         <div className="min-h-screen p-4 sm:p-6 pb-[5.5rem] md:pb-4">
+        <div className="p-4 sm:p-6 pb-[5.5rem] md:pb-4 text-white">
             <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 h-5" />
                 Volver a DaviPlay
             </button>
-            
-            {/* Team Header */}
-            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6 relative holographic-shine">
-                <div className="flex items-center gap-4 mb-6">
-                    {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg" /> : <div className="w-24 h-24 rounded-full bg-black/30 flex items-center justify-center border-4 border-white/20 shadow-lg"><ShieldIcon className="w-12 h-12 text-gray-400" /></div>}
-                    <div>
-                        <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
-                        <p className="opacity-80 font-semibold">{team.level}</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                    <HeaderStatCard label="Victorias" value={team.stats.wins} colorClass="text-green-400" />
-                    <HeaderStatCard label="Empates" value={team.stats.draws} colorClass="text-yellow-400" />
-                    <HeaderStatCard label="Derrotas" value={team.stats.losses} colorClass="text-red-400" />
-                </div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold tracking-tight">Mis Equipos</h1>
+                <button onClick={() => setIsCreating(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm border border-white/20">
+                    <PlusIcon className="w-5 h-5" />
+                    Crear Equipo
+                </button>
             </div>
-            
-            {/* Navigation */}
-            <nav className="flex space-x-1 sm:space-x-2 border-b border-white/10 mt-6 overflow-x-auto scrollbar-hide">
-                {TABS.map(tab => (
-                    <NavTab 
-                        key={tab.id}
-                        label={tab.label}
-                        icon={tab.icon}
-                        isActive={view === tab.id}
-                        onClick={() => {
-                            if (tab.id === 'chat') {
-                                setSection('chat');
-                            } else {
-                                setView(tab.id);
-                            }
-                        }}
-                    />
+            <div className="space-y-4">
+                {userTeams.map(team => (
+                    <button key={team.id} onClick={() => { setView('dashboard'); setSelectedTeam(team); }} className="w-full text-left bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between hover:bg-white/20 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600 overflow-hidden">
+                                {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-full h-full object-cover" /> : <ShieldIcon className="w-10 h-10 text-gray-500"/>}
+                            </div>
+                            <div>
+                                <p className="font-bold text-lg">{team.name}</p>
+                                <p className="text-sm text-gray-400">{team.level}</p>
+                            </div>
+                        </div>
+                         <div className="flex items-center gap-4">
+                            {team.captainId === user.id && (
+                                <span className="text-xs font-bold text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-0.5 rounded-full">Capitán</span>
+                            )}
+                            <ChevronRightIcon className="w-6 h-6 text-gray-400"/>
+                        </div>
+                    </button>
                 ))}
-            </nav>
-            
-            {/* Content Area */}
-            <main className="mt-6">
-                {renderContent()}
-            </main>
+            </div>
         </div>
     );
 };
