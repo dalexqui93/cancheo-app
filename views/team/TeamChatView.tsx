@@ -17,7 +17,6 @@ interface TeamChatViewProps {
     currentUser: Player;
     onBack: () => void;
     onUpdateTeam: (updates: Partial<Team>) => void;
-    onLeaveTeam: (teamId: string, playerId: string) => void;
 }
 
 const EMOJIS = ['👍', '😂', '⚽', '🔥', '👏', '🏆', '🎉', '💪'];
@@ -60,7 +59,7 @@ const ChatMessageBubble: React.FC<{
     );
 };
 
-const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, onLeaveTeam }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [inputText, setInputText] = useState('');
@@ -145,11 +144,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
 
     if (currentView === 'info') {
-        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setCurrentView('chat')} onUpdateTeam={onUpdateTeam} onClearChat={handleClearChat} onLeaveTeam={onLeaveTeam} />;
+        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setCurrentView('chat')} onUpdateTeam={onUpdateTeam} onClearChat={handleClearChat} />;
     }
 
     return (
-        <div className="flex flex-col h-screen bg-gray-900 text-white animate-fade-in">
+        <div className="flex flex-col min-h-screen bg-gray-900 text-white animate-fade-in">
              {/* Header */}
             <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
                 <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
@@ -172,28 +171,16 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                      <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-[var(--color-primary-500)]" />
                     </div>
+                ) : filteredMessages.length === 0 ? (
+                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
+                    </div>
                 ) : (
                     <div className="space-y-4">
-                        {filteredMessages.map(msg => {
-                            if (msg.senderId === 'system') {
-                                return (
-                                    <div key={msg.id} className="text-center my-4">
-                                        <span className="text-xs text-gray-400 italic bg-gray-800/50 rounded-full px-3 py-1">
-                                            {msg.text}
-                                        </span>
-                                    </div>
-                                );
-                            }
-                            return (
-                                <ChatMessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === currentUser.id} onReply={setReplyingTo} onDelete={handleDeleteMessage} />
-                            );
-                        })}
-                        {filteredMessages.length === 0 && (
-                             <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                                <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                                <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                            </div>
-                        )}
+                        {filteredMessages.map(msg => (
+                            <ChatMessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === currentUser.id} onReply={setReplyingTo} onDelete={handleDeleteMessage} />
+                        ))}
                         <div ref={messagesEndRef} />
                     </div>
                 )}

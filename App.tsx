@@ -48,7 +48,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -1261,13 +1261,6 @@ const App = () => {
         };
         const updatedNotifications = [notificationForRemovedPlayer, ...(userToRemove.notifications || [])].slice(0, 50);
     
-        const chatMessage = {
-            senderId: 'system',
-            senderName: 'Sistema',
-            text: `${userToRemove.name} ha sido expulsado del equipo por el capitán.`
-        };
-        await db.addChatMessage(teamId, chatMessage);
-
         try {
             await db.updateTeam(teamId, { players: updatedPlayers });
             await db.updateUser(playerId, { teamIds: updatedTeamIds, notifications: updatedNotifications });
@@ -1288,63 +1281,6 @@ const App = () => {
         } catch (error) {
             console.error("Error al eliminar jugador del equipo:", String(error));
             showToast({ type: 'error', title: 'Error', message: 'No se pudo eliminar al jugador.' });
-        }
-    };
-
-    const handleLeaveTeam = async (teamId: string, playerId: string) => {
-        const team = allTeams.find(t => t.id === teamId);
-        const player = allUsers.find(u => u.id === playerId);
-    
-        if (!team || !player) {
-            showToast({ type: 'error', title: 'Error', message: 'No se pudo encontrar el equipo o el jugador.' });
-            return;
-        }
-    
-        const updatedPlayers = team.players.filter(p => p.id !== playerId);
-        const updatedTeamIds = player.teamIds?.filter(id => id !== teamId) || [];
-    
-        // Notify captain
-        const captain = allUsers.find(u => u.id === team.captainId);
-        if (captain && captain.id !== player.id) { // Don't notify if captain leaves
-            const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
-                type: 'info',
-                title: 'Jugador se ha ido',
-                message: `${player.name} ha abandonado ${team.name}.`,
-                read: false
-            };
-            
-            const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
-            const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
-            
-            await db.updateUser(captain.id, { notifications: updatedNotifications });
-            setAllUsers(prevUsers => prevUsers.map(u => 
-                u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
-            ));
-        }
-
-        const chatMessage = {
-            senderId: 'system',
-            senderName: 'Sistema',
-            text: `${player.name} ha abandonado el equipo.`
-        };
-        await db.addChatMessage(teamId, chatMessage);
-    
-        try {
-            await db.updateTeam(teamId, { players: updatedPlayers });
-            await db.updateUser(playerId, { teamIds: updatedTeamIds });
-            
-            if (!isFirebaseConfigured) {
-                 setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
-            }
-            setAllUsers(prev => prev.map(u => 
-                u.id === playerId ? { ...u, teamIds: updatedTeamIds } : u
-            ));
-
-            showToast({ type: 'info', title: 'Has abandonado el equipo', message: `Ya no eres parte de ${team.name}.` });
-    
-        } catch (error) {
-            console.error("Error al abandonar el equipo:", String(error));
-            showToast({ type: 'error', title: 'Error', message: 'No se pudo abandonar el equipo.' });
         }
     };
 
@@ -1671,7 +1607,6 @@ const App = () => {
                                     onSendInvitation={handleSendInvitation}
                                     onCancelInvitation={handleCancelInvitation}
                                     onRemovePlayerFromTeam={handleRemovePlayerFromTeam}
-                                    onLeaveTeam={handleLeaveTeam}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;

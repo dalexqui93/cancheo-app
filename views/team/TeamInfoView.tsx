@@ -21,10 +21,9 @@ interface TeamInfoViewProps {
     onBack: () => void;
     onUpdateTeam: (updates: Partial<Team>) => void;
     onClearChat: () => void;
-    onLeaveTeam: (teamId: string, playerId: string) => void;
 }
 
-const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, onUpdateTeam, onClearChat, onLeaveTeam }) => {
+const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, onUpdateTeam, onClearChat }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
     const [isClearChatModalOpen, setIsClearChatModalOpen] = useState(false);
@@ -37,10 +36,13 @@ const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, 
         onUpdateTeam({ messagingPermissions: isAllMembers ? 'all' : 'captain' });
     };
 
-    const handleConfirmLeaveTeam = () => {
-        onLeaveTeam(team.id, currentUser.id);
+    const handleLeaveTeam = () => {
+        const updatedPlayers = team.players.filter(p => p.id !== currentUser.id);
+        onUpdateTeam({ players: updatedPlayers });
+        // NOTE: In a real app, we'd also need to update the user's teamId and navigate away.
+        // This is simplified for now.
         setIsLeaveModalOpen(false);
-        onBack(); // Go back to chat
+        onBack(); // Go back to chat which will then redirect
     };
 
     const handleRemovePlayer = () => {
@@ -161,9 +163,9 @@ const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, 
             <ConfirmationModal
                 isOpen={isLeaveModalOpen}
                 onClose={() => setIsLeaveModalOpen(false)}
-                onConfirm={handleConfirmLeaveTeam}
+                onConfirm={handleLeaveTeam}
                 title="¿Salir del equipo?"
-                message={`¿Estás seguro de que quieres abandonar a ${team.name}? El capitán será notificado.`}
+                message={`¿Estás seguro de que quieres abandonar a ${team.name}?`}
                 confirmButtonText="Sí, salir"
             />
              <ConfirmationModal
