@@ -264,22 +264,74 @@ const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, 
     </button>
 );
 
-const ChallengeView: React.FC<{
-    teams: Team[];
-    onBack: () => void;
-    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
-}> = ({ teams, onBack, addNotification }) => (
-    <div className="p-4 pb-[5.5rem] md:pb-4">
-        <BackButton onClick={onBack} text="Volver a DaviPlay" />
-        <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
-            <SwordsIcon className="mx-auto h-16 w-16 text-gray-400" />
-            <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Retar Equipos</h2>
-            <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                Esta función para desafiar a otros equipos estará disponible pronto.
-            </p>
+const TeamChallengeCard: React.FC<{
+    team: Team;
+    onChallenge: (team: Team) => void;
+}> = ({ team, onChallenge }) => (
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+            <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {team.logo ? (
+                    <img src={team.logo} alt={team.name} className="w-full h-full object-cover" />
+                ) : (
+                    <ShieldIcon className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+                )}
+            </div>
+            <div className="min-w-0">
+                <p className="font-bold text-lg text-gray-800 dark:text-gray-100 truncate">{team.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{team.level}</p>
+            </div>
         </div>
+        <button
+            onClick={() => onChallenge(team)}
+            className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm flex-shrink-0"
+        >
+            <SwordsIcon className="w-4 h-4" />
+            Retar
+        </button>
     </div>
 );
+
+const ChallengeView: React.FC<{
+    allTeams: Team[];
+    user: User;
+    onBack: () => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
+}> = ({ allTeams, user, onBack, addNotification }) => {
+    const challengeableTeams = allTeams.filter(team => !user.teamIds?.includes(team.id));
+
+    const handleChallenge = (team: Team) => {
+        addNotification({
+            type: 'success',
+            title: '¡Reto Enviado!',
+            message: `Has retado a ${team.name} a un partido.`
+        });
+    };
+
+    return (
+        <div className="p-4 pb-[5.5rem] md:pb-4">
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Retar un Equipo</h1>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra un rival y desafíalo a un partido amistoso.</p>
+            
+            <div className="mt-6 space-y-4">
+                {challengeableTeams.length > 0 ? (
+                    challengeableTeams.map(team => (
+                        <TeamChallengeCard key={team.id} team={team} onChallenge={handleChallenge} />
+                    ))
+                ) : (
+                    <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700">
+                        <SwordsIcon className="mx-auto h-16 w-16 text-gray-400" />
+                        <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No hay equipos para retar</h2>
+                        <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                            Parece que ya eres parte de todos los equipos disponibles o no hay otros equipos creados.
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const levelToRating = (level: Player['level']): number => {
     if (typeof level === 'number') return level;
@@ -486,8 +538,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     setSection={setSection}
                  />;
             case 'challenge':
-                const otherTeams = allTeams.filter(t => !user.teamIds?.includes(t.id));
-                return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
+                return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
             case 'find-players':
                 return <div className="p-4 sm:p-6 pb-[6.5rem]">{
                     viewingPlayerProfile ? (
