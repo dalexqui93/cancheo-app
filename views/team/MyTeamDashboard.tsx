@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { User, Team, Player, Notification, ChatMessage } from '../../types';
+import type { User, Team, Player, Notification, ChatMessage, SocialSection } from '../../types';
 import RosterView from './RosterView';
 import TacticsView from './TacticsView';
 import ScheduleView from './ScheduleView';
@@ -33,6 +33,7 @@ interface MyTeamDashboardProps {
     onUpdateTeam: (team: Team) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
     onUpdateUserTeam: (teamId: string) => Promise<void>;
+    setSection: (section: SocialSection) => void;
 }
 
 const mockMessages: ChatMessage[] = [
@@ -83,7 +84,7 @@ const Widget: React.FC<{ title: string; icon: React.ReactNode; children: React.R
     </div>
 );
 
-const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void }> = ({ team, setView }) => {
+const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, setSection: (section: SocialSection) => void }> = ({ team, setView, setSection }) => {
     const nextMatch = team.schedule?.filter(e => e.type === 'match' && e.date >= new Date()).sort((a,b) => a.date.getTime() - b.date.getTime())[0];
     const topScorer = [...team.players].sort((a, b) => b.stats.goals - a.stats.goals)[0];
     const topAssister = [...team.players].sort((a, b) => b.stats.assists - a.stats.assists)[0];
@@ -124,7 +125,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void }>
                     {teamForm.length === 0 && <p className="text-sm text-white/60">Sin partidos recientes.</p>}
                 </div>
             </Widget>
-            <Widget title="Chat Rápido" icon={<ChatBubbleLeftRightIcon className="w-5 h-5"/>} onClick={() => setView('chat')}>
+            <Widget title="Chat Rápido" icon={<ChatBubbleLeftRightIcon className="w-5 h-5"/>} onClick={() => setSection('chat')}>
                  <div className="space-y-1 text-sm">
                     <p className="truncate"><strong className="text-white/80">{mockMessages.slice(-1)[0]?.senderName}:</strong> <span className="text-white/60">{mockMessages.slice(-1)[0]?.text}</span></p>
                  </div>
@@ -160,7 +161,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void }>
 };
 
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeam }) => {
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeam, setSection }) => {
     const [view, setView] = useState<TeamView>('dashboard');
     const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
 
@@ -262,73 +263,60 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers,
             case 'performance':
                 return <PerformanceView team={team} onBack={() => setView('dashboard')} onUpdateTeam={onUpdateTeam} />;
             case 'chat':
-                 const currentUserForChat = team.players.find(p => p.id === user.id);
-                 if (!currentUserForChat) {
-                    return (
-                        <div className="p-4">
-                             <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
-                                <ChevronLeftIcon className="h-5 w-5" />
-                                Volver al Panel
-                            </button>
-                            <p className="text-center">Error: tu usuario no es parte de este equipo.</p>
-                        </div>
-                    );
-                 }
-                 return <TeamChatView
-                     team={team}
-                     messages={messages}
-                     currentUser={currentUserForChat}
-                     onSendMessage={handleSendMessage}
-                     onBack={() => setView('dashboard')}
-                 />;
+                 // This is now handled by SocialView
+                 return null;
             case 'dashboard':
             default:
-                return <DashboardGrid team={team} setView={setView} />;
+                return <DashboardGrid team={team} setView={setView} setSection={setSection} />;
         }
     };
 
     return (
-         <div className="min-h-screen">
-            <div className="p-4 sm:p-6 pb-[5.5rem] md:pb-4">
-                <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
-                    <ChevronLeftIcon className="h-5 w-5" />
-                    Volver a DaviPlay
-                </button>
-                
-                {/* Team Header */}
-                <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6 relative holographic-shine">
-                    <div className="flex items-center gap-4 mb-6">
-                        {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg" /> : <div className="w-24 h-24 rounded-full bg-black/30 flex items-center justify-center border-4 border-white/20 shadow-lg"><ShieldIcon className="w-12 h-12 text-gray-400" /></div>}
-                        <div>
-                            <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
-                            <p className="opacity-80 font-semibold">{team.level}</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <HeaderStatCard label="Victorias" value={team.stats.wins} colorClass="text-green-400" />
-                        <HeaderStatCard label="Empates" value={team.stats.draws} colorClass="text-yellow-400" />
-                        <HeaderStatCard label="Derrotas" value={team.stats.losses} colorClass="text-red-400" />
+         <div className="min-h-screen p-4 sm:p-6 pb-[5.5rem] md:pb-4">
+            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+                <ChevronLeftIcon className="h-5 w-5" />
+                Volver a DaviPlay
+            </button>
+            
+            {/* Team Header */}
+            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6 relative holographic-shine">
+                <div className="flex items-center gap-4 mb-6">
+                    {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg" /> : <div className="w-24 h-24 rounded-full bg-black/30 flex items-center justify-center border-4 border-white/20 shadow-lg"><ShieldIcon className="w-12 h-12 text-gray-400" /></div>}
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
+                        <p className="opacity-80 font-semibold">{team.level}</p>
                     </div>
                 </div>
-                
-                {/* Navigation */}
-                <nav className="flex space-x-1 sm:space-x-2 border-b border-white/10 mt-6 overflow-x-auto scrollbar-hide">
-                    {TABS.map(tab => (
-                        <NavTab 
-                            key={tab.id}
-                            label={tab.label}
-                            icon={tab.icon}
-                            isActive={view === tab.id}
-                            onClick={() => setView(tab.id)}
-                        />
-                    ))}
-                </nav>
-                
-                {/* Content Area */}
-                <main className="mt-6">
-                    {renderContent()}
-                </main>
+                <div className="grid grid-cols-3 gap-4">
+                    <HeaderStatCard label="Victorias" value={team.stats.wins} colorClass="text-green-400" />
+                    <HeaderStatCard label="Empates" value={team.stats.draws} colorClass="text-yellow-400" />
+                    <HeaderStatCard label="Derrotas" value={team.stats.losses} colorClass="text-red-400" />
+                </div>
             </div>
+            
+            {/* Navigation */}
+            <nav className="flex space-x-1 sm:space-x-2 border-b border-white/10 mt-6 overflow-x-auto scrollbar-hide">
+                {TABS.map(tab => (
+                    <NavTab 
+                        key={tab.id}
+                        label={tab.label}
+                        icon={tab.icon}
+                        isActive={view === tab.id}
+                        onClick={() => {
+                            if (tab.id === 'chat') {
+                                setSection('chat');
+                            } else {
+                                setView(tab.id);
+                            }
+                        }}
+                    />
+                ))}
+            </nav>
+            
+            {/* Content Area */}
+            <main className="mt-6">
+                {renderContent()}
+            </main>
         </div>
     );
 };

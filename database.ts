@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost } from './types';
+import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -302,6 +302,7 @@ const demoData = {
     announcements: [],
     teams: [],
     posts: [],
+    chats: {},
 };
 
 const initializeDemoData = () => {
@@ -317,6 +318,11 @@ const initializeDemoData = () => {
     
     demoData.teams = mockTeams;
     demoData.posts = mockPostsData;
+    demoData.chats['t1'] = [
+        { id: 'msg1', senderId: 'u2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
+        { id: 'msg2', senderId: 'u1', senderName: 'Carlos Pérez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
+    ];
+
 
     // Partidos de demostración para hoy
     const nowForBooking = new Date();
@@ -869,4 +875,44 @@ export const toggleReaction = async (postId, commentId, userId, emoji) => {
     }
     targetObject.reactions = targetObject.reactions.filter(r => r.userIds.length > 0);
     return Promise.resolve();
+};
+
+// --- TEAM CHAT API ---
+
+export const listenToTeamChat = (teamId: string, callback: (messages: ChatMessage[]) => void) => {
+    if (isFirebaseConfigured) {
+        return db.collection('teams').doc(teamId).collection('chat').orderBy('createdAt', 'asc').onSnapshot(snapshot => {
+            const messages = snapshot.docs.map(doc => {
+                const data = docToData(doc);
+                // Mantener compatibilidad con el tipo ChatMessage que usa `timestamp`
+                data.timestamp = data.createdAt;
+                delete data.createdAt;
+                return data;
+            });
+            callback(messages);
+        });
+    }
+    // Modo demo
+    if (!demoData.chats) demoData.chats = {};
+    if (!demoData.chats[teamId]) demoData.chats[teamId] = [];
+    callback(demoData.chats[teamId]);
+    return () => {}; // No hay listener real en modo demo
+};
+
+export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<ChatMessage> => {
+    if (isFirebaseConfigured) {
+        const dataToSave = {
+            ...messageData,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        const docRef = await db.collection('teams').doc(teamId).collection('chat').add(dataToSave);
+        return { id: docRef.id, ...messageData, timestamp: new Date() }; // Retorno optimista
+    }
+    // Modo demo
+    const newMessage: ChatMessage = { id: `msg-${Date.now()}`, ...messageData, timestamp: new Date() };
+    if (!demoData.chats) demoData.chats = {};
+    if (!demoData.chats[teamId]) demoData.chats[teamId] = [];
+    demoData.chats[teamId].push(newMessage);
+    // En modo demo, el listener no se re-dispara, la UI debe manejar la actualización localmente.
+    return Promise.resolve(newMessage);
 };

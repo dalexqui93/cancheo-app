@@ -44,7 +44,7 @@ const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ lo
     if (logo) {
         return (
             <div className={containerClasses}>
-                <img src={logo} alt={`${name} logo`} className="w-full h-full object-cover" />
+                <img src={logo} alt={`${name} logo`} className="w-full h-full object-cover rounded-full" />
             </div>
         );
     }
@@ -231,7 +231,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                             <TeamLogo logo={teamA?.logo} name={teamNameA} />
                             {goalAnimation.team === 'A' && <div className="goal-animation-text goal-animation-local">¡Gool!</div>}
                         </div>
-                        <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2">
+                        <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2 text-sm">
                             {teamNameA}
                         </ScrollOnOverflow>
                     </div>
@@ -258,7 +258,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                              <TeamLogo logo={teamB?.logo} name={rivalNameB} />
                              {goalAnimation.team === 'B' && <div className="goal-animation-text goal-animation-visitor">¡Gool!</div>}
                         </div>
-                        <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2">
+                        <ScrollOnOverflow className="font-bold mt-2 w-full text-center px-2 text-sm">
                             {rivalNameB}
                         </ScrollOnOverflow>
                     </div>

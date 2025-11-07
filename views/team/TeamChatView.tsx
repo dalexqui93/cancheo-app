@@ -6,12 +6,12 @@ import { FaceSmileIcon } from '../../components/icons/FaceSmileIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
 import { ArrowUturnLeftIcon } from '../../components/icons/ArrowUturnLeftIcon';
+import * as db from '../../database';
+import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 
 interface TeamChatViewProps {
     team: Team;
-    messages: ChatMessage[];
     currentUser: Player;
-    onSendMessage: (text: string, replyTo: ChatMessage | null) => void;
     onBack: () => void;
 }
 
@@ -34,7 +34,7 @@ const ChatMessageBubble: React.FC<{ message: ChatMessage, isCurrentUser: boolean
                         </div>
                     )}
                     <p className="text-sm break-words">{message.text}</p>
-                    <p className="text-xs opacity-70 mt-1 text-right">{new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    <p className="text-xs opacity-70 mt-1 text-right">{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</p>
                 </div>
                 <button onClick={() => onReply(message)} className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
                     <ArrowUturnLeftIcon className="w-4 h-4" />
@@ -44,22 +44,61 @@ const ChatMessageBubble: React.FC<{ message: ChatMessage, isCurrentUser: boolean
     );
 };
 
-const TeamChatView: React.FC<TeamChatViewProps> = ({ team, messages, currentUser, onSendMessage, onBack }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack }) => {
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [inputText, setInputText] = useState('');
     const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
     const [showEmojis, setShowEmojis] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        setIsLoading(true);
+        const unsubscribe = db.listenToTeamChat(team.id, (fetchedMessages) => {
+            setMessages(fetchedMessages);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [team.id]);
+
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleSend = () => {
+    const handleSendMessage = async () => {
         if (inputText.trim()) {
-            onSendMessage(inputText, replyingTo);
+            const messageData: Omit<ChatMessage, 'id' | 'timestamp'> = {
+                senderId: currentUser.id,
+                senderName: currentUser.name,
+                senderProfilePicture: currentUser.profilePicture,
+                text: inputText,
+                replyTo: replyingTo ? {
+                    senderName: replyingTo.senderName,
+                    text: replyingTo.text,
+                } : null,
+            };
+
+            // Optimistic UI updates
+            const tempId = `temp-${Date.now()}`;
+            const optimisticMessage: ChatMessage = {
+                id: tempId,
+                ...messageData,
+                timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, optimisticMessage]);
+
             setInputText('');
             setReplyingTo(null);
             setShowEmojis(false);
+            
+            try {
+                await db.addChatMessage(team.id, messageData);
+            } catch (error) {
+                console.error("Error al enviar el mensaje:", String(error));
+                // Revert optimistic update on error
+                setMessages(prev => prev.filter(m => m.id !== tempId));
+            }
         }
     };
     
@@ -68,24 +107,43 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, messages, currentUser
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-28rem)] bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
+        <div className="flex flex-col min-h-screen bg-gray-900 text-white animate-fade-in">
              {/* Header */}
-            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20">
-                <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center">
-                    {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
-                </div>
-                <div>
-                    <h2 className="font-bold text-lg">{team.name}</h2>
-                    <p className="text-xs text-gray-400">{team.players.length} miembros</p>
+            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
+                <button onClick={onBack} className="flex items-center gap-2 text-gray-300 hover:text-white mr-4">
+                    <ChevronLeftIcon className="w-6 h-6" />
+                    <span className="font-semibold hidden sm:inline">Mi Equipo</span>
+                </button>
+                <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center">
+                        {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                    </div>
+                    <div>
+                        <h2 className="font-bold text-lg">{team.name}</h2>
+                        <p className="text-xs text-gray-400">{team.players.length} miembros</p>
+                    </div>
                 </div>
             </header>
 
             {/* Messages */}
-            <main className="flex-grow p-4 overflow-y-auto space-y-4">
-                {messages.map(msg => (
-                    <ChatMessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === currentUser.id} onReply={setReplyingTo} />
-                ))}
-                <div ref={messagesEndRef} />
+            <main className="flex-grow p-4 overflow-y-auto">
+                {isLoading ? (
+                     <div className="flex justify-center items-center h-full">
+                        <SpinnerIcon className="w-8 h-8 text-[var(--color-primary-500)]" />
+                    </div>
+                ) : messages.length === 0 ? (
+                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                        <p className="text-sm mt-1">Sé el primero en enviar un mensaje.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {messages.map(msg => (
+                            <ChatMessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === currentUser.id} onReply={setReplyingTo} />
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </div>
+                )}
             </main>
 
             {/* Input */}
@@ -116,11 +174,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, messages, currentUser
                         type="text"
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         placeholder="Escribe un mensaje..."
                         className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
                     />
-                    <button onClick={handleSend} className="p-3 bg-[var(--color-primary-600)] text-white rounded-full hover:bg-[var(--color-primary-700)] shadow-sm transition-colors disabled:bg-gray-400" disabled={!inputText.trim()}>
+                    <button onClick={handleSendMessage} className="p-3 bg-[var(--color-primary-600)] text-white rounded-full hover:bg-[var(--color-primary-700)] shadow-sm transition-colors disabled:bg-gray-400" disabled={!inputText.trim()}>
                         <PaperAirplaneIcon className="w-5 h-5" />
                     </button>
                 </div>

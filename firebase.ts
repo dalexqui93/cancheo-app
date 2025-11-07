@@ -137,8 +137,41 @@ interface ReviewTable {
  */
 
 // =============================================================================
-// 4. COMUNIDAD Y FORO
+// 4. COMUNIDAD Y EQUIPOS
 // =============================================================================
+
+/**
+ * Colección `teams`
+ * Almacena la información de cada equipo creado.
+ */
+interface TeamDocument {
+  id: string; // PK -> ID del Documento
+  name: string;
+  logoUrl: string | null;
+  captainId: string; // FK -> ID del usuario capitán
+  level: 'Casual' | 'Intermedio' | 'Competitivo';
+  createdAt: firebase.firestore.Timestamp;
+
+  // --- Subcolecciones ---
+  // /teams/{teamId}/chat -> Colección de mensajes del chat
+}
+
+/**
+ * Subcolección `chat` (dentro de `teams/{teamId}`)
+ * Almacena los mensajes del chat de un equipo.
+ */
+interface ChatMessageDocument {
+  id: string; // PK -> ID del Documento
+  senderId: string; // FK -> ID del usuario
+  senderName: string;
+  senderProfilePicture: string | null;
+  createdAt: firebase.firestore.Timestamp;
+  text: string;
+  replyTo: {
+    senderName: string;
+    text: string;
+  } | null;
+}
 
 /**
  * Colección `posts`

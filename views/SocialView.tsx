@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection } from '../types';
+import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage } from '../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { ShieldIcon } from '../components/icons/ShieldIcon';
@@ -28,6 +28,7 @@ import { ForumIcon } from '../components/icons/ForumIcon';
 import { SwordsIcon } from '../components/icons/SwordsIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import StarRating from '../components/StarRating';
+import TeamChatView from './team/TeamChatView';
 
 
 // --- MOCK DATA ---
@@ -393,12 +394,6 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
     const userTeam = useMemo(() => allTeams.find(t => t.id === user.teamId), [allTeams, user.teamId]);
-
-    const handleUpdateTeam = (updatedTeam: Team) => {
-        // This will be handled by Firestore listener, but a local update can be faster for UI.
-        // For now, we rely on the listener.
-        // onUpdateTeam(updatedTeam);
-    };
     
     const handleRecruit = (player: Player) => {
         addNotification({
@@ -408,12 +403,6 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
         });
     };
 
-    const handlePremiumSectionClick = (section: SocialSection) => {
-        // This function now correctly handles navigation between hub sections.
-        // The premium check that was here before is temporarily disabled.
-        setSection(section);
-    };
-
     const renderContent = () => {
         if (!user.playerProfile) {
             return <div className="p-4 pb-[5.5rem] md:pb-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
@@ -421,11 +410,11 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
 
         switch (section) {
             case 'tournaments':
-                return <TournamentsView 
+                return <div className="p-4 sm:p-6 pb-[6.5rem]"><TournamentsView 
                             tournaments={tournaments} 
                             onBack={() => setSection('hub')} 
                             addNotification={addNotification} 
-                            user={user} />;
+                            user={user} /></div>;
             case 'my-team':
                 return <MyTeamDashboard
                     team={userTeam}
@@ -433,53 +422,68 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     allUsers={allUsers}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
-                    onUpdateTeam={handleUpdateTeam}
+                    onUpdateTeam={() => {}}
                     setIsPremiumModalOpen={setIsPremiumModalOpen}
                     onUpdateUserTeam={onUpdateUserTeam}
+                    setSection={setSection}
                  />;
             case 'challenge':
                 const otherTeams = allTeams.filter(t => t.id !== userTeam?.id);
-                return <ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} />;
+                return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
             case 'find-players':
-                if (viewingPlayerProfile) {
-                    return <PlayerProfileDetailView 
+                return <div className="p-4 sm:p-6 pb-[6.5rem]">{
+                    viewingPlayerProfile ? (
+                    <PlayerProfileDetailView 
                                 player={viewingPlayerProfile} 
                                 onBack={() => setViewingPlayerProfile(null)} 
                                 onRecruit={handleRecruit}
-                            />;
-                }
-                const availablePlayers = allUsers
-                    .filter(u => u.playerProfile && u.id !== user.id && (!userTeam || !userTeam.players.some(p => p.id === u.id)))
-                    .map(u => u.playerProfile!);
-
-                return <FindPlayersView 
-                            players={availablePlayers} 
-                            onBack={() => setSection('hub')} 
-                            onRecruit={handleRecruit} 
-                            onViewProfile={setViewingPlayerProfile} 
-                        />;
+                            />
+                ) : (
+                    <FindPlayersView 
+                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id && (!userTeam || !userTeam.players.some(p => p.id === u.id))).map(u => u.playerProfile!)} 
+                        onBack={() => setSection('hub')} 
+                        onRecruit={handleRecruit} 
+                        onViewProfile={setViewingPlayerProfile} 
+                    />
+                )}</div>;
             case 'sports-forum':
                 return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
+            case 'chat': {
+                if (!userTeam || !user.playerProfile) {
+                    // This case should ideally not be reached if UI logic is correct
+                    setTimeout(() => setSection('hub'), 0);
+                    return null;
+                }
+                const currentUserAsPlayer = userTeam.players.find(p => p.id === user.id) || user.playerProfile;
+                return <TeamChatView
+                    team={userTeam}
+                    currentUser={currentUserAsPlayer}
+                    onBack={() => setSection('my-team')}
+                />
+            }
             default:
-                return <PlayerHub user={user} onSectionNavigate={handlePremiumSectionClick} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
+                return <PlayerHub user={user} onSectionNavigate={setSection} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
         }
     };
     
     const socialSectionsWithDarkBg = ['hub', 'my-team'];
     const hasDarkBg = socialSectionsWithDarkBg.includes(section);
+    const showExitButton = section !== 'chat';
 
     return (
-        <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+        <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'} ${section === 'chat' ? 'p-0' : ''}`}>
             {renderContent()}
 
             {/* Exit DaviPlay Button */}
-            <button
-                onClick={() => onNavigate(View.HOME)}
-                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
-                aria-label="Salir de DaviPlay"
-            >
-                <LogoutIcon className="w-8 h-8" />
-            </button>
+            {showExitButton && (
+                <button
+                    onClick={() => onNavigate(View.HOME)}
+                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
+                    aria-label="Salir de DaviPlay"
+                >
+                    <LogoutIcon className="w-8 h-8" />
+                </button>
+            )}
         </div>
     );
 };
