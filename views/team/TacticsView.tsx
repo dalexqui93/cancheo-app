@@ -1,3 +1,5 @@
+
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Team, Formation, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -10,9 +12,8 @@ import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 interface TacticsViewProps {
     team: Team;
     user: User;
-    isCaptain: boolean;
     onBack: () => void;
-    onUpdateTeam: (team: Partial<Team>) => void;
+    onUpdateTeam: (team: Team) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
 
@@ -39,6 +40,7 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
                 const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
                 setAnalysis(response.text);
             } catch (e) {
+                // Fix: Explicitly convert error to string for consistent and safe logging, and add context.
                 console.error("Error getting AI analysis:", String(e));
                 setAnalysis('Hubo un error al obtener el análisis. Por favor, inténtalo de nuevo más tarde.');
             } finally {
@@ -92,10 +94,10 @@ const FORMATIONS: { name: Formation, layout: { pos: string, x: number, y: number
     ]},
 ];
 
-const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.PointerEvent, playerId: string) => void; isDragged: boolean; isCaptain: boolean; isDraggable: boolean }> = ({ player, onPointerDown, isDragged, isCaptain, isDraggable }) => (
+const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.PointerEvent, playerId: string) => void; isDragged: boolean; isCaptain: boolean }> = ({ player, onPointerDown, isDragged, isCaptain }) => (
     <div
-        onPointerDown={(e) => isDraggable && onPointerDown(e, player.id)}
-        className={`relative w-16 h-16 bg-gray-700 rounded-full flex flex-col items-center justify-center shadow-md text-center p-1 transition-opacity ${isDragged ? 'opacity-40' : 'opacity-100'} ${isDraggable ? 'touch-none cursor-grab active:cursor-grabbing' : 'cursor-default'} border-2 border-gray-500`}
+        onPointerDown={(e) => onPointerDown(e, player.id)}
+        className={`relative w-16 h-16 bg-gray-700 rounded-full flex flex-col items-center justify-center shadow-md text-center p-1 transition-opacity ${isDragged ? 'opacity-40' : 'opacity-100'} touch-none cursor-grab active:cursor-grabbing border-2 border-gray-500`}
         title={player.name}
     >
         <span className="font-black text-xl text-orange-400">{player.number || '?'}</span>
@@ -109,7 +111,7 @@ const DraggablePlayerToken: React.FC<{ player: Player; onPointerDown: (e: React.
 );
 
 
-const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack, onUpdateTeam, setIsPremiumModalOpen }) => {
+const TacticsView: React.FC<TacticsViewProps> = ({ team, user, onBack, onUpdateTeam, setIsPremiumModalOpen }) => {
     const [formation, setFormation] = useState<Formation>(team.formation || 'Custom');
     const [notes, setNotes] = useState(team.tacticsNotes || '');
     const [playerPositions, setPlayerPositions] = useState<{[playerId: string]: { x: number; y: number; pos?: string }}>(team.playerPositions);
@@ -124,7 +126,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
 
     // Effect to manage body scroll during drag operations
     useEffect(() => {
-        if (draggedPlayer && isCaptain) {
+        if (draggedPlayer) {
             document.body.style.overflow = 'hidden';
             document.body.style.touchAction = 'none';
         } else {
@@ -132,19 +134,18 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
             document.body.style.touchAction = '';
         }
         
+        // Cleanup function to restore original styles when component unmounts
         return () => {
             document.body.style.overflow = '';
             document.body.style.touchAction = '';
         };
-    }, [draggedPlayer, isCaptain]);
+    }, [draggedPlayer]);
 
     const handleSave = () => {
-        if (!isCaptain) return;
         onUpdateTeam({ ...team, formation, tacticsNotes: notes, playerPositions });
     };
 
     const handleFormationChange = (newFormation: Formation) => {
-        if (!isCaptain) return;
         setFormation(newFormation);
         const formationLayout = FORMATIONS.find(f => f.name === newFormation);
         if (formationLayout) {
@@ -161,11 +162,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                 }
             });
             setPlayerPositions(newPositions);
+        } else {
+             // When switching to 'Custom', we don't change positions, but we might want to clear specific pos tags
+            // For now, we'll just keep the current positions.
         }
     };
     
     const handlePointerDown = (e: React.PointerEvent, playerId: string, origin: 'pitch' | 'bench') => {
-        if (!isCaptain) return;
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
         setDraggedPlayer({ id: playerId, origin });
@@ -173,12 +176,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!draggedPlayer || !isCaptain) return;
+        if (!draggedPlayer) return;
         setDragPosition({ x: e.clientX, y: e.clientY });
     };
 
     const handlePointerUp = (e: React.PointerEvent) => {
-        if (!draggedPlayer || !isCaptain) return;
+        if (!draggedPlayer) return;
         
         const pitchRect = pitchRef.current?.getBoundingClientRect();
         const benchRect = benchRef.current?.getBoundingClientRect();
@@ -222,11 +225,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
         <div onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Tácticas y Formaciones</h1>
-                {isCaptain && (
-                    <button onClick={handleSave} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
-                        Guardar Táctica
-                    </button>
-                )}
+                <button onClick={handleSave} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                    Guardar Táctica
+                </button>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -239,7 +240,6 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                             onPointerDown={(e, playerId) => handlePointerDown(e, playerId, 'pitch')}
                             draggedPlayerId={draggedPlayer?.id}
                             captainId={team.captainId}
-                            isDraggable={isCaptain}
                         />
                     </div>
                      <div 
@@ -256,7 +256,6 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                                         onPointerDown={(e, playerId) => handlePointerDown(e, playerId, 'bench')}
                                         isDragged={draggedPlayer?.id === player.id}
                                         isCaptain={team.captainId === player.id}
-                                        isDraggable={isCaptain}
                                     />
                                 ))
                             ) : (
@@ -277,8 +276,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                             id="formation-select"
                             value={formation}
                             onChange={(e) => handleFormationChange(e.target.value as Formation)}
-                            disabled={!isCaptain}
-                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed"
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600"
                         >
                             <option value="Custom">Personalizada</option>
                             {FORMATIONS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
@@ -291,15 +289,14 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                             rows={8}
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            readOnly={!isCaptain}
-                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600 read-only:bg-gray-800 read-only:cursor-default"
-                            placeholder={isCaptain ? "Ej: Presión alta, buscar al delantero, etc." : "El capitán no ha dejado notas."}
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600"
+                            placeholder="Ej: Presión alta, buscar al delantero, etc."
                         />
                     </div>
                 </div>
             </div>
             {/* Drag Ghost Element */}
-            {draggedPlayer && dragPosition && draggedPlayerDetails && isCaptain && (
+            {draggedPlayer && dragPosition && draggedPlayerDetails && (
                 <div 
                     className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
                     style={{ left: dragPosition.x, top: dragPosition.y }}

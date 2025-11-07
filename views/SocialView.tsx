@@ -29,7 +29,6 @@ import { SwordsIcon } from '../components/icons/SwordsIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import StarRating from '../components/StarRating';
 import TeamChatView from './team/TeamChatView';
-import TeamHubView from './team/TeamHubView';
 
 
 // --- MOCK DATA ---
@@ -418,23 +417,16 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                             addNotification={addNotification} 
                             user={user} /></div>;
             case 'my-team':
-                if (userTeam) {
-                    return <TeamHubView 
-                        team={userTeam}
-                        user={user}
-                        allUsers={allUsers}
-                        onBack={() => setSection('hub')}
-                        addNotification={addNotification}
-                        onUpdateTeam={(team) => onUpdateTeam(team.id, team)}
-                        setIsPremiumModalOpen={setIsPremiumModalOpen}
-                        onUpdateUserTeam={onUpdateUserTeam}
-                        setSection={setSection}
-                    />;
-                }
                 return <MyTeamDashboard
+                    team={userTeam}
+                    user={user}
+                    allUsers={allUsers}
                     onBack={() => setSection('hub')}
-                    onCreateTeam={onUpdateUserTeam}
                     addNotification={addNotification}
+                    onUpdateTeam={(team) => onUpdateTeam(team.id, team)}
+                    setIsPremiumModalOpen={setIsPremiumModalOpen}
+                    onUpdateUserTeam={onUpdateUserTeam}
+                    setSection={setSection}
                  />;
             case 'challenge':
                 const otherTeams = allTeams.filter(t => t.id !== userTeam?.id);
