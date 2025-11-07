@@ -10,6 +10,7 @@ import * as db from '../../database';
 import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 import TeamInfoView from './TeamInfoView';
 import { DotsVerticalIcon } from '../../components/icons/DotsVerticalIcon';
+import { BellSlashIcon } from '../../components/icons/BellSlashIcon';
 
 interface TeamChatViewProps {
     team: Team;
@@ -187,41 +188,49 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
             {/* Input */}
             <footer className="flex-shrink-0 p-4 border-t border-white/10 bg-black/20">
-                {replyingTo && (
-                    <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-[var(--color-primary-500)]">
-                        <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
-                        <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
-                        <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
-                            <XIcon className="w-4 h-4" />
-                        </button>
-                    </div>
-                )}
-                 {showEmojis && (
-                    <div className="p-2 mb-2 bg-gray-700 rounded-lg grid grid-cols-8 gap-2">
-                        {EMOJIS.map(emoji => (
-                            <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="p-2 text-2xl rounded-lg hover:bg-gray-600 transition-colors">
-                                {emoji}
+                {canSendMessage ? (
+                    <>
+                        {replyingTo && (
+                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-[var(--color-primary-500)]">
+                                <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
+                                <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
+                                <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
+                                    <XIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                        {showEmojis && (
+                            <div className="p-2 mb-2 bg-gray-700 rounded-lg grid grid-cols-8 gap-2">
+                                {EMOJIS.map(emoji => (
+                                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="p-2 text-2xl rounded-lg hover:bg-gray-600 transition-colors">
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setShowEmojis(prev => !prev)} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
+                                <FaceSmileIcon className="w-6 h-6" />
                             </button>
-                        ))}
+                            <input
+                                type="text"
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                placeholder="Escribe un mensaje..."
+                                className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                            />
+                            <button onClick={handleSendMessage} className="p-3 bg-[var(--color-primary-600)] text-white rounded-full hover:bg-[var(--color-primary-700)] shadow-sm transition-colors disabled:bg-gray-500" disabled={!inputText.trim()}>
+                                <PaperAirplaneIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </>
+                ) : (
+                    <div className="bg-gray-800 rounded-lg p-3 text-center flex items-center justify-center gap-2">
+                        <BellSlashIcon className="w-5 h-5 text-gray-400" />
+                        <p className="text-sm font-semibold text-gray-400">Solo los capitanes pueden enviar mensajes.</p>
                     </div>
                 )}
-                <div className="flex items-center gap-2">
-                    <button onClick={() => setShowEmojis(prev => !prev)} className="p-2 rounded-full hover:bg-gray-700 text-gray-400" disabled={!canSendMessage}>
-                        <FaceSmileIcon className="w-6 h-6" />
-                    </button>
-                    <input
-                        type="text"
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder={canSendMessage ? "Escribe un mensaje..." : "Solo los capitanes pueden enviar mensajes"}
-                        className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:bg-gray-800 disabled:placeholder-gray-500"
-                        disabled={!canSendMessage}
-                    />
-                    <button onClick={handleSendMessage} className="p-3 bg-[var(--color-primary-600)] text-white rounded-full hover:bg-[var(--color-primary-700)] shadow-sm transition-colors disabled:bg-gray-500" disabled={!inputText.trim() || !canSendMessage}>
-                        <PaperAirplaneIcon className="w-5 h-5" />
-                    </button>
-                </div>
             </footer>
         </div>
     );
