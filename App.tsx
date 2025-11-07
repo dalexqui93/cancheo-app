@@ -1339,19 +1339,66 @@ const App = () => {
             return;
         }
 
+        // Add player to team
         const updatedPlayers = [...team.players, user.playerProfile];
         await handleUpdateTeam(team.id, { players: updatedPlayers });
 
+        // Add team to player's profile
         const updatedTeamIds = [...(user.teamIds || []), team.id];
         await handleUpdateUserTeams(updatedTeamIds);
 
+        // Notify the captain
+        const captain = allUsers.find(u => u.id === invitation.fromUserId);
+        if (captain) {
+            const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'success',
+                title: '¡Nuevo Miembro!',
+                message: `${invitation.toUserName} se ha unido a ${invitation.teamName}.`,
+                read: false
+            };
+            
+            const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
+            const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
+            
+            await db.updateUser(captain.id, { notifications: updatedNotifications });
+            // Update local state for consistency
+            setAllUsers(prevUsers => prevUsers.map(u => 
+                u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
+            ));
+        }
+
+        // Delete the invitation
         await db.deleteInvitation(invitation.id);
         
+        // Show toast to the current user
         showToast({ type: 'success', title: '¡Te has unido!', message: `Ahora eres miembro de ${team.name}.` });
     };
 
     const handleRejectInvitation = async (invitation: Invitation) => {
+        // Notify the captain
+        const captain = allUsers.find(u => u.id === invitation.fromUserId);
+        if (captain) {
+            const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'info',
+                title: 'Invitación Rechazada',
+                message: `${invitation.toUserName} ha rechazado unirse a ${invitation.teamName}.`,
+                read: false
+            };
+
+            const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
+            const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
+
+            await db.updateUser(captain.id, { notifications: updatedNotifications });
+            // Update local state for consistency
+            setAllUsers(prevUsers => prevUsers.map(u =>
+                u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
+            ));
+        }
+        
+        // Delete the invitation
         await db.deleteInvitation(invitation.id);
+
+        // Show toast to the current user
         showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
     };
 
