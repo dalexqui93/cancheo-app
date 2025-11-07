@@ -24,11 +24,16 @@ interface BookingDetailViewProps {
 }
 
 const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ logo, name, size = 'w-16 h-16' }) => {
+    const containerClasses = `${size} rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600 overflow-hidden`;
     if (logo) {
-        return <img src={logo} alt={`${name} logo`} className={`${size} object-contain`} />;
+        return (
+            <div className={containerClasses}>
+                <img src={logo} alt={`${name} logo`} className="w-full h-full object-cover" />
+            </div>
+        );
     }
     return (
-        <div className={`${size} rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600`}>
+        <div className={containerClasses}>
             <span className="text-2xl font-bold text-white" style={{textShadow: '1px 1px 3px rgba(0,0,0,0.5)'}}>{name.charAt(0)}</span>
         </div>
     );

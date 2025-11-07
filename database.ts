@@ -681,6 +681,21 @@ export const deleteField = async (fieldId) => {
     return Promise.resolve();
 };
 
+export const addTeam = async (teamData: Omit<Team, 'id'>): Promise<Team> => {
+    if (isFirebaseConfigured) {
+        const dataToSave = {
+            ...teamData,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        const docRef = await db.collection('teams').add(dataToSave);
+        return { id: docRef.id, ...teamData };
+    }
+    const newTeam: Team = { id: `t-${Date.now()}`, ...teamData };
+    demoData.teams.push(newTeam);
+    return Promise.resolve(newTeam);
+};
+
+
 // --- FORUM API ---
 
 const aggregateReactions = async (reactionsSnapshot) => {

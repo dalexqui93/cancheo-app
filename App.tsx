@@ -1174,6 +1174,23 @@ const App = () => {
         handleNavigate(View.SOCIAL);
     };
 
+    const handleUpdateUserTeam = async (teamId: string) => {
+        if (!user) return;
+        try {
+            await db.updateUser(user.id, { teamId });
+            const updatedUser = { ...user, teamId };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        } catch (error) {
+            console.error("Error al actualizar el equipo del usuario:", String(error));
+            showToast({
+                type: 'error',
+                title: 'Error de Equipo',
+                message: 'No se pudo asignar el equipo a tu perfil.'
+            });
+        }
+    };
+
     const handleRewardAnimationEnd = (field: SoccerField) => {
         setRewardInfo(null);
         setRatingInfo({ field });
@@ -1395,6 +1412,7 @@ const App = () => {
                                     setIsPremiumModalOpen={setIsPremiumModalOpen} 
                                     section={socialSection}
                                     setSection={setSocialSection}
+                                    onUpdateUserTeam={handleUpdateUserTeam}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;

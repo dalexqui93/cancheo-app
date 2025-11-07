@@ -70,6 +70,7 @@ interface SocialViewProps {
     setIsPremiumModalOpen: (isOpen: boolean) => void;
     section: SocialSection;
     setSection: (section: SocialSection) => void;
+    onUpdateUserTeam: (teamId: string) => Promise<void>;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -387,38 +388,16 @@ const FindPlayersView: React.FC<{
 };
 
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeam }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
-    const [teams, setTeams] = useState<Team[]>(allTeams);
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     
-    const [userTeam, setUserTeam] = useState<Team | undefined>(teams.find(t => t.id === user.teamId));
+    const userTeam = useMemo(() => allTeams.find(t => t.id === user.teamId), [allTeams, user.teamId]);
 
     const handleUpdateTeam = (updatedTeam: Team) => {
-        setUserTeam(updatedTeam);
-        setTeams(prev => prev.map(t => t.id === updatedTeam.id ? updatedTeam : t));
-    };
-
-    const handleCreateTeam = (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
-        const currentUserAsPlayer = user.playerProfile || {
-            id: user.id, name: user.name, position: 'Cualquiera', level: teamData.level, stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }
-        };
-        const newTeam: Team = {
-            id: `t-${Date.now()}`,
-            name: teamData.name,
-            logo: teamData.logo || undefined,
-            level: teamData.level,
-            captainId: user.id,
-            players: [currentUserAsPlayer],
-            stats: { wins: 0, losses: 0, draws: 0 },
-            formation: '4-4-2',
-            playerPositions: {},
-            schedule: [],
-            matchHistory: [],
-        };
-        setTeams(prev => [newTeam, ...prev]);
-        setUserTeam(newTeam);
-        addNotification({type: 'success', title: '¡Equipo Creado!', message: `Bienvenido a ${newTeam.name}.`});
+        // This will be handled by Firestore listener, but a local update can be faster for UI.
+        // For now, we rely on the listener.
+        // onUpdateTeam(updatedTeam);
     };
     
     const handleRecruit = (player: Player) => {
@@ -455,11 +434,11 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
                     onUpdateTeam={handleUpdateTeam}
-                    onCreateTeam={handleCreateTeam}
                     setIsPremiumModalOpen={setIsPremiumModalOpen}
+                    onUpdateUserTeam={onUpdateUserTeam}
                  />;
             case 'challenge':
-                const otherTeams = teams.filter(t => t.id !== userTeam?.id);
+                const otherTeams = allTeams.filter(t => t.id !== userTeam?.id);
                 return <ChallengeView teams={otherTeams} onBack={() => setSection('hub')} addNotification={addNotification} />;
             case 'find-players':
                 if (viewingPlayerProfile) {

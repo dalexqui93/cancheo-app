@@ -5,12 +5,13 @@ import type { User } from '../../types';
 import { SparklesIcon } from '../../components/icons/SparklesIcon';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import LogoGalleryModal from '../../components/LogoGalleryModal';
+import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 
 
 interface CreateTeamViewProps {
     user: User;
     onBack: () => void;
-    onCreate: (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => void;
+    onCreate: (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => Promise<void>;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
 }
 
@@ -19,6 +20,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
     const [level, setLevel] = useState<'Casual' | 'Intermedio' | 'Competitivo'>('Casual');
     const [logo, setLogo] = useState<string | null>(null);
     const [showLogoGallery, setShowLogoGallery] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLogoClick = () => {
@@ -64,13 +66,21 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
         }
     };
     
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if(!name.trim()) {
-            // Basic validation feedback
+        if(!name.trim() || isCreating) {
             return;
         }
-        onCreate({ name, logo, level });
+        setIsCreating(true);
+        try {
+            await onCreate({ name, logo, level });
+            // The parent component handles success notification and state change
+        } catch (error) {
+            // The parent component handles error notification
+            console.error("Team creation failed", error);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     return (
@@ -128,7 +138,9 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                             </div>
                         </div>
                         <div className="border-t border-white/10 pt-5 flex justify-end gap-3">
-                            <button type="submit" className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm">Crear Equipo</button>
+                            <button type="submit" disabled={isCreating} className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center w-36 h-10">
+                                {isCreating ? <SpinnerIcon className="w-5 h-5"/> : 'Crear Equipo'}
+                            </button>
                         </div>
                     </form>
                 </div>

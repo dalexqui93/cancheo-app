@@ -19,6 +19,7 @@ import { TeamFormIcon } from '../../components/icons/TeamFormIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
 import { SoccerBallIcon } from '../../components/icons/SoccerBallIcon';
 import { ShoeIcon } from '../../components/icons/ShoeIcon';
+import * as db from '../../database';
 
 
 type TeamView = 'dashboard' | 'roster' | 'tactics' | 'schedule' | 'performance' | 'chat';
@@ -30,8 +31,8 @@ interface MyTeamDashboardProps {
     onBack: () => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onUpdateTeam: (team: Team) => void;
-    onCreateTeam: (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
+    onUpdateUserTeam: (teamId: string) => Promise<void>;
 }
 
 const mockMessages: ChatMessage[] = [
@@ -159,13 +160,45 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void }>
 };
 
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, onCreateTeam, setIsPremiumModalOpen }) => {
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ team, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeam }) => {
     const [view, setView] = useState<TeamView>('dashboard');
     const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
 
+    const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
+        const currentUserAsPlayer = user.playerProfile || {
+            id: user.id, name: user.name, position: 'Cualquiera', level: teamData.level, stats: { matchesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }
+        };
+
+        const newTeamData: Omit<Team, 'id'> = {
+            name: teamData.name,
+            logo: teamData.logo || undefined,
+            level: teamData.level,
+            captainId: user.id,
+            players: [currentUserAsPlayer],
+            stats: { wins: 0, losses: 0, draws: 0 },
+            formation: '4-4-2',
+            playerPositions: {},
+            schedule: [],
+            matchHistory: [],
+        };
+        
+        try {
+            const newTeam = await db.addTeam(newTeamData);
+            if (newTeam && newTeam.id) {
+                await onUpdateUserTeam(newTeam.id);
+                addNotification({type: 'success', title: '¡Equipo Creado!', message: `Bienvenido a ${newTeam.name}.`});
+            } else {
+                throw new Error("La creación del equipo no devolvió un resultado válido.");
+            }
+        } catch (error) {
+            console.error("Error al crear equipo y actualizar usuario:", String(error));
+            addNotification({type: 'error', title: 'Error al Crear', message: 'No se pudo crear el equipo. Inténtalo de nuevo.'});
+            throw error;
+        }
+    };
 
     if (!team) {
-        return <CreateTeamView onBack={onBack} onCreate={onCreateTeam} setIsPremiumModalOpen={setIsPremiumModalOpen} user={user} />;
+        return <CreateTeamView onBack={onBack} onCreate={handleCreateTeam} setIsPremiumModalOpen={setIsPremiumModalOpen} user={user} />;
     }
     
     const handleSendMessage = (text: string, replyToMessage: ChatMessage | null) => {
