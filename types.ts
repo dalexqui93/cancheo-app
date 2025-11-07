@@ -297,6 +297,9 @@ export interface Team {
     schedule: TeamEvent[];
     matchHistory: Match[];
     messagingPermissions?: 'all' | 'captain';
+    latitude?: number;
+    longitude?: number;
+    distance?: number;
 }
 
 export interface Invitation {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation } from './types';
@@ -48,7 +49,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -1251,19 +1252,26 @@ const App = () => {
         const updatedPlayers = team.players.filter(p => p.id !== playerId);
         const updatedTeamIds = userToRemove.teamIds?.filter(id => id !== teamId) || [];
     
-        const notificationForRemovedPlayer: Notification = {
-            id: Date.now(),
+        const notificationForRemovedPlayer: Omit<Notification, 'id' | 'timestamp'> = {
             type: 'error',
             title: 'Has sido eliminado',
             message: `El capitán te ha eliminado de ${team.name}.`,
-            timestamp: new Date(),
             read: false,
         };
-        const updatedNotifications = [notificationForRemovedPlayer, ...(userToRemove.notifications || [])].slice(0, 50);
+        const newNotification = { ...notificationForRemovedPlayer, id: Date.now(), timestamp: new Date() };
+        const updatedNotifications = [newNotification, ...(userToRemove.notifications || [])].slice(0, 50);
+
+// Fix: Added missing 'senderName' property to system message data
+        const systemMessageData = {
+            senderId: 'system',
+            senderName: 'Sistema',
+            text: `${userToRemove.name} ha sido expulsado del equipo por el capitán.`,
+        };
     
         try {
             await db.updateTeam(teamId, { players: updatedPlayers });
             await db.updateUser(playerId, { teamIds: updatedTeamIds, notifications: updatedNotifications });
+            await db.addChatMessage(teamId, systemMessageData);
     
             if (!isFirebaseConfigured) {
                  setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
@@ -1281,6 +1289,58 @@ const App = () => {
         } catch (error) {
             console.error("Error al eliminar jugador del equipo:", String(error));
             showToast({ type: 'error', title: 'Error', message: 'No se pudo eliminar al jugador.' });
+        }
+    };
+
+    const handleLeaveTeam = async (teamId: string) => {
+        if (!user) return;
+        const team = allTeams.find(t => t.id === teamId);
+        if (!team) return;
+
+        const updatedPlayers = team.players.filter(p => p.id !== user.id);
+        const updatedTeamIds = user.teamIds?.filter(id => id !== teamId) || [];
+
+        const notificationForCaptain: Omit<Notification, 'id'| 'timestamp'> = {
+            type: 'info',
+            title: 'Un jugador ha abandonado',
+            message: `${user.name} ha abandonado ${team.name}.`,
+            read: false
+        };
+        const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
+        const captain = allUsers.find(u => u.id === team.captainId);
+        const updatedCaptainNotifications = [newNotification, ...(captain?.notifications || [])].slice(0, 50);
+
+// Fix: Added missing 'senderName' property to system message data
+        const systemMessageData = {
+            senderId: 'system',
+            senderName: 'Sistema',
+            text: `${user.name} ha abandonado el equipo.`,
+        };
+
+        try {
+            await db.updateTeam(teamId, { players: updatedPlayers });
+            await db.updateUser(user.id, { teamIds: updatedTeamIds });
+            if(captain) {
+                await db.updateUser(captain.id, { notifications: updatedCaptainNotifications });
+            }
+            await db.addChatMessage(teamId, systemMessageData);
+
+            if (!isFirebaseConfigured) {
+                setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
+            }
+    
+            const updatedUser = { ...user, teamIds: updatedTeamIds };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => {
+                if (u.id === user.id) return updatedUser;
+                if (captain && u.id === captain.id) return { ...u, notifications: updatedCaptainNotifications };
+                return u;
+            }));
+
+            showToast({ type: 'info', title: 'Has abandonado el equipo', message: `Ya no eres parte de ${team.name}.` });
+        } catch (error) {
+            console.error("Error al abandonar el equipo:", String(error));
+            showToast({ type: 'error', title: 'Error', message: 'No se pudo abandonar el equipo.' });
         }
     };
 
@@ -1607,6 +1667,8 @@ const App = () => {
                                     onSendInvitation={handleSendInvitation}
                                     onCancelInvitation={handleCancelInvitation}
                                     onRemovePlayerFromTeam={handleRemovePlayerFromTeam}
+                                    onLeaveTeam={handleLeaveTeam}
+                                    weatherData={weatherData}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;

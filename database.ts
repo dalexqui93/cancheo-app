@@ -139,6 +139,22 @@ const teamsToSeed: Team[] = [
             { id: 'mh1', teamA: {id: 't1', name: 'Los Galácticos'}, teamB: {id: 'ext1', name: 'Rivales FC'}, scoreA: 3, scoreB: 3, date: new Date('2024-07-20'), status: 'jugado'},
             { id: 'mh2', teamA: {id: 't1', name: 'Los Galácticos'}, teamB: {id: 'ext2', name: 'Deportivo Amigos'}, scoreA: 5, scoreB: 2, date: new Date('2024-07-13'), status: 'jugado'},
         ],
+        latitude: 4.648283, 
+        longitude: -74.088951,
+    },
+     {
+        id: 't2', name: 'Furia Roja FC', captainId: 'ext-captain-1', players: [],
+        level: 'Intermedio', stats: { wins: 5, losses: 2, draws: 3 },
+        formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [],
+        latitude: 6.25184,
+        longitude: -75.56359,
+    },
+    {
+        id: 't3', name: 'Atlético Barrial', captainId: 'ext-captain-2', players: [],
+        level: 'Casual', stats: { wins: 2, losses: 6, draws: 2 },
+        formation: '4-4-2', playerPositions: {}, schedule: [], matchHistory: [],
+        latitude: 6.2442,
+        longitude: -75.5812,
     },
 ];
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation } from '../types';
+import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation, WeatherData } from '../../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { ShieldIcon } from '../components/icons/ShieldIcon';
@@ -31,6 +31,8 @@ import StarRating from '../components/StarRating';
 import TeamChatView from './team/TeamChatView';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { TrashIcon } from '../components/icons/TrashIcon';
+import { calculateDistance } from '../utils/geolocation';
+import { LocationIcon } from '../components/icons/LocationIcon';
 
 
 // --- MOCK DATA ---
@@ -79,6 +81,8 @@ interface SocialViewProps {
     onSendInvitation: (team: Team, player: Player) => void;
     onCancelInvitation: (invitationId: string) => void;
     onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
+    onLeaveTeam: (teamId: string) => void;
+    weatherData: WeatherData | null;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -264,11 +268,90 @@ const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, 
     </button>
 );
 
+const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, onBack }) => {
+    const sortedHistory = (team.matchHistory || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return (
+        <div className="p-4 animate-fade-in">
+             <BackButton onClick={onBack} text="Volver a Retar Equipos" />
+             <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 text-center sm:text-left">
+                    {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700" /> : <ShieldIcon className="w-24 h-24 text-gray-400" />}
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{team.name}</h1>
+                        <p className="font-semibold text-gray-500 dark:text-gray-400">{team.level}</p>
+                    </div>
+                </div>
+                 <div className="grid grid-cols-3 gap-4 text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                     <div>
+                         <p className="text-3xl font-black text-green-500 dark:text-green-400">{team.stats.wins}</p>
+                         <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold uppercase">Victorias</p>
+                     </div>
+                     <div>
+                         <p className="text-3xl font-black text-yellow-500 dark:text-yellow-400">{team.stats.draws}</p>
+                         <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold uppercase">Empates</p>
+                     </div>
+                     <div>
+                         <p className="text-3xl font-black text-red-500 dark:text-red-400">{team.stats.losses}</p>
+                         <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold uppercase">Derrotas</p>
+                     </div>
+                 </div>
+                 <div className="mt-8">
+                     <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Historial de Partidos Recientes</h3>
+                     <div className="space-y-3">
+                        {sortedHistory.length > 0 ? (
+                            sortedHistory.slice(0, 5).map(match => {
+                                const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
+                                const scoreUs = (isTeamA ? match.scoreA : match.scoreB) ?? 0;
+                                const scoreThem = (isTeamA ? match.scoreB : match.scoreA) ?? 0;
+                                const opponent = isTeamA ? match.teamB : match.teamA;
+                                const opponentName = 'name' in opponent ? opponent.name : 'Rival';
+
+                                let result: 'V' | 'E' | 'D';
+                                let resultColor = '';
+                                if (scoreUs > scoreThem) {
+                                    result = 'V';
+                                    resultColor = 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300';
+                                } else if (scoreUs < scoreThem) {
+                                    result = 'D';
+                                    resultColor = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300';
+                                } else {
+                                    result = 'E';
+                                    resultColor = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300';
+                                }
+                                
+                                return (
+                                    <div key={match.id} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg flex items-center gap-4">
+                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-black text-lg ${resultColor}`}>{result}</div>
+                                        <div className="flex-grow">
+                                            <p className="font-semibold text-gray-800 dark:text-gray-100">vs. {opponentName}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                                        </div>
+                                        <div className="font-bold text-lg text-gray-800 dark:text-gray-100">{scoreUs} - {scoreThem}</div>
+                                    </div>
+                                )
+                            })
+                        ) : (
+                            <p className="text-center text-sm text-gray-500 dark:text-gray-400">No hay partidos registrados.</p>
+                        )}
+                     </div>
+                 </div>
+             </div>
+        </div>
+    );
+};
+
 const TeamChallengeCard: React.FC<{
     team: Team;
+    isCaptain: boolean;
+    isMyTeam: boolean;
     onChallenge: (team: Team) => void;
-}> = ({ team, onChallenge }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex items-center justify-between gap-4">
+    onViewProfile: (team: Team) => void;
+}> = ({ team, isCaptain, isMyTeam, onChallenge, onViewProfile }) => (
+    <div 
+        onClick={() => onViewProfile(team)}
+        className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+    >
         <div className="flex items-center gap-4 min-w-0">
             <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {team.logo ? (
@@ -280,15 +363,30 @@ const TeamChallengeCard: React.FC<{
             <div className="min-w-0">
                 <p className="font-bold text-lg text-gray-800 dark:text-gray-100 truncate">{team.name}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{team.level}</p>
+                 {team.distance !== undefined && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+                        <LocationIcon className="w-3 h-3"/> {team.distance.toFixed(1)} km
+                    </p>
+                )}
             </div>
         </div>
-        <button
-            onClick={() => onChallenge(team)}
-            className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm flex-shrink-0"
-        >
-            <SwordsIcon className="w-4 h-4" />
-            Retar
-        </button>
+        
+        {isCaptain && !isMyTeam ? (
+            <button
+                onClick={(e) => { e.stopPropagation(); onChallenge(team); }}
+                className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm flex-shrink-0"
+            >
+                <SwordsIcon className="w-4 h-4" />
+                Retar
+            </button>
+        ) : (
+            <button
+                onClick={(e) => { e.stopPropagation(); onViewProfile(team); }}
+                className="py-2 px-4 rounded-lg font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm flex-shrink-0"
+            >
+                Ver Perfil
+            </button>
+        )}
     </div>
 );
 
@@ -297,8 +395,31 @@ const ChallengeView: React.FC<{
     user: User;
     onBack: () => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
-}> = ({ allTeams, user, onBack, addNotification }) => {
-    const challengeableTeams = allTeams.filter(team => !user.teamIds?.includes(team.id));
+    weatherData: WeatherData | null;
+}> = ({ allTeams, user, onBack, addNotification, weatherData }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [levelFilter, setLevelFilter] = useState<'All' | Team['level']>('All');
+    const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
+
+    const isCaptain = useMemo(() => allTeams.some(t => t.captainId === user.id), [allTeams, user.id]);
+
+    const filteredAndSortedTeams = useMemo(() => {
+        let teamsWithDistance = allTeams.map(team => {
+            if (weatherData && team.latitude && team.longitude) {
+                const distance = calculateDistance(weatherData.latitude, weatherData.longitude, team.latitude, team.longitude);
+                return { ...team, distance };
+            }
+            return { ...team, distance: Infinity };
+        });
+
+        return teamsWithDistance
+            .filter(team => 
+                team.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                (levelFilter === 'All' || team.level === levelFilter)
+            )
+            .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    }, [allTeams, searchTerm, levelFilter, weatherData]);
+
 
     const handleChallenge = (team: Team) => {
         addNotification({
@@ -308,26 +429,252 @@ const ChallengeView: React.FC<{
         });
     };
 
+    if (viewingTeam) {
+        return <TeamProfileView team={viewingTeam} onBack={() => setViewingTeam(null)} />;
+    }
+
     return (
         <div className="p-4 pb-[5.5rem] md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Retar un Equipo</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra un rival y desafíalo a un partido amistoso.</p>
             
+            <div className="mt-6 space-y-4 sticky top-0 bg-slate-50 dark:bg-gray-900 py-4 z-10">
+                <div className="relative">
+                    <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    <input 
+                        type="text"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Buscar equipo por nombre..."
+                        className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                    />
+                </div>
+                <div className="flex space-x-2">
+                    {(['All', 'Casual', 'Intermedio', 'Competitivo'] as const).map(level => (
+                        <button
+                            key={level}
+                            onClick={() => setLevelFilter(level)}
+                            className={`py-1.5 px-4 rounded-full text-sm font-semibold transition flex-grow ${levelFilter === level ? 'bg-[var(--color-primary-600)] text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600'}`}
+                        >
+                            {level === 'All' ? 'Todos' : level}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="mt-6 space-y-4">
-                {challengeableTeams.length > 0 ? (
-                    challengeableTeams.map(team => (
-                        <TeamChallengeCard key={team.id} team={team} onChallenge={handleChallenge} />
+                {filteredAndSortedTeams.length > 0 ? (
+                    filteredAndSortedTeams.map(team => (
+                        <TeamChallengeCard 
+                            key={team.id} 
+                            team={team} 
+                            isCaptain={isCaptain}
+                            isMyTeam={user.teamIds?.includes(team.id) ?? false}
+                            onChallenge={handleChallenge}
+                            onViewProfile={setViewingTeam}
+                        />
                     ))
                 ) : (
                     <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700">
                         <SwordsIcon className="mx-auto h-16 w-16 text-gray-400" />
-                        <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No hay equipos para retar</h2>
+                        <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No se encontraron equipos</h2>
                         <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                            Parece que ya eres parte de todos los equipos disponibles o no hay otros equipos creados.
+                            Intenta con otro nombre o ajusta los filtros de búsqueda.
                         </p>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+const FindPlayersView: React.FC<{
+    players: Player[];
+    onBack: () => void;
+    onViewProfile: (player: Player) => void;
+    recruitingTeam: Team | null;
+    sentInvitations: Invitation[];
+    onSendInvitation: (team: Team, player: Player) => void;
+    onCancelInvitation: (invitationId: string) => void;
+    onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
+}> = ({ players, onBack, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [playerToRemove, setPlayerToRemove] = useState<Player | null>(null);
+
+    const filteredPlayers = players.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleConfirmRemove = () => {
+        if (playerToRemove && recruitingTeam) {
+            onRemovePlayerFromTeam(recruitingTeam.id, playerToRemove.id);
+        }
+        setPlayerToRemove(null);
+    };
+
+    return (
+        <div className="p-4 pb-[5.5rem] md:pb-4">
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Fichajes</h1>
+            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra o gestiona jugadores para tu equipo.</p>
+            {recruitingTeam && (
+                <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 font-semibold p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">Gestionando para: {recruitingTeam.name}</p>
+            )}
+            
+            <div className="mt-6 relative">
+                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <input 
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Buscar jugador por nombre..."
+                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                />
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPlayers.map(player => (
+                    <PlayerRecruitCard 
+                        key={player.id}
+                        player={player}
+                        onViewProfile={onViewProfile}
+                        recruitingTeam={recruitingTeam}
+                        sentInvitations={sentInvitations}
+                        onSendInvitation={onSendInvitation}
+                        onCancelInvitation={onCancelInvitation}
+                        onRemovePlayer={setPlayerToRemove}
+                    />
+                ))}
+            </div>
+            {filteredPlayers.length === 0 && (
+                <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
+                    <UserPlusIcon className="mx-auto h-16 w-16 text-gray-400" />
+                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No se encontraron jugadores</h2>
+                    <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                        Intenta con otro nombre o revisa la lista completa de jugadores disponibles.
+                    </p>
+                </div>
+            )}
+
+            <ConfirmationModal
+                isOpen={!!playerToRemove}
+                onClose={() => setPlayerToRemove(null)}
+                onConfirm={handleConfirmRemove}
+                title={`¿Expulsar a ${playerToRemove?.name}?`}
+                message={`Esta acción eliminará permanentemente al jugador de ${recruitingTeam?.name}. El jugador será notificado. ¿Estás seguro?`}
+                confirmButtonText="Sí, expulsar"
+            />
+        </div>
+    );
+};
+
+
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam, weatherData }) => {
+    const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
+    const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
+    
+    const userTeams = useMemo(() => user.teamIds ? allTeams.filter(t => user.teamIds.includes(t.id)) : [], [allTeams, user.teamIds]);
+    
+    const recruitingTeam = useMemo(() => {
+        if (!user.playerProfile) return null;
+        const captainedTeams = allTeams.filter(t => t.captainId === user.id);
+        return captainedTeams.length > 0 ? captainedTeams[0] : null;
+    }, [allTeams, user]);
+
+
+    const renderContent = () => {
+        if (!user.playerProfile) {
+            return <div className="p-4 pb-[5.5rem] md:pb-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
+        }
+
+        switch (section) {
+            case 'tournaments':
+                return <div className="p-4 sm:p-6 pb-[6.5rem]"><TournamentsView 
+                            tournaments={tournaments} 
+                            onBack={() => setSection('hub')} 
+                            addNotification={addNotification} 
+                            user={user} /></div>;
+            case 'my-team':
+                return <MyTeamDashboard
+                    userTeams={userTeams}
+                    user={user}
+                    allUsers={allUsers}
+                    onBack={() => setSection('hub')}
+                    addNotification={addNotification}
+                    onUpdateTeam={onUpdateTeam}
+                    setIsPremiumModalOpen={setIsPremiumModalOpen}
+                    onUpdateUserTeams={onUpdateUserTeams}
+                    onLeaveTeam={onLeaveTeam}
+                    onRemovePlayerFromTeam={onRemovePlayerFromTeam}
+                 />;
+            case 'challenge':
+                return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} weatherData={weatherData} /></div>;
+            case 'find-players':
+                return <div className="p-4 sm:p-6 pb-[6.5rem]">{
+                    viewingPlayerProfile ? (
+                    <PlayerProfileDetailView 
+                                player={viewingPlayerProfile} 
+                                onBack={() => setViewingPlayerProfile(null)} 
+                            />
+                ) : (
+                    <FindPlayersView 
+                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id).map(u => u.playerProfile!)} 
+                        onBack={() => setSection('hub')} 
+                        onViewProfile={setViewingPlayerProfile}
+                        recruitingTeam={recruitingTeam}
+                        sentInvitations={sentInvitations}
+                        onSendInvitation={onSendInvitation}
+                        onCancelInvitation={onCancelInvitation}
+                        onRemovePlayerFromTeam={onRemovePlayerFromTeam}
+                    />
+                )}</div>;
+            case 'sports-forum':
+                return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
+            default:
+                return <PlayerHub user={user} onSectionNavigate={setSection} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
+        }
+    };
+    
+    const socialSectionsWithDarkBg = ['hub', 'my-team'];
+    const hasDarkBg = socialSectionsWithDarkBg.includes(section);
+    const showExitButton = true;
+
+    return (
+        <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'} ${section === 'chat' ? 'p-0' : ''}`}>
+            {renderContent()}
+
+            {/* Exit DaviPlay Button */}
+            {showExitButton && (
+                <button
+                    onClick={() => onNavigate(View.HOME)}
+                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
+                    aria-label="Salir de DaviPlay"
+                >
+                    <LogoutIcon className="w-8 h-8" />
+                </button>
+            )}
+        </div>
+    );
+};
+
+// --- SUB-VIEWS ---
+
+const TournamentsView: React.FC<{
+    tournaments: Tournament[];
+    onBack: () => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
+    user: User;
+}> = ({ tournaments, onBack, addNotification, user }) => {
+    return (
+        <div className="p-4 pb-[5.5rem] md:pb-4">
+            <BackButton onClick={onBack} text="Volver a DaviPlay" />
+            <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
+                <TrophyIcon className="mx-auto h-16 w-16 text-gray-400" />
+                <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Torneos</h2>
+                <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                    ¡Estamos preparando todo para que puedas competir por la gloria! La sección de torneos estará disponible muy pronto.
+                </p>
             </div>
         </div>
     );
@@ -414,286 +761,6 @@ const PlayerRecruitCard: React.FC<{
                     )
                 )}
             </div>
-        </div>
-    );
-};
-
-
-const FindPlayersView: React.FC<{
-    players: Player[];
-    onBack: () => void;
-    onViewProfile: (player: Player) => void;
-    recruitingTeam: Team | null;
-    sentInvitations: Invitation[];
-    onSendInvitation: (team: Team, player: Player) => void;
-    onCancelInvitation: (invitationId: string) => void;
-    onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
-}> = ({ players, onBack, onViewProfile, recruitingTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [playerToRemove, setPlayerToRemove] = useState<Player | null>(null);
-
-    const filteredPlayers = players.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const handleConfirmRemove = () => {
-        if (playerToRemove && recruitingTeam) {
-            onRemovePlayerFromTeam(recruitingTeam.id, playerToRemove.id);
-        }
-        setPlayerToRemove(null);
-    };
-
-    return (
-        <div className="p-4 pb-[5.5rem] md:pb-4">
-            <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Fichajes</h1>
-            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra o gestiona jugadores para tu equipo.</p>
-            {recruitingTeam && (
-                <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400 font-semibold p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">Gestionando para: {recruitingTeam.name}</p>
-            )}
-            
-            <div className="mt-6 relative">
-                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-                <input 
-                    type="text"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    placeholder="Buscar jugador por nombre..."
-                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)]"
-                />
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredPlayers.map(player => (
-                    <PlayerRecruitCard 
-                        key={player.id}
-                        player={player}
-                        onViewProfile={onViewProfile}
-                        recruitingTeam={recruitingTeam}
-                        sentInvitations={sentInvitations}
-                        onSendInvitation={onSendInvitation}
-                        onCancelInvitation={onCancelInvitation}
-                        onRemovePlayer={setPlayerToRemove}
-                    />
-                ))}
-            </div>
-            {filteredPlayers.length === 0 && (
-                <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
-                    <UserPlusIcon className="mx-auto h-16 w-16 text-gray-400" />
-                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No se encontraron jugadores</h2>
-                    <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                        Intenta con otro nombre o revisa la lista completa de jugadores disponibles.
-                    </p>
-                </div>
-            )}
-
-            <ConfirmationModal
-                isOpen={!!playerToRemove}
-                onClose={() => setPlayerToRemove(null)}
-                onConfirm={handleConfirmRemove}
-                title={`¿Expulsar a ${playerToRemove?.name}?`}
-                message={`Esta acción eliminará permanentemente al jugador de ${recruitingTeam?.name}. El jugador será notificado. ¿Estás seguro?`}
-                confirmButtonText="Sí, expulsar"
-            />
-        </div>
-    );
-};
-
-
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam }) => {
-    const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
-    const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
-    
-    const userTeams = useMemo(() => user.teamIds ? allTeams.filter(t => user.teamIds.includes(t.id)) : [], [allTeams, user.teamIds]);
-    
-    const recruitingTeam = useMemo(() => {
-        if (!user.playerProfile) return null;
-        const captainedTeams = allTeams.filter(t => t.captainId === user.id);
-        return captainedTeams.length > 0 ? captainedTeams[0] : null;
-    }, [allTeams, user]);
-
-
-    const renderContent = () => {
-        if (!user.playerProfile) {
-            return <div className="p-4 pb-[5.5rem] md:pb-4"><PlayerProfileOnboarding onNavigate={onNavigate} /></div>;
-        }
-
-        switch (section) {
-            case 'tournaments':
-                return <div className="p-4 sm:p-6 pb-[6.5rem]"><TournamentsView 
-                            tournaments={tournaments} 
-                            onBack={() => setSection('hub')} 
-                            addNotification={addNotification} 
-                            user={user} /></div>;
-            case 'my-team':
-                return <MyTeamDashboard
-                    userTeams={userTeams}
-                    user={user}
-                    allUsers={allUsers}
-                    onBack={() => setSection('hub')}
-                    addNotification={addNotification}
-                    onUpdateTeam={onUpdateTeam}
-                    setIsPremiumModalOpen={setIsPremiumModalOpen}
-                    onUpdateUserTeams={onUpdateUserTeams}
-                    setSection={setSection}
-                 />;
-            case 'challenge':
-                return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} /></div>;
-            case 'find-players':
-                return <div className="p-4 sm:p-6 pb-[6.5rem]">{
-                    viewingPlayerProfile ? (
-                    <PlayerProfileDetailView 
-                                player={viewingPlayerProfile} 
-                                onBack={() => setViewingPlayerProfile(null)} 
-                            />
-                ) : (
-                    <FindPlayersView 
-                        players={allUsers.filter(u => u.playerProfile && u.id !== user.id).map(u => u.playerProfile!)} 
-                        onBack={() => setSection('hub')} 
-                        onViewProfile={setViewingPlayerProfile}
-                        recruitingTeam={recruitingTeam}
-                        sentInvitations={sentInvitations}
-                        onSendInvitation={onSendInvitation}
-                        onCancelInvitation={onCancelInvitation}
-                        onRemovePlayerFromTeam={onRemovePlayerFromTeam}
-                    />
-                )}</div>;
-            case 'sports-forum':
-                return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
-            case 'chat': {
-                // This view is now launched from within MyTeamDashboard, which handles selecting the team.
-                // If accessed directly, we should redirect. For now, this logic will prevent crashes.
-                const teamForChat = userTeams[0]; // Fallback to first team
-                if (!teamForChat || !user.playerProfile) {
-                    setTimeout(() => setSection('hub'), 0);
-                    return null;
-                }
-                const currentUserAsPlayer = teamForChat.players.find(p => p.id === user.id) || user.playerProfile;
-                return <TeamChatView
-                    team={teamForChat}
-                    currentUser={currentUserAsPlayer}
-                    onBack={() => setSection('my-team')}
-                    onUpdateTeam={(updates) => onUpdateTeam(teamForChat.id, updates)}
-                />
-            }
-            default:
-                return <PlayerHub user={user} onSectionNavigate={setSection} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
-        }
-    };
-    
-    const socialSectionsWithDarkBg = ['hub', 'my-team'];
-    const hasDarkBg = socialSectionsWithDarkBg.includes(section);
-    const showExitButton = section !== 'chat';
-
-    return (
-        <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'} ${section === 'chat' ? 'p-0' : ''}`}>
-            {renderContent()}
-
-            {/* Exit DaviPlay Button */}
-            {showExitButton && (
-                <button
-                    onClick={() => onNavigate(View.HOME)}
-                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
-                    aria-label="Salir de DaviPlay"
-                >
-                    <LogoutIcon className="w-8 h-8" />
-                </button>
-            )}
-        </div>
-    );
-};
-
-// --- SUB-VIEWS ---
-
-const TournamentsView: React.FC<{
-    tournaments: Tournament[];
-    onBack: () => void;
-    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
-    user: User;
-}> = ({ tournaments, onBack, addNotification, user }) => {
-    return (
-        <div className="p-4 pb-[5.5rem] md:pb-4">
-            <BackButton onClick={onBack} text="Volver a DaviPlay" />
-            <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700 mt-6">
-                <TrophyIcon className="mx-auto h-16 w-16 text-gray-400" />
-                <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Próximamente: Torneos</h2>
-                <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                    ¡Estamos preparando todo para que puedas competir por la gloria! La sección de torneos estará disponible muy pronto.
-                </p>
-            </div>
-        </div>
-    );
-};
-
-const TeamProfileView: React.FC<{ team: Team, onBack: () => void }> = ({ team, onBack }) => {
-    const sortedHistory = (team.matchHistory || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    return (
-        <div className="p-4">
-             <BackButton onClick={onBack} text="Volver a Retar Equipos" />
-             <div className="bg-black/20 backdrop-blur-md border border-white/10 p-6 rounded-2xl">
-                <div className="flex items-center gap-4 mb-6">
-                    {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-20 h-20 rounded-full object-cover border-4 border-gray-700" /> : <ShieldIcon className="w-20 h-20 text-gray-400" />}
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
-                        <p className="font-semibold text-gray-400">{team.level}</p>
-                    </div>
-                </div>
-                 <div className="grid grid-cols-3 gap-4 text-center">
-                     <div>
-                         <p className="text-3xl font-black text-green-400">{team.stats.wins}</p>
-                         <p className="text-sm text-gray-400 font-semibold uppercase">Victorias</p>
-                     </div>
-                     <div>
-                         <p className="text-3xl font-black text-yellow-400">{team.stats.draws}</p>
-                         <p className="text-sm text-gray-400 font-semibold uppercase">Empates</p>
-                     </div>
-                     <div>
-                         <p className="text-3xl font-black text-red-400">{team.stats.losses}</p>
-                         <p className="text-sm text-gray-400 font-semibold uppercase">Derrotas</p>
-                     </div>
-                 </div>
-                 <div className="mt-8">
-                     <h3 className="text-xl font-bold mb-4">Historial de Partidos</h3>
-                     <div className="space-y-3">
-                        {sortedHistory.length > 0 ? (
-                            sortedHistory.map(match => {
-                                const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
-                                const scoreUs = (isTeamA ? match.scoreA : match.scoreB) ?? 0;
-                                const scoreThem = (isTeamA ? match.scoreB : match.scoreA) ?? 0;
-                                const opponent = isTeamA ? match.teamB : match.teamA;
-                                const opponentName = 'name' in opponent ? opponent.name : 'Rival';
-
-                                let result: 'G' | 'E' | 'P';
-                                let resultColor = '';
-                                if (scoreUs > scoreThem) {
-                                    result = 'G';
-                                    resultColor = 'bg-green-900/50 text-green-300';
-                                } else if (scoreUs < scoreThem) {
-                                    result = 'P';
-                                    resultColor = 'bg-red-900/50 text-red-300';
-                                } else {
-                                    result = 'E';
-                                    resultColor = 'bg-yellow-900/50 text-yellow-300';
-                                }
-                                
-                                return (
-                                    <div key={match.id} className="bg-white/5 p-3 rounded-lg flex items-center gap-4">
-                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-black text-lg ${resultColor}`}>{result}</div>
-                                        <div className="flex-grow">
-                                            <p className="font-semibold">vs. {opponentName}</p>
-                                            <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                                        </div>
-                                        <div className="font-bold text-lg">{scoreUs} - {scoreThem}</div>
-                                    </div>
-                                )
-                            })
-                        ) : (
-                            <p className="text-center text-sm text-gray-500">No hay partidos registrados.</p>
-                        )}
-                     </div>
-                 </div>
-             </div>
         </div>
     );
 };
