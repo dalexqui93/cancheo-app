@@ -7,6 +7,7 @@ interface PlayerMarkerProps {
     onPointerDown: (e: React.PointerEvent) => void;
     isDragged: boolean;
     isCaptain: boolean;
+    isDraggable: boolean;
 }
 
 const getPositionAbbreviation = (player: Player, position: { pos?: string }): string => {
@@ -20,14 +21,14 @@ const getPositionAbbreviation = (player: Player, position: { pos?: string }): st
     }
 };
 
-const PlayerMarker: React.FC<PlayerMarkerProps> = ({ player, position, onPointerDown, isDragged, isCaptain }) => {
+const PlayerMarker: React.FC<PlayerMarkerProps> = ({ player, position, onPointerDown, isDragged, isCaptain, isDraggable }) => {
     const lastName = player.name.split(' ').pop();
     const displayPosition = getPositionAbbreviation(player, position);
 
     return (
         <div
             onPointerDown={onPointerDown}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center shadow-md touch-none cursor-grab active:cursor-grabbing transition-opacity ${isDragged ? 'opacity-30' : 'opacity-100'}`}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center shadow-md ${isDraggable ? 'touch-none cursor-grab active:cursor-grabbing' : 'cursor-default'} transition-opacity ${isDragged ? 'opacity-30' : 'opacity-100'}`}
             style={{ left: `${position.x}%`, top: `${position.y}%` }}
         >
             <div className="relative">
@@ -55,9 +56,10 @@ interface FormationPitchProps {
     onPointerDown: (e: React.PointerEvent, playerId: string) => void;
     draggedPlayerId: string | undefined;
     captainId: string;
+    isDraggable: boolean;
 }
 
-const FormationPitch: React.FC<FormationPitchProps> = ({ pitchRef, players, positions, onPointerDown, draggedPlayerId, captainId }) => {
+const FormationPitch: React.FC<FormationPitchProps> = ({ pitchRef, players, positions, onPointerDown, draggedPlayerId, captainId, isDraggable }) => {
     return (
         <div className="w-full aspect-[7/10] max-w-lg mx-auto relative select-none">
             {/* Pitch Background */}
@@ -78,9 +80,10 @@ const FormationPitch: React.FC<FormationPitchProps> = ({ pitchRef, players, posi
                         key={player.id}
                         player={player}
                         position={positions[player.id]}
-                        onPointerDown={(e) => onPointerDown(e, player.id)}
+                        onPointerDown={(e) => isDraggable && onPointerDown(e, player.id)}
                         isDragged={draggedPlayerId === player.id}
                         isCaptain={captainId === player.id}
+                        isDraggable={isDraggable}
                     />
                 );
             })}

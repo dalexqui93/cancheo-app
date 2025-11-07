@@ -14,8 +14,9 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface PerformanceViewProps {
     team: Team;
+    isCaptain: boolean;
     onBack: () => void;
-    onUpdateTeam: (team: Team) => void;
+    onUpdateTeam: (team: Partial<Team>) => void;
 }
 
 type SortKey = keyof Player['stats'] | 'name';
@@ -143,7 +144,7 @@ const SortableHeader: React.FC<{
     );
 };
 
-const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdateTeam }) => {
+const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBack, onUpdateTeam }) => {
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'matchesPlayed', direction: 'desc' });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingMatch, setEditingMatch] = useState<Match | null>(null);
@@ -188,11 +189,13 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
     };
 
     const handleOpenModal = (match: Match | null) => {
+        if (!isCaptain) return;
         setEditingMatch(match);
         setIsModalOpen(true);
     };
 
     const handleSaveMatch = (data: { opponentName: string, scoreA: number, scoreB: number, date: string }) => {
+        if (!isCaptain) return;
         let updatedHistory: Match[];
 
         if (editingMatch) {
@@ -223,7 +226,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
     };
 
     const handleDeleteMatch = () => {
-        if (!matchToDelete) return;
+        if (!matchToDelete || !isCaptain) return;
         const updatedHistory = (team.matchHistory || []).filter(m => m.id !== matchToDelete.id);
         const newStats = recalculateTeamStats(updatedHistory, team.id);
         onUpdateTeam({ ...team, matchHistory: updatedHistory, stats: newStats });
@@ -255,10 +258,12 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl">
                 <div className="p-6 flex justify-between items-center">
                     <h2 className="text-xl font-bold">Historial de Partidos</h2>
-                    <button onClick={() => handleOpenModal(null)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
-                        <PlusIcon className="w-5 h-5" />
-                        Agregar Partido
-                    </button>
+                    {isCaptain && (
+                        <button onClick={() => handleOpenModal(null)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
+                            <PlusIcon className="w-5 h-5" />
+                            Agregar Partido
+                        </button>
+                    )}
                 </div>
                 {matchHistory.length > 0 ? (
                     <div className="space-y-3 p-6 pt-0">
@@ -273,8 +278,12 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
                                         <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
                                     </div>
                                     <div className="font-bold text-lg">{match.scoreA} - {match.scoreB}</div>
-                                    <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-[var(--color-primary-400)] hover:underline">Editar</button>
-                                    <button onClick={() => setMatchToDelete(match)} className="text-gray-400 hover:text-red-400 p-1 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    {isCaptain && (
+                                        <>
+                                            <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-[var(--color-primary-400)] hover:underline">Editar</button>
+                                            <button onClick={() => setMatchToDelete(match)} className="text-gray-400 hover:text-red-400 p-1 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                        </>
+                                    )}
                                 </div>
                             )
                         })}
@@ -319,7 +328,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, onBack, onUpdat
                     </table>
                 </div>
             </div>
-            {isModalOpen && <MatchModal match={editingMatch} onClose={() => setIsModalOpen(false)} onSave={handleSaveMatch} />}
+            {isModalOpen && isCaptain && <MatchModal match={editingMatch} onClose={() => setIsModalOpen(false)} onSave={handleSaveMatch} />}
             <ConfirmationModal
                 isOpen={!!matchToDelete}
                 onClose={() => setMatchToDelete(null)}

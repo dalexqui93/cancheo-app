@@ -9,6 +9,7 @@ import StarRating from '../../components/StarRating';
 
 interface RosterViewProps {
     team: Team;
+    isCaptain: boolean;
     onBack: () => void;
     onUpdatePlayer: (player: Player) => void;
     onAddPlayer: (player: Player) => void;
@@ -25,8 +26,8 @@ const levelToRating = (level: Player['level']): number => {
     }
 };
 
-const PlayerCard: React.FC<{ player: Player; isCaptain: boolean; onRemove: () => void; }> = ({ player, isCaptain, onRemove }) => (
-    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 relative">
+const PlayerCard: React.FC<{ player: Player; isCaptain: boolean; isViewingAsCaptain: boolean; onRemove: () => void; }> = ({ player, isCaptain, isViewingAsCaptain, onRemove }) => (
+    <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 relative group">
         <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
             {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-gray-400"/>}
         </div>
@@ -42,8 +43,8 @@ const PlayerCard: React.FC<{ player: Player; isCaptain: boolean; onRemove: () =>
             </div>
         </div>
         <div className="text-4xl font-black text-white/20">{player.number || '-'}</div>
-        {!isCaptain && (
-            <button onClick={onRemove} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-400 rounded-full hover:bg-white/10">
+        {isViewingAsCaptain && !isCaptain && (
+            <button onClick={onRemove} className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-400 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
                 <TrashIcon className="w-4 h-4" />
             </button>
         )}
@@ -84,7 +85,7 @@ const AddPlayerModal: React.FC<{
     </div>
 );
 
-const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, onAddPlayer, onRemovePlayer, allUsers }) => {
+const RosterView: React.FC<RosterViewProps> = ({ team, isCaptain, onBack, onUpdatePlayer, onAddPlayer, onRemovePlayer, allUsers }) => {
     const [isAddingPlayer, setIsAddingPlayer] = useState(false);
     
     const availablePlayers = allUsers
@@ -95,10 +96,12 @@ const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, o
         <div className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Plantilla del Equipo</h1>
-                <button onClick={() => setIsAddingPlayer(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
-                    <PlusIcon className="w-5 h-5" />
-                    Añadir Jugador
-                </button>
+                {isCaptain && (
+                    <button onClick={() => setIsAddingPlayer(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
+                        <PlusIcon className="w-5 h-5" />
+                        Añadir Jugador
+                    </button>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -107,6 +110,7 @@ const RosterView: React.FC<RosterViewProps> = ({ team, onBack, onUpdatePlayer, o
                         key={player.id} 
                         player={player} 
                         isCaptain={team.captainId === player.id}
+                        isViewingAsCaptain={isCaptain}
                         onRemove={() => onRemovePlayer(player.id)}
                     />
                 ))}
