@@ -114,7 +114,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                         </div>
                         <div>
                             <p className="font-bold text-gray-800 dark:text-gray-100">{post.authorName}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{timeSince(post.timestamp)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{post.timestamp ? timeSince(post.timestamp) : 'justo ahora'}</p>
                         </div>
                     </div>
                     <div className="relative group">
@@ -225,7 +225,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                                     {comment.isFlagged && <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 mt-1">Pendiente de revisión</p>}
                                 </div>
                                  <div className="flex items-center gap-2 mt-1 px-2">
-                                     <span className="text-xs text-gray-400">{timeSince(comment.timestamp)}</span>
+                                     <span className="text-xs text-gray-400">{comment.timestamp ? timeSince(comment.timestamp) : 'justo ahora'}</span>
                                      {/* Comment reactions can be added here if needed */}
                                  </div>
                             </div>

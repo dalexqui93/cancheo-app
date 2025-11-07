@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 /**
  * =============================================================================
@@ -135,4 +134,63 @@ interface ReviewTable {
 
 /**
  * Tabla `user_favorite_complexes` -> Se almacena como un array `favoriteFields` en el documento `user`
- *
+ */
+
+// =============================================================================
+// 4. COMUNIDAD Y FORO
+// =============================================================================
+
+/**
+ * Colección `posts`
+ * Almacena cada publicación del foro.
+ */
+interface PostDocument {
+  id: string; // PK -> ID del Documento
+  authorId: string; // FK -> ID del usuario
+  authorName: string;
+  authorProfilePicture: string | null;
+  createdAt: firebase.firestore.Timestamp;
+  updatedAt: firebase.firestore.Timestamp | null;
+  content: string;
+  imageUrl: string | null;
+  tags: string[];
+  isFlagged: boolean;
+  
+  // --- Campos Desnormalizados ---
+  commentCount: number; // Para mostrar el número de comentarios sin leer la subcolección
+  reactionCounts: { [emoji: string]: number }; // Mapa para contar reacciones rápidamente
+  
+  // --- Subcolecciones ---
+  // /posts/{postId}/comments -> Colección de comentarios
+  // /posts/{postId}/reactions -> Colección de reacciones al post
+}
+
+/**
+ * Subcolección `comments` (dentro de `posts/{postId}`)
+ * Almacena los comentarios de una publicación.
+ */
+interface CommentDocument {
+  id: string; // PK -> ID del Documento
+  authorId: string; // FK -> ID del usuario
+  authorName: string;
+  authorProfilePicture: string | null;
+  createdAt: firebase.firestore.Timestamp;
+  content: string;
+  isFlagged: boolean;
+
+  // --- Campos Desnormalizados ---
+  reactionCounts: { [emoji: string]: number };
+  
+  // --- Subcolecciones ---
+  // /posts/{postId}/comments/{commentId}/reactions -> Reacciones al comentario
+}
+
+/**
+ * Subcolección `reactions` (dentro de `posts/{postId}` O `comments/{commentId}`)
+ * Documento por usuario para evitar duplicados. El ID del documento es el `userId`.
+ */
+interface ReactionDocument {
+  // El ID del documento es el ID del usuario que reacciona
+  emoji: string; // El emoji con el que reaccionó
+  createdAt: firebase.firestore.Timestamp;
+}

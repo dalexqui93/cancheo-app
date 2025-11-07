@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Notification, ForumPost, ForumComment, SportsEmoji, ForumReaction } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import CreatePost from '../../components/forum/CreatePost';
@@ -6,45 +6,9 @@ import PostCard from '../../components/forum/PostCard';
 import EditPostModal from '../../components/forum/EditPostModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { GoogleGenAI } from '@google/genai';
+import * as db from '../../database';
+import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 
-const mockPostsData: ForumPost[] = [
-    {
-        id: 'post1',
-        authorId: 'u2',
-        authorName: 'Ana García',
-        authorProfilePicture: 'https://i.pravatar.cc/150?u=u2',
-        timestamp: new Date(new Date().getTime() - 1000 * 60 * 5),
-        content: '¡Qué partidazo el de anoche! El gol de último minuto fue increíble. ¿Creen que el equipo mantendrá este nivel en la final?',
-        imageUrl: 'https://picsum.photos/seed/partido1/1200/800',
-        tags: ['Fútbol', 'Debate'],
-        reactions: [
-            { emoji: '🔥', userIds: ['u1', 'u3'] },
-            { emoji: '⚽', userIds: ['u5'] },
-            { emoji: '🤯', userIds: ['u6'] },
-            { emoji: '🏆', userIds: ['u4'] }
-        ],
-        comments: [
-            { id: 'c1', authorId: 'u3', authorName: 'Luis Fernandez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u3', timestamp: new Date(new Date().getTime() - 1000 * 60 * 3), content: 'Totalmente de acuerdo, la defensa estuvo impecable.', reactions: [{ emoji: '👍', userIds: ['u2'] }] },
-            { id: 'c2', authorId: 'u1', authorName: 'Carlos Pérez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u1', timestamp: new Date(new Date().getTime() - 1000 * 60 * 2), content: 'No estoy tan seguro, el mediocampo perdió muchos balones en la segunda mitad. Hay que mejorar eso.', reactions: [] },
-            { id: 'c3', authorId: 'u4', authorName: 'Marta Gomez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u4', timestamp: new Date(new Date().getTime() - 1000 * 60 * 1), content: 'Concuerdo con Carlos. Si no ajustamos la presión en el medio, la final será muy difícil. El rival tiene jugadores muy rápidos.', reactions: [{ emoji: '👍', userIds: ['u1'] }] },
-        ],
-    },
-    {
-        id: 'post2',
-        authorId: 'u5',
-        authorName: 'Juan Rodriguez',
-        authorProfilePicture: 'https://i.pravatar.cc/150?u=u5',
-        timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2),
-        content: 'Análisis de apuestas para la jornada de mañana: creo que el equipo local tiene una cuota muy interesante de 2.5. El delantero estrella vuelve de lesión. ¿Qué opinan?',
-        tags: ['Apuestas'],
-        reactions: [
-            { emoji: '👍', userIds: ['u1', 'u6'] },
-            { emoji: '😂', userIds: ['u3'] },
-            { emoji: '😡', userIds: ['u4'] },
-        ],
-        comments: [],
-    },
-];
 
 const moderateContent = async (text: string): Promise<boolean> => {
     try {
@@ -69,29 +33,38 @@ interface SportsForumViewProps {
 }
 
 const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification, onBack }) => {
-    const [posts, setPosts] = useState<ForumPost[]>(mockPostsData);
+    const [posts, setPosts] = useState<ForumPost[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('Todos');
     const [editingPost, setEditingPost] = useState<ForumPost | null>(null);
     const [postToDelete, setPostToDelete] = useState<ForumPost | null>(null);
 
     const filters = ['Todos', 'Mis Publicaciones', 'Fútbol', 'Apuestas', 'Debate'];
 
+    useEffect(() => {
+        setIsLoading(true);
+        const unsubscribe = db.listenToPosts((fetchedPosts: ForumPost[]) => {
+            setPosts(fetchedPosts);
+            setIsLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
+
     const handleCreatePost = async (content: string, image: string | null, tags: string[]) => {
         const isFlagged = await moderateContent(content);
-        const newPost: ForumPost = {
-            id: `post-${Date.now()}`,
+        const newPostData = {
             authorId: user.id,
             authorName: user.name,
             authorProfilePicture: user.profilePicture,
-            timestamp: new Date(),
-            content: content,
-            imageUrl: image || undefined,
+            content,
+            imageUrl: image,
             tags: tags.length > 0 ? tags : ['General'],
-            reactions: [],
-            comments: [],
             isFlagged,
+            comments: [],
+            reactions: [],
         };
-        setPosts(prev => [newPost, ...prev]);
+        await db.addPost(newPostData);
         
         if (isFlagged) {
             addNotification({type: 'info', title: 'Publicación en Revisión', message: 'Tu publicación está pendiente de revisión por posible contenido inapropiado.'});
@@ -101,64 +74,39 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
     };
     
     const handleToggleReaction = (postId: string, commentId: string | null, emoji: SportsEmoji) => {
-        setPosts(posts => posts.map(p => {
-            if (p.id !== postId) return p;
-    
-            const updateReactions = (originalReactions: ForumReaction[]): ForumReaction[] => {
-                let userPreviousReaction: SportsEmoji | undefined;
-                originalReactions.forEach(r => {
-                    if (r.userIds.includes(user.id)) {
-                        userPreviousReaction = r.emoji;
-                    }
-                });
-    
-                let newReactions = [...originalReactions];
-    
-                if (userPreviousReaction) {
-                    newReactions = newReactions.map(r => {
-                        if (r.emoji === userPreviousReaction) {
-                            return { ...r, userIds: r.userIds.filter(id => id !== user.id) };
-                        }
-                        return r;
-                    }).filter(r => r.userIds.length > 0);
-                }
-    
-                if (userPreviousReaction !== emoji) {
-                    const reactionIndex = newReactions.findIndex(r => r.emoji === emoji);
-                    if (reactionIndex > -1) {
-                        newReactions = newReactions.map(r => r.emoji === emoji ? { ...r, userIds: [...r.userIds, user.id] } : r);
-                    } else {
-                        newReactions.push({ emoji, userIds: [user.id] });
-                    }
-                }
-                // Fix: A function whose declared type is neither 'undefined', 'void', nor 'any' must return a value.
-                return newReactions;
-            };
-    
-            if (commentId) {
-                return {
-                    ...p,
-                    comments: p.comments.map(c => {
-                        if (c.id !== commentId) return c;
-                        return { ...c, reactions: updateReactions(c.reactions) };
-                    })
-                };
-            } else {
-                return { ...p, reactions: updateReactions(p.reactions) };
-            }
-        }));
+        db.toggleReaction(postId, commentId, user.id, emoji);
     };
 
     const handleUpdatePost = (updatedPost: ForumPost) => {
-        setPosts(posts => posts.map(p => p.id === updatedPost.id ? updatedPost : p));
+        db.updatePost(updatedPost.id, {
+            content: updatedPost.content,
+            imageUrl: updatedPost.imageUrl,
+            tags: updatedPost.tags,
+        });
         setEditingPost(null);
     };
 
     const handleDeletePost = () => {
         if (!postToDelete) return;
-        setPosts(posts => posts.filter(p => p.id !== postToDelete.id));
+        db.deletePost(postToDelete.id);
         setPostToDelete(null);
     };
+
+    const handleAddComment = async (postId: string, content: string) => {
+        const isFlagged = await moderateContent(content);
+        const newCommentData = {
+            authorId: user.id,
+            authorName: user.name,
+            authorProfilePicture: user.profilePicture,
+            content,
+            isFlagged,
+        };
+        await db.addComment(postId, newCommentData);
+        if (isFlagged) {
+            addNotification({ type: 'info', title: 'Comentario en Revisión', message: 'Tu comentario está pendiente de revisión.' });
+        }
+    };
+
 
     const filteredPosts = useMemo(() => {
         if (activeFilter === 'Todos') return posts;
@@ -195,32 +143,19 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
 
             {/* Posts */}
             <div className="space-y-6">
-                {filteredPosts.map(post => (
+                {isLoading && <div className="text-center p-8"><SpinnerIcon className="w-8 h-8 mx-auto text-[var(--color-primary-500)]" /></div>}
+                {!isLoading && filteredPosts.length === 0 && (
+                    <div className="text-center py-12">
+                        <p className="text-gray-500 dark:text-gray-400">No hay publicaciones aquí. ¡Sé el primero en crear una!</p>
+                    </div>
+                )}
+                {!isLoading && filteredPosts.map(post => (
                     <PostCard
                         key={post.id}
                         post={post}
                         currentUser={user}
                         onToggleReaction={handleToggleReaction}
-                        onAddComment={async (postId, content) => {
-                            const isFlagged = await moderateContent(content);
-                            const newComment: ForumComment = {
-                                id: `comment-${Date.now()}`,
-                                authorId: user.id,
-                                authorName: user.name,
-                                authorProfilePicture: user.profilePicture,
-                                timestamp: new Date(),
-                                content,
-                                reactions: [],
-                                isFlagged,
-                            };
-                            setPosts(posts => posts.map(p => {
-                                if (p.id !== postId) return p;
-                                return { ...p, comments: [...p.comments, newComment] };
-                            }));
-                            if (isFlagged) {
-                                addNotification({ type: 'info', title: 'Comentario en Revisión', message: 'Tu comentario está pendiente de revisión.' });
-                            }
-                        }}
+                        onAddComment={handleAddComment}
                         addNotification={addNotification}
                         onEdit={setEditingPost}
                         onDelete={setPostToDelete}

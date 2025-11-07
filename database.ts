@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match } from './types';
+import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -96,6 +96,45 @@ const fieldsToSeed = (owner1Id: string, owner2Id: string): Omit<SoccerField, 'id
 
 const announcementsToSeed = (owner1Id: string) => [
     { title: '¡Torneo de Verano!', message: 'Inscripciones abiertas para nuestro torneo de verano en El Templo del Fútbol. ¡Grandes premios!', type: 'news', ownerId: owner1Id, complexName: 'El Templo del Fútbol' }
+];
+
+const mockPostsData: ForumPost[] = [
+    {
+        id: 'post1',
+        authorId: 'u2',
+        authorName: 'Ana García',
+        authorProfilePicture: 'https://i.pravatar.cc/150?u=u2',
+        timestamp: new Date(new Date().getTime() - 1000 * 60 * 5),
+        content: '¡Qué partidazo el de anoche! El gol de último minuto fue increíble. ¿Creen que el equipo mantendrá este nivel en la final?',
+        imageUrl: 'https://picsum.photos/seed/partido1/1200/800',
+        tags: ['Fútbol', 'Debate'],
+        reactions: [
+            { emoji: '🔥', userIds: ['u1', 'u3'] },
+            { emoji: '⚽', userIds: ['u5'] },
+            { emoji: '🤯', userIds: ['u6'] },
+            { emoji: '🏆', userIds: ['u4'] }
+        ],
+        comments: [
+            { id: 'c1', authorId: 'u3', authorName: 'Luis Fernandez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u3', timestamp: new Date(new Date().getTime() - 1000 * 60 * 3), content: 'Totalmente de acuerdo, la defensa estuvo impecable.', reactions: [{ emoji: '👍', userIds: ['u2'] }] },
+            { id: 'c2', authorId: 'u1', authorName: 'Carlos Pérez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u1', timestamp: new Date(new Date().getTime() - 1000 * 60 * 2), content: 'No estoy tan seguro, el mediocampo perdió muchos balones en la segunda mitad. Hay que mejorar eso.', reactions: [] },
+            { id: 'c3', authorId: 'u4', authorName: 'Marta Gomez', authorProfilePicture: 'https://i.pravatar.cc/150?u=u4', timestamp: new Date(new Date().getTime() - 1000 * 60 * 1), content: 'Concuerdo con Carlos. Si no ajustamos la presión en el medio, la final será muy difícil. El rival tiene jugadores muy rápidos.', reactions: [{ emoji: '👍', userIds: ['u1'] }] },
+        ],
+    },
+    {
+        id: 'post2',
+        authorId: 'u5',
+        authorName: 'Juan Rodriguez',
+        authorProfilePicture: 'https://i.pravatar.cc/150?u=u5',
+        timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2),
+        content: 'Análisis de apuestas para la jornada de mañana: creo que el equipo local tiene una cuota muy interesante de 2.5. El delantero estrella vuelve de lesión. ¿Qué opinan?',
+        tags: ['Apuestas'],
+        reactions: [
+            { emoji: '👍', userIds: ['u1', 'u6'] },
+            { emoji: '😂', userIds: ['u3'] },
+            { emoji: '😡', userIds: ['u4'] },
+        ],
+        comments: [],
+    },
 ];
 
 // --- Team & Player Mock Data (moved from SocialView) ---
@@ -262,6 +301,7 @@ const demoData = {
     ownerApplications: [],
     announcements: [],
     teams: [],
+    posts: [],
 };
 
 const initializeDemoData = () => {
@@ -276,6 +316,7 @@ const initializeDemoData = () => {
     demoData.announcements = announcementsToSeed('owner-1').map((a, i) => ({ id: `announcement-${i}`, ...a, createdAt: new Date() }));
     
     demoData.teams = mockTeams;
+    demoData.posts = mockPostsData;
 
     // Partidos de demostración para hoy
     const nowForBooking = new Date();
@@ -637,5 +678,180 @@ export const deleteField = async (fieldId) => {
         return db.collection('fields').doc(fieldId).delete();
     }
     demoData.fields = demoData.fields.filter(f => f.id !== fieldId);
+    return Promise.resolve();
+};
+
+// --- FORUM API ---
+
+const aggregateReactions = async (reactionsSnapshot) => {
+    const reactionsMap = new Map();
+    reactionsSnapshot.docs.forEach(doc => {
+        const reaction = doc.data();
+        const emoji = reaction.emoji;
+        const userId = doc.id;
+        if (!reactionsMap.has(emoji)) {
+            reactionsMap.set(emoji, []);
+        }
+        reactionsMap.get(emoji).push(userId);
+    });
+    return Array.from(reactionsMap.entries()).map(([emoji, userIds]) => ({ emoji, userIds }));
+};
+
+export const listenToPosts = (callback) => {
+    if (isFirebaseConfigured) {
+        return db.collection('posts').orderBy('createdAt', 'desc').onSnapshot(async (snapshot) => {
+            const posts = await Promise.all(snapshot.docs.map(async (doc) => {
+                const post = docToData(doc);
+                // Fetch comments
+                const commentsSnapshot = await db.collection('posts').doc(doc.id).collection('comments').orderBy('createdAt', 'asc').get();
+                const comments = await Promise.all(commentsSnapshot.docs.map(async (commentDoc) => {
+                    const comment = docToData(commentDoc);
+                    const commentReactionsSnapshot = await commentDoc.ref.collection('reactions').get();
+                    comment.reactions = await aggregateReactions(commentReactionsSnapshot);
+                    comment.timestamp = comment.createdAt; // compatibility
+                    return comment;
+                }));
+                // Fetch post reactions
+                const postReactionsSnapshot = await doc.ref.collection('reactions').get();
+                post.reactions = await aggregateReactions(postReactionsSnapshot);
+                post.comments = comments;
+                post.timestamp = post.createdAt; // compatibility
+                delete post.createdAt;
+                return post;
+            }));
+            callback(posts);
+        });
+    }
+    callback(demoData.posts);
+    return () => {}; // No-op for demo
+};
+
+export const addPost = async (postData) => {
+    if (isFirebaseConfigured) {
+        const { content, imageUrl, tags, authorId, authorName, authorProfilePicture, isFlagged } = postData;
+        const dataToSave = {
+            content,
+            imageUrl: imageUrl || null,
+            tags,
+            authorId,
+            authorName,
+            authorProfilePicture: authorProfilePicture || null,
+            isFlagged: isFlagged || false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: null,
+            commentCount: 0,
+            reactionCounts: {},
+        };
+        const docRef = await db.collection('posts').add(dataToSave);
+        return { id: docRef.id, ...postData, timestamp: new Date() };
+    }
+    const newPost = { id: `post-${Date.now()}`, ...postData, timestamp: new Date() };
+    demoData.posts.unshift(newPost);
+    return Promise.resolve(newPost);
+};
+
+export const updatePost = async (postId, updates) => {
+    if (isFirebaseConfigured) {
+        return db.collection('posts').doc(postId).update({
+            ...updates,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+    const postIndex = demoData.posts.findIndex(p => p.id === postId);
+    if (postIndex > -1) {
+        demoData.posts[postIndex] = { ...demoData.posts[postIndex], ...updates };
+    }
+    return Promise.resolve();
+};
+
+export const deletePost = async (postId) => {
+    if (isFirebaseConfigured) {
+        // En una app real, se borrarían las subcolecciones con una Cloud Function
+        return db.collection('posts').doc(postId).delete();
+    }
+    demoData.posts = demoData.posts.filter(p => p.id !== postId);
+    return Promise.resolve();
+};
+
+export const addComment = async (postId, commentData) => {
+    if (isFirebaseConfigured) {
+        const postRef = db.collection('posts').doc(postId);
+        const commentsRef = postRef.collection('comments');
+        const dataToSave = {
+            ...commentData,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            reactionCounts: {},
+        };
+        const docRef = await commentsRef.add(dataToSave);
+        await postRef.update({
+            commentCount: firebase.firestore.FieldValue.increment(1)
+        });
+        return { id: docRef.id, ...commentData, timestamp: new Date() };
+    }
+    const newComment = { id: `comment-${Date.now()}`, ...commentData, timestamp: new Date(), reactions: [] };
+    const postIndex = demoData.posts.findIndex(p => p.id === postId);
+    if (postIndex > -1) {
+        demoData.posts[postIndex].comments.push(newComment);
+    }
+    return Promise.resolve(newComment);
+};
+
+export const toggleReaction = async (postId, commentId, userId, emoji) => {
+    if (isFirebaseConfigured) {
+        const postRef = db.collection('posts').doc(postId);
+        let docRef;
+        let reactionsRef;
+        if (commentId) {
+            docRef = postRef.collection('comments').doc(commentId);
+            reactionsRef = docRef.collection('reactions');
+        } else {
+            docRef = postRef;
+            reactionsRef = docRef.collection('reactions');
+        }
+        const userReactionRef = reactionsRef.doc(userId);
+        return db.runTransaction(async (transaction) => {
+            const userReactionDoc = await transaction.get(userReactionRef);
+            const docSnapshot = await transaction.get(docRef);
+            const reactionCounts = docSnapshot.data().reactionCounts || {};
+            if (userReactionDoc.exists) {
+                const existingEmoji = userReactionDoc.data().emoji;
+                reactionCounts[existingEmoji] = (reactionCounts[existingEmoji] || 1) - 1;
+                if (existingEmoji === emoji) {
+                    transaction.delete(userReactionRef);
+                } else {
+                    transaction.set(userReactionRef, { emoji, createdAt: new Date() });
+                    reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+                }
+            } else {
+                transaction.set(userReactionRef, { emoji, createdAt: new Date() });
+                reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+            }
+            transaction.update(docRef, { reactionCounts });
+        });
+    }
+    const postIndex = demoData.posts.findIndex(p => p.id === postId);
+    if (postIndex === -1) return;
+    const post = demoData.posts[postIndex];
+    let targetObject;
+    if (commentId) {
+        const commentIndex = post.comments.findIndex(c => c.id === commentId);
+        if (commentIndex === -1) return;
+        targetObject = post.comments[commentIndex];
+    } else {
+        targetObject = post;
+    }
+    const userPreviousReaction = targetObject.reactions.find(r => r.userIds.includes(userId));
+    if (userPreviousReaction) {
+        userPreviousReaction.userIds = userPreviousReaction.userIds.filter(id => id !== userId);
+    }
+    if (!userPreviousReaction || userPreviousReaction.emoji !== emoji) {
+        const reaction = targetObject.reactions.find(r => r.emoji === emoji);
+        if (reaction) {
+            reaction.userIds.push(userId);
+        } else {
+            targetObject.reactions.push({ emoji, userIds: [userId] });
+        }
+    }
+    targetObject.reactions = targetObject.reactions.filter(r => r.userIds.length > 0);
     return Promise.resolve();
 };
