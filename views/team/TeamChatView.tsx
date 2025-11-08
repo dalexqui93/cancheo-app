@@ -363,9 +363,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
     useEffect(() => {
         if (!isLoading && !isSearching) {
-            messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+            messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
         }
-    }, [messages, attachment, isLoading, isSearching]);
+    }, [messages.length, attachment, isLoading, isSearching]);
 
      useEffect(() => {
         return () => {
@@ -409,7 +409,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         setSearchTerm('');
         setHighlightedMessageId(null);
         setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }, 100);
     };
     
@@ -637,14 +637,13 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="fixed inset-0 z-40 flex flex-col text-white animate-fade-in">
-            <div className="absolute inset-0 team-chat-bg"></div>
+        <div className="relative animate-fade-in team-chat-bg">
             <div className="absolute inset-0 bg-black/60"></div>
-    
-            <div className="relative z-10 flex flex-col flex-1 h-full">
+
+            <div className="relative">
                 {/* Header */}
-                <header className="flex-shrink-0 z-20 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-                     {isSearching ? (
+                <header className="sticky top-0 z-20 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+                    {isSearching ? (
                         <div className="flex items-center w-full gap-2 animate-fade-in">
                             <input
                                 type="text"
@@ -671,7 +670,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                     {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
                                 </div>
                                 <div className="text-left min-w-0">
-                                    <h2 className="font-bold text-lg truncate">{team.name}</h2>
+                                    <h2 className="font-bold text-lg truncate text-white">{team.name}</h2>
                                     <p className="text-xs text-gray-400">{team.players.length} miembros</p>
                                 </div>
                             </button>
@@ -683,7 +682,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </header>
     
                 {/* Messages */}
-                <main className="flex-grow overflow-y-auto px-4 py-4 min-h-0">
+                <main className="px-4 py-4 pt-24 pb-40">
                     {isLoading ? (
                         <div className="flex justify-center items-center h-full">
                             <SpinnerIcon className="w-8 h-8 text-amber-500" />
@@ -718,9 +717,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </main>
     
                 {/* Input */}
-                <footer className="flex-shrink-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+                <footer className="fixed bottom-0 left-0 right-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
                     {canSendMessage ? (
-                        <>
+                        <div className="container mx-auto">
                             {attachment && (
                                 <div className="relative p-2 mb-2 bg-gray-700 rounded-lg flex items-center gap-3">
                                     <div className="flex-shrink-0">
@@ -730,7 +729,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                             <FileIcon className="w-10 h-10 text-gray-400" />
                                         )}
                                     </div>
-                                    <p className="text-sm truncate flex-grow">{attachment.fileName}</p>
+                                    <p className="text-sm truncate flex-grow text-white">{attachment.fileName}</p>
                                     <button onClick={() => setAttachment(null)} className="p-1 rounded-full hover:bg-gray-600 flex-shrink-0">
                                         <XIcon className="w-4 h-4" />
                                     </button>
@@ -738,7 +737,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             )}
                             {replyingTo && (
                                 <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500">
-                                    <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
+                                    <p className="text-sm font-bold text-white">Respondiendo a {replyingTo.senderName}</p>
                                     <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
                                     <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
                                         <XIcon className="w-4 h-4" />
@@ -766,7 +765,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 {isRecording ? (
                                     <div className="flex-grow flex items-center justify-center gap-2 h-10 bg-gray-700 rounded-full px-4">
                                         <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
-                                        <span className="font-mono text-sm">{new Date(recordingTime * 1000).toISOString().substr(14, 5)}</span>
+                                        <span className="font-mono text-sm text-white">{new Date(recordingTime * 1000).toISOString().substr(14, 5)}</span>
                                     </div>
                                 ) : (
                                     <input
@@ -775,7 +774,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                         onChange={(e) => setInputText(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                         placeholder="Escribe un mensaje..."
-                                        className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                        className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                                     />
                                 )}
     
@@ -795,7 +794,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                     </button>
                                 )}
                             </div>
-                        </>
+                        </div>
                     ) : (
                         <div className="bg-gray-800 rounded-lg p-3 text-center flex items-center justify-center gap-2">
                             <BellSlashIcon className="w-5 h-5 text-gray-400" />
