@@ -409,7 +409,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         setSearchTerm('');
         setHighlightedMessageId(null);
         setTimeout(() => {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
         }, 100);
     };
     
@@ -637,12 +637,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="relative animate-fade-in team-chat-bg min-h-screen">
+        <div className="fixed inset-0 z-50 flex flex-col bg-gray-900 team-chat-bg animate-fade-in">
             <div className="absolute inset-0 bg-black/60"></div>
     
-            <div className="relative flex flex-col h-screen">
+            <div className="relative flex flex-col h-full">
                 {/* Header */}
-                <header className="fixed top-0 left-0 right-0 z-20 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+                <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-20">
                     {isSearching ? (
                         <div className="flex items-center w-full gap-2 animate-fade-in">
                             <input
@@ -682,7 +682,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </header>
     
                 {/* Messages */}
-                <main className="flex-grow overflow-y-auto px-4 py-4 pt-24 pb-40">
+                <main className="flex-grow overflow-y-auto px-4 py-4 min-h-0">
                     {isLoading ? (
                         <div className="flex justify-center items-center h-full">
                             <SpinnerIcon className="w-8 h-8 text-amber-500" />
@@ -717,7 +717,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </main>
     
                 {/* Input */}
-                <footer className="fixed bottom-0 left-0 right-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+                <footer className="flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm z-20">
                     {canSendMessage ? (
                         <div className="container mx-auto">
                             {attachment && (
