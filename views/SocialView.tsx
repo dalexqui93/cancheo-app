@@ -653,7 +653,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
     
     const socialSectionsWithDarkBg = ['hub', 'my-team'];
     const hasDarkBg = socialSectionsWithDarkBg.includes(section);
-    const showExitButton = true;
+    const showExitButton = section !== 'chat';
 
     return (
         <div className={`animate-fade-in relative ${hasDarkBg ? 'text-white' : 'text-gray-800 dark:text-gray-200'} ${section === 'chat' ? 'p-0' : ''}`}>

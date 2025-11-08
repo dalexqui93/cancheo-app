@@ -169,7 +169,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
 
 
 const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection, onRemovePlayerFromTeam, onLeaveTeam, setActiveChatTeam }) => {
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(userTeams.length === 1 ? userTeams[0] : null);
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [isCreating, setIsCreating] = useState(userTeams.length === 0);
     const [view, setView] = useState<TeamView>('dashboard');
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
