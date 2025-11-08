@@ -637,176 +637,180 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="min-h-screen flex flex-col text-white animate-fade-in team-chat-bg">
-            <div className="absolute inset-0 bg-black/60 z-0"></div>
-             {/* Header */}
-            <header className="sticky top-0 z-20 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-                 {isSearching ? (
-                    <div className="flex items-center w-full gap-2 animate-fade-in">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            placeholder="Buscar en el chat..."
-                            className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                            autoFocus
-                        />
-                        {searchResults.length > 0 && (
-                            <span className="text-sm font-mono text-gray-400 whitespace-nowrap">{currentResultIndex + 1}/{searchResults.length}</span>
-                        )}
-                        <button onClick={handlePrevResult} disabled={searchResults.length < 2} className="p-2 rounded-full hover:bg-gray-700 text-gray-300 disabled:opacity-50"><ChevronUpIcon className="w-5 h-5"/></button>
-                        <button onClick={handleNextResult} disabled={searchResults.length < 2} className="p-2 rounded-full hover:bg-gray-700 text-gray-300 disabled:opacity-50"><ChevronDownIcon className="w-5 h-5"/></button>
-                        <button onClick={handleCloseSearch} className="p-2 rounded-full hover:bg-gray-700 text-gray-300"><XIcon className="w-5 h-5"/></button>
-                    </div>
-                ) : (
-                    <>
-                        <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
-                            <ChevronLeftIcon className="w-6 h-6" />
-                        </button>
-                        <button onClick={() => setCurrentView('info')} className="flex items-center flex-grow min-w-0">
-                            <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
-                                {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
-                            </div>
-                            <div className="text-left min-w-0">
-                                <h2 className="font-bold text-lg truncate">{team.name}</h2>
-                                <p className="text-xs text-gray-400">{team.players.length} miembros</p>
-                            </div>
-                        </button>
-                        <button onClick={handleOpenSearch} className="p-2 rounded-full text-gray-300 hover:text-white ml-auto">
-                            <SearchIcon className="w-6 h-6" />
-                        </button>
-                    </>
-                )}
-            </header>
-
-            {/* Messages */}
-            <main className="flex-grow p-4 pt-4 pb-24 z-10 overflow-y-auto">
-                {isLoading ? (
-                    <div className="flex justify-center items-center h-full">
-                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
-                    </div>
-                ) : filteredMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {filteredMessages.map(msg => (
-                            <ChatMessageBubble 
-                                key={msg.id} 
-                                message={msg} 
-                                isCurrentUser={msg.senderId === currentUser.id} 
-                                currentUser={currentUser}
-                                onReply={handleReply} 
-                                onDelete={handleDeleteMessage}
-                                onDeleteForEveryone={handleDeleteForEveryone}
-                                onMarkAsRead={handleMarkAsRead}
-                                teamPlayerCount={team.players.length}
-                                onOpenLightbox={setLightboxImage}
-                                onScrollToMessage={handleScrollToMessage}
-                                highlightedMessageId={highlightedMessageId}
-                                highlightTerm={isSearching ? searchTerm : null}
+        <div className="fixed inset-0 z-40 flex flex-col text-white animate-fade-in">
+            <div className="absolute inset-0 team-chat-bg"></div>
+            <div className="absolute inset-0 bg-black/60"></div>
+    
+            <div className="relative z-10 flex flex-col flex-1 h-full">
+                {/* Header */}
+                <header className="flex-shrink-0 z-20 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+                     {isSearching ? (
+                        <div className="flex items-center w-full gap-2 animate-fade-in">
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="Buscar en el chat..."
+                                className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                autoFocus
                             />
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
-            </main>
-
-            {/* Input */}
-            <footer className="fixed bottom-0 left-0 right-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
-                {canSendMessage ? (
-                    <>
-                        {attachment && (
-                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg flex items-center gap-3">
-                                <div className="flex-shrink-0">
-                                    {attachment.mimeType.startsWith('image/') ? (
-                                        <img src={attachment.dataUrl} alt="preview" className="w-10 h-10 rounded object-cover" />
-                                    ) : (
-                                        <FileIcon className="w-10 h-10 text-gray-400" />
-                                    )}
-                                </div>
-                                <p className="text-sm truncate flex-grow">{attachment.fileName}</p>
-                                <button onClick={() => setAttachment(null)} className="p-1 rounded-full hover:bg-gray-600 flex-shrink-0">
-                                    <XIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                        {replyingTo && (
-                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500">
-                                <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
-                                <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
-                                <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
-                                    <XIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                        {showEmojis && (
-                            <div className="p-2 mb-2 bg-gray-700 rounded-lg grid grid-cols-8 gap-2">
-                                {EMOJIS.map(emoji => (
-                                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="p-2 text-2xl rounded-lg hover:bg-gray-600 transition-colors">
-                                        {emoji}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                            <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
-                                <PaperclipIcon className="w-6 h-6" />
-                            </button>
-                            <button onClick={() => setShowEmojis(prev => !prev)} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
-                                <FaceSmileIcon className="w-6 h-6" />
-                            </button>
-                            
-                            {isRecording ? (
-                                <div className="flex-grow flex items-center justify-center gap-2 h-10 bg-gray-700 rounded-full px-4">
-                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
-                                    <span className="font-mono text-sm">{new Date(recordingTime * 1000).toISOString().substr(14, 5)}</span>
-                                </div>
-                            ) : (
-                                <input
-                                    type="text"
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder="Escribe un mensaje..."
-                                    className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                />
+                            {searchResults.length > 0 && (
+                                <span className="text-sm font-mono text-gray-400 whitespace-nowrap">{currentResultIndex + 1}/{searchResults.length}</span>
                             )}
-
-                            {(inputText.trim() || attachment) ? (
-                                <button onClick={() => handleSendMessage()} className="p-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 shadow-sm transition-colors" disabled={!inputText.trim() && !attachment}>
-                                    <PaperAirplaneIcon className="w-5 h-5" />
-                                </button>
-                            ) : (
-                                <button
-                                    onMouseDown={(e) => handleStartRecording(e)}
-                                    onMouseUp={(e) => handleStopRecording(e)}
-                                    onTouchStart={(e) => handleStartRecording(e)}
-                                    onTouchEnd={(e) => handleStopRecording(e)}
-                                    className={`p-3 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-amber-600'} text-white shadow-sm`}
-                                >
-                                    <MicrophoneIcon className="w-5 h-5" />
-                                </button>
-                            )}
+                            <button onClick={handlePrevResult} disabled={searchResults.length < 2} className="p-2 rounded-full hover:bg-gray-700 text-gray-300 disabled:opacity-50"><ChevronUpIcon className="w-5 h-5"/></button>
+                            <button onClick={handleNextResult} disabled={searchResults.length < 2} className="p-2 rounded-full hover:bg-gray-700 text-gray-300 disabled:opacity-50"><ChevronDownIcon className="w-5 h-5"/></button>
+                            <button onClick={handleCloseSearch} className="p-2 rounded-full hover:bg-gray-700 text-gray-300"><XIcon className="w-5 h-5"/></button>
                         </div>
-                    </>
-                ) : (
-                    <div className="bg-gray-800 rounded-lg p-3 text-center flex items-center justify-center gap-2">
-                        <BellSlashIcon className="w-5 h-5 text-gray-400" />
-                        <p className="text-sm font-semibold text-gray-400">Solo los capitanes pueden enviar mensajes.</p>
-                    </div>
+                    ) : (
+                        <>
+                            <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
+                                <ChevronLeftIcon className="w-6 h-6" />
+                            </button>
+                            <button onClick={() => setCurrentView('info')} className="flex items-center flex-grow min-w-0">
+                                <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
+                                    {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                                </div>
+                                <div className="text-left min-w-0">
+                                    <h2 className="font-bold text-lg truncate">{team.name}</h2>
+                                    <p className="text-xs text-gray-400">{team.players.length} miembros</p>
+                                </div>
+                            </button>
+                            <button onClick={handleOpenSearch} className="p-2 rounded-full text-gray-300 hover:text-white ml-auto">
+                                <SearchIcon className="w-6 h-6" />
+                            </button>
+                        </>
+                    )}
+                </header>
+    
+                {/* Messages */}
+                <main className="flex-grow overflow-y-auto px-4 py-4 min-h-0">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full">
+                            <SpinnerIcon className="w-8 h-8 text-amber-500" />
+                        </div>
+                    ) : filteredMessages.length === 0 ? (
+                        <div className="text-center text-gray-400 pt-20">
+                            <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                            <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {filteredMessages.map(msg => (
+                                <ChatMessageBubble 
+                                    key={msg.id} 
+                                    message={msg} 
+                                    isCurrentUser={msg.senderId === currentUser.id} 
+                                    currentUser={currentUser}
+                                    onReply={handleReply} 
+                                    onDelete={handleDeleteMessage}
+                                    onDeleteForEveryone={handleDeleteForEveryone}
+                                    onMarkAsRead={handleMarkAsRead}
+                                    teamPlayerCount={team.players.length}
+                                    onOpenLightbox={setLightboxImage}
+                                    onScrollToMessage={handleScrollToMessage}
+                                    highlightedMessageId={highlightedMessageId}
+                                    highlightTerm={isSearching ? searchTerm : null}
+                                />
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                    )}
+                </main>
+    
+                {/* Input */}
+                <footer className="flex-shrink-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+                    {canSendMessage ? (
+                        <>
+                            {attachment && (
+                                <div className="relative p-2 mb-2 bg-gray-700 rounded-lg flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                        {attachment.mimeType.startsWith('image/') ? (
+                                            <img src={attachment.dataUrl} alt="preview" className="w-10 h-10 rounded object-cover" />
+                                        ) : (
+                                            <FileIcon className="w-10 h-10 text-gray-400" />
+                                        )}
+                                    </div>
+                                    <p className="text-sm truncate flex-grow">{attachment.fileName}</p>
+                                    <button onClick={() => setAttachment(null)} className="p-1 rounded-full hover:bg-gray-600 flex-shrink-0">
+                                        <XIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                            {replyingTo && (
+                                <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500">
+                                    <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
+                                    <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
+                                    <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
+                                        <XIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                            {showEmojis && (
+                                <div className="p-2 mb-2 bg-gray-700 rounded-lg grid grid-cols-8 gap-2">
+                                    {EMOJIS.map(emoji => (
+                                        <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="p-2 text-2xl rounded-lg hover:bg-gray-600 transition-colors">
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                                <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
+                                    <PaperclipIcon className="w-6 h-6" />
+                                </button>
+                                <button onClick={() => setShowEmojis(prev => !prev)} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
+                                    <FaceSmileIcon className="w-6 h-6" />
+                                </button>
+                                
+                                {isRecording ? (
+                                    <div className="flex-grow flex items-center justify-center gap-2 h-10 bg-gray-700 rounded-full px-4">
+                                        <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
+                                        <span className="font-mono text-sm">{new Date(recordingTime * 1000).toISOString().substr(14, 5)}</span>
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={inputText}
+                                        onChange={(e) => setInputText(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                        placeholder="Escribe un mensaje..."
+                                        className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    />
+                                )}
+    
+                                {(inputText.trim() || attachment) ? (
+                                    <button onClick={() => handleSendMessage()} className="p-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 shadow-sm transition-colors" disabled={!inputText.trim() && !attachment}>
+                                        <PaperAirplaneIcon className="w-5 h-5" />
+                                    </button>
+                                ) : (
+                                    <button
+                                        onMouseDown={(e) => handleStartRecording(e)}
+                                        onMouseUp={(e) => handleStopRecording(e)}
+                                        onTouchStart={(e) => handleStartRecording(e)}
+                                        onTouchEnd={(e) => handleStopRecording(e)}
+                                        className={`p-3 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-amber-600'} text-white shadow-sm`}
+                                    >
+                                        <MicrophoneIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="bg-gray-800 rounded-lg p-3 text-center flex items-center justify-center gap-2">
+                            <BellSlashIcon className="w-5 h-5 text-gray-400" />
+                            <p className="text-sm font-semibold text-gray-400">Solo los capitanes pueden enviar mensajes.</p>
+                        </div>
+                    )}
+                </footer>
+                {lightboxImage && (
+                    <ImageLightbox
+                        images={[lightboxImage]}
+                        startIndex={0}
+                        onClose={() => setLightboxImage(null)}
+                    />
                 )}
-            </footer>
-            {lightboxImage && (
-                <ImageLightbox
-                    images={[lightboxImage]}
-                    startIndex={0}
-                    onClose={() => setLightboxImage(null)}
-                />
-            )}
+            </div>
         </div>
     );
 };
