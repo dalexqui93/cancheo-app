@@ -117,16 +117,18 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             };
             setMessages(prev => [...prev, newMessage]);
 
-            const messageData = { ...newMessage };
-            delete (messageData as any).id;
-            delete (messageData as any).timestamp;
+            const { id, timestamp, ...messageData } = newMessage;
+            
+            // Sanitize the object to remove undefined properties before sending to Firestore
+            Object.keys(messageData).forEach(key => (messageData as any)[key] === undefined && delete (messageData as any)[key]);
+
 
             setInputText('');
             setReplyingTo(null);
             setShowEmojis(false);
             
             try {
-                await db.addChatMessage(team.id, messageData);
+                await db.addChatMessage(team.id, messageData as Omit<ChatMessage, 'id' | 'timestamp'>);
             } catch (error) {
                 console.error("Error al enviar el mensaje:", String(error));
                 // Revert optimistic update on failure

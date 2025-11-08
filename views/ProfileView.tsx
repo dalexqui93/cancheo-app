@@ -24,6 +24,7 @@ import { EyeIcon } from '../components/icons/EyeIcon';
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { ShieldIcon } from '../components/icons/ShieldIcon';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface ProfileViewProps {
     user: User;
@@ -375,6 +376,7 @@ const NotificationPreferences: React.FC<{
 const ProfileView: React.FC<ProfileViewProps> = ({ user, allTeams, setSocialSection, onLogout, allFields, onToggleFavorite, onSelectField, onUpdateProfilePicture, onRemoveProfilePicture, onUpdateUser, onChangePassword, onUpdateNotificationPreferences, onNavigate, setIsPremiumModalOpen }) => {
     
     const [mode, setMode] = useState<'main' | 'editInfo' | 'editNotifications'>('main');
+    const [isRemovePictureModalOpen, setIsRemovePictureModalOpen] = useState(false);
     
     const favoriteComplexes = user.favoriteFields.map(complexId => {
         return allFields.filter(field => (field.complexId || field.id) === complexId);
@@ -423,7 +425,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, allTeams, setSocialSect
                  <ProfilePicture 
                     user={user}
                     onUpdate={onUpdateProfilePicture}
-                    onRemove={onRemoveProfilePicture}
+                    onRemove={() => setIsRemovePictureModalOpen(true)}
                  />
                 <h1 className="text-3xl font-bold mt-4">{user.name}</h1>
                 <p className="opacity-80 mt-1">{user.email}</p>
@@ -523,6 +525,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, allTeams, setSocialSect
                      </div>
                 </div>
             </div>
+            {isRemovePictureModalOpen && (
+                <ConfirmationModal
+                    isOpen={isRemovePictureModalOpen}
+                    onClose={() => setIsRemovePictureModalOpen(false)}
+                    onConfirm={() => {
+                        onRemoveProfilePicture();
+                        setIsRemovePictureModalOpen(false);
+                    }}
+                    title="¿Eliminar foto de perfil?"
+                    message="Tu foto de perfil será eliminada permanentemente. ¿Estás seguro?"
+                    confirmButtonText="Sí, eliminar"
+                />
+            )}
         </div>
     );
 };

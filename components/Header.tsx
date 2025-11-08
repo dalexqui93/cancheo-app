@@ -12,6 +12,7 @@ import { BellIcon } from './icons/BellIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { ShieldIcon } from './icons/ShieldIcon';
+import ConfirmationModal from './ConfirmationModal';
 
 
 interface HeaderProps {
@@ -77,6 +78,7 @@ const InvitationCard: React.FC<{
 const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, invitations, onDismiss, onMarkAllAsRead, onClearAll, onAcceptInvitation, onRejectInvitation, currentTime }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
     const notificationsRef = useRef<HTMLDivElement>(null);
 
@@ -220,7 +222,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                         </div>
                                         {notifications.length > 0 && (
                                             <div className="p-2 border-t border-black/10 dark:border-white/10 flex-shrink-0">
-                                                <button onClick={onClearAll} className="w-full text-center text-sm font-semibold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 py-2 rounded-md transition-colors">
+                                                <button onClick={() => setIsClearAllModalOpen(true)} className="w-full text-center text-sm font-semibold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 py-2 rounded-md transition-colors">
                                                     Limpiar todo
                                                 </button>
                                             </div>
@@ -284,6 +286,19 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                     )}
                 </nav>
             </div>
+            {isClearAllModalOpen && (
+                <ConfirmationModal
+                    isOpen={isClearAllModalOpen}
+                    onClose={() => setIsClearAllModalOpen(false)}
+                    onConfirm={() => {
+                        onClearAll();
+                        setIsClearAllModalOpen(false);
+                    }}
+                    title="¿Limpiar todas las notificaciones?"
+                    message="Esta acción no se puede deshacer y eliminará permanentemente todas tus notificaciones."
+                    confirmButtonText="Sí, limpiar todo"
+                />
+            )}
         </header>
     );
 };

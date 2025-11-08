@@ -6,6 +6,7 @@ import { UserIcon } from '../../components/icons/UserIcon';
 import { TrashIcon } from '../../components/icons/TrashIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import StarRating from '../../components/StarRating';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface RosterViewProps {
     team: Team;
@@ -87,11 +88,19 @@ const AddPlayerModal: React.FC<{
 
 const RosterView: React.FC<RosterViewProps> = ({ team, isCaptain, onBack, onUpdatePlayer, onAddPlayer, onRemovePlayer, allUsers }) => {
     const [isAddingPlayer, setIsAddingPlayer] = useState(false);
+    const [playerToRemove, setPlayerToRemove] = useState<Player | null>(null);
     
     const availablePlayers = allUsers
         .filter(u => u.playerProfile && !team.players.some(tp => tp.id === u.id))
         .map(u => u.playerProfile!);
     
+    const handleConfirmRemove = () => {
+        if (playerToRemove) {
+            onRemovePlayer(playerToRemove.id);
+        }
+        setPlayerToRemove(null);
+    };
+
     return (
         <div className="animate-fade-in">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -111,7 +120,7 @@ const RosterView: React.FC<RosterViewProps> = ({ team, isCaptain, onBack, onUpda
                         player={player} 
                         isCaptainOfTeam={team.captainId === player.id}
                         canRemove={isCaptain && team.captainId !== player.id}
-                        onRemove={() => onRemovePlayer(player.id)}
+                        onRemove={() => setPlayerToRemove(player)}
                     />
                 ))}
             </div>
@@ -123,6 +132,15 @@ const RosterView: React.FC<RosterViewProps> = ({ team, isCaptain, onBack, onUpda
                     onClose={() => setIsAddingPlayer(false)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!playerToRemove}
+                onClose={() => setPlayerToRemove(null)}
+                onConfirm={handleConfirmRemove}
+                title={`¿Expulsar a ${playerToRemove?.name}?`}
+                message="Esta acción eliminará al jugador del equipo. El jugador será notificado de su expulsión."
+                confirmButtonText="Sí, expulsar"
+            />
         </div>
     );
 };
