@@ -637,12 +637,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="min-h-screen flex flex-col text-white team-chat-bg">
+        <div className="min-h-screen flex flex-col text-white animate-fade-in team-chat-bg">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
-            
-            {/* Header */}
+             {/* Header */}
             <header className="sticky top-0 z-20 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-                {isSearching ? (
+                 {isSearching ? (
                     <div className="flex items-center w-full gap-2 animate-fade-in">
                         <input
                             type="text"
@@ -681,7 +680,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main className="flex-grow p-4 space-y-4 pt-4 z-10 overflow-y-auto">
+            <main className="flex-grow p-4 pt-4 pb-24 z-10 overflow-y-auto">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
@@ -692,7 +691,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                         <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
                     </div>
                 ) : (
-                    <>
+                    <div className="space-y-4">
                         {filteredMessages.map(msg => (
                             <ChatMessageBubble 
                                 key={msg.id} 
@@ -711,12 +710,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             />
                         ))}
                         <div ref={messagesEndRef} />
-                    </>
+                    </div>
                 )}
             </main>
 
             {/* Input */}
-            <footer className="z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+            <footer className="fixed bottom-0 left-0 right-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
                 {canSendMessage ? (
                     <>
                         {attachment && (
