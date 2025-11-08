@@ -233,9 +233,17 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
             addNotification({type: 'success', title: 'Jugador Actualizado', message: `${updatedPlayer.name} ha sido actualizado.`})
         };
     
-        const handleAddPlayer = (newPlayer: Player) => {
+        const handleAddPlayer = async (newPlayer: Player) => {
             const updatedPlayers = [...team.players, newPlayer];
-            onUpdateTeam(team.id, { players: updatedPlayers });
+            await onUpdateTeam(team.id, { players: updatedPlayers });
+
+            const systemMessageData = {
+                senderId: 'system',
+                senderName: 'Sistema',
+                text: `${newPlayer.name} ha sido añadido al equipo por el capitán. ¡Bienvenido!`,
+            };
+            await db.addChatMessage(team.id, systemMessageData);
+
             addNotification({type: 'success', title: 'Jugador Añadido', message: `${newPlayer.name} se ha unido al equipo.`})
         };
         
