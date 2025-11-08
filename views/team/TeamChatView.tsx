@@ -108,13 +108,14 @@ const ChatMessageBubble: React.FC<{
 
             // Only decide on a direction after a small threshold is passed.
             if (absDeltaX > 10 || absDeltaY > 10) {
-                // If horizontal movement is significantly greater than vertical, it's a swipe.
-                if (absDeltaX > absDeltaY * 2) {
-                    gestureInfo.direction = 'horizontal';
-                } else {
-                    // Otherwise, it's a scroll. Lock it in and let the browser handle it.
+                // If vertical movement is greater than horizontal, it's a scroll.
+                // This is more forgiving for diagonal scroll gestures.
+                if (absDeltaY > absDeltaX) {
                     gestureInfo.direction = 'vertical';
-                    return;
+                    return; // Let the browser handle scrolling.
+                } else {
+                    // Otherwise, it's a horizontal swipe.
+                    gestureInfo.direction = 'horizontal';
                 }
             }
         }
