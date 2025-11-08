@@ -252,7 +252,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
     const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingIntervalRef = useRef<number | null>(null);
@@ -264,25 +263,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         return stored ? new Set(JSON.parse(stored)) : new Set();
     });
     
-    // Effect to control body scroll, crucial for web-view wrappers
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const setHeight = () => {
-            container.style.height = `${window.innerHeight}px`;
-        };
-
-        setHeight();
-        window.addEventListener('resize', setHeight);
-        window.addEventListener('orientationchange', setHeight);
-
-        return () => {
-            window.removeEventListener('resize', setHeight);
-            window.removeEventListener('orientationchange', setHeight);
-        };
-    }, []);
-
     useEffect(() => {
         setIsLoading(true);
         const unsubscribe = db.listenToTeamChat(team.id, (fetchedMessages) => {
@@ -518,10 +498,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div ref={containerRef} className="flex flex-col text-white animate-fade-in team-chat-bg fixed inset-0 z-20">
+        <div className="min-h-screen flex flex-col text-white animate-fade-in team-chat-bg">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
              {/* Header */}
-            <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+            <header className="sticky top-0 z-20 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
                 <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
                     <ChevronLeftIcon className="w-6 h-6" />
                 </button>
@@ -537,43 +517,41 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main className="relative z-10 flex-grow min-h-0 flex flex-col">
-                <div className="flex-grow p-4 overflow-y-auto overscroll-contain">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-full">
-                            <SpinnerIcon className="w-8 h-8 text-amber-500" />
-                        </div>
-                    ) : filteredMessages.length === 0 ? (
-                        <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                            <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                            <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filteredMessages.map(msg => (
-                                <ChatMessageBubble 
-                                    key={msg.id} 
-                                    message={msg} 
-                                    isCurrentUser={msg.senderId === currentUser.id} 
-                                    currentUser={currentUser}
-                                    onReply={handleReply} 
-                                    onDelete={handleDeleteMessage}
-                                    onDeleteForEveryone={handleDeleteForEveryone}
-                                    onMarkAsRead={handleMarkAsRead}
-                                    teamPlayerCount={team.players.length}
-                                    onOpenLightbox={setLightboxImage}
-                                    onScrollToMessage={handleScrollToMessage}
-                                    highlightedMessageId={highlightedMessageId}
-                                />
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </div>
+            <main className="flex-grow p-4 pt-4 pb-24 z-10">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
+                    </div>
+                ) : filteredMessages.length === 0 ? (
+                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {filteredMessages.map(msg => (
+                            <ChatMessageBubble 
+                                key={msg.id} 
+                                message={msg} 
+                                isCurrentUser={msg.senderId === currentUser.id} 
+                                currentUser={currentUser}
+                                onReply={handleReply} 
+                                onDelete={handleDeleteMessage}
+                                onDeleteForEveryone={handleDeleteForEveryone}
+                                onMarkAsRead={handleMarkAsRead}
+                                teamPlayerCount={team.players.length}
+                                onOpenLightbox={setLightboxImage}
+                                onScrollToMessage={handleScrollToMessage}
+                                highlightedMessageId={highlightedMessageId}
+                            />
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </div>
+                )}
             </main>
 
             {/* Input */}
-            <footer className="relative z-10 flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+            <footer className="fixed bottom-0 left-0 right-0 z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
                 {canSendMessage ? (
                     <>
                         {attachment && (
