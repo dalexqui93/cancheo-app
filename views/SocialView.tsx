@@ -350,9 +350,9 @@ const TeamChallengeCard: React.FC<{
 }> = ({ team, isCaptain, isMyTeam, onChallenge, onViewProfile }) => (
     <div 
         onClick={() => onViewProfile(team)}
-        className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+        className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md border dark:border-gray-700 flex items-center justify-between gap-2 sm:gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
     >
-        <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-4 min-w-0 flex-grow">
             <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {team.logo ? (
                     <img src={team.logo} alt={team.name} className="w-full h-full object-cover" />
@@ -365,7 +365,7 @@ const TeamChallengeCard: React.FC<{
                 <p className="text-sm text-gray-500 dark:text-gray-400">{team.level}</p>
                  {team.distance !== undefined && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                        <LocationIcon className="w-3 h-3"/> {team.distance.toFixed(1)} km
+                        <LocationIcon className="w-3 h-3"/> {isFinite(team.distance) ? `${team.distance.toFixed(1)} km` : 'N/A'}
                     </p>
                 )}
             </div>
@@ -434,12 +434,12 @@ const ChallengeView: React.FC<{
     }
 
     return (
-        <div className="p-4 pb-[5.5rem] md:pb-4">
+        <div className="p-4 pb-28 md:pb-4">
             <BackButton onClick={onBack} text="Volver a DaviPlay" />
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Retar un Equipo</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra un rival y desafíalo a un partido amistoso.</p>
             
-            <div className="mt-6 space-y-4 sticky top-0 bg-slate-50 dark:bg-gray-900 py-4 z-10">
+            <div className="mt-6 space-y-4">
                 <div className="relative">
                     <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                     <input 
@@ -450,16 +450,18 @@ const ChallengeView: React.FC<{
                         className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                 </div>
-                <div className="flex space-x-2">
-                    {(['All', 'Casual', 'Intermedio', 'Competitivo'] as const).map(level => (
-                        <button
-                            key={level}
-                            onClick={() => setLevelFilter(level)}
-                            className={`py-1.5 px-4 rounded-full text-sm font-semibold transition flex-grow ${levelFilter === level ? 'bg-amber-600 text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600'}`}
-                        >
-                            {level === 'All' ? 'Todos' : level}
-                        </button>
-                    ))}
+                <div className="overflow-x-auto scrollbar-hide">
+                    <div className="flex space-x-2">
+                        {(['All', 'Casual', 'Intermedio', 'Competitivo'] as const).map(level => (
+                            <button
+                                key={level}
+                                onClick={() => setLevelFilter(level)}
+                                className={`py-1.5 px-4 rounded-full text-sm font-semibold transition whitespace-nowrap ${levelFilter === level ? 'bg-amber-600 text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600'}`}
+                            >
+                                {level === 'All' ? 'Todos' : level}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -624,7 +626,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     onUpdateTeam={(updates) => onUpdateTeam(activeChatTeam.id, updates)}
                 />;
             case 'challenge':
-                return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} weatherData={weatherData} /></div>;
+                return <div className="bg-slate-50 dark:bg-gray-900 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} weatherData={weatherData} /></div>;
             case 'find-players':
                 return <div className="p-4 sm:p-6 pb-[6.5rem]">{
                     viewingPlayerProfile ? (
