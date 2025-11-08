@@ -28,7 +28,7 @@ const ChatMessageBubble: React.FC<{
     onDelete: (messageId: string) => void
 }> = ({ message, isCurrentUser, onReply, onDelete }) => {
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
-    const bubbleColor = isCurrentUser ? 'bg-[var(--color-primary-600)] text-white' : 'bg-gray-700 text-white';
+    const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
     const sender = isCurrentUser ? 'Tú' : message.senderName;
     
     return (
@@ -172,7 +172,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             <main className="relative z-10 flex-grow p-4 overflow-y-auto">
                 {isLoading ? (
                      <div className="flex justify-center items-center h-full">
-                        <SpinnerIcon className="w-8 h-8 text-[var(--color-primary-500)]" />
+                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
                     </div>
                 ) : filteredMessages.length === 0 ? (
                     <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
@@ -194,7 +194,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 {canSendMessage ? (
                     <>
                         {replyingTo && (
-                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-[var(--color-primary-500)]">
+                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500">
                                 <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
                                 <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
                                 <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
@@ -221,9 +221,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 onChange={(e) => setInputText(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                 placeholder="Escribe un mensaje..."
-                                className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                                className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                             />
-                            <button onClick={handleSendMessage} className="p-3 bg-[var(--color-primary-600)] text-white rounded-full hover:bg-[var(--color-primary-700)] shadow-sm transition-colors disabled:bg-gray-500" disabled={!inputText.trim()}>
+                            <button onClick={handleSendMessage} className="p-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 shadow-sm transition-colors disabled:bg-gray-500" disabled={!inputText.trim()}>
                                 <PaperAirplaneIcon className="w-5 h-5" />
                             </button>
                         </div>

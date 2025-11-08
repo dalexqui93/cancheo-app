@@ -62,7 +62,7 @@ const NavTab: React.FC<{
         onClick={onClick}
         className={`flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
             isActive
-                ? 'border-[var(--color-primary-400)] text-white'
+                ? 'border-amber-400 text-white'
                 : 'border-transparent text-gray-400 hover:text-white hover:border-gray-500'
         }`}
     >
@@ -84,7 +84,7 @@ const Widget: React.FC<{ title: string; icon: React.ReactNode; children: React.R
         className={`bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4 transition-all duration-300 ${onClick ? 'cursor-pointer hover:border-white/30 hover:-translate-y-1' : ''} ${className}`}
     >
         <div className="flex items-center gap-3 mb-3">
-            <div className="text-[var(--color-primary-400)]">{icon}</div>
+            <div className="text-amber-400">{icon}</div>
             <h3 className="font-bold text-white/90">{title}</h3>
         </div>
         <div>{children}</div>
@@ -145,7 +145,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
                         </div>
                         <div>
                             <p className="font-bold text-lg">{topScorer.name}</p>
-                            <p className="text-3xl font-black text-[var(--color-primary-400)]">{topScorer.stats.goals} <span className="text-xl">Goles</span></p>
+                            <p className="text-3xl font-black text-amber-400">{topScorer.stats.goals} <span className="text-xl">Goles</span></p>
                         </div>
                     </div>
                 ): <p className="text-sm text-white/60">Aún no hay un goleador destacado.</p>}
@@ -280,7 +280,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
 
         return (
              <div className="min-h-screen p-4 sm:p-6 pb-[5.5rem] md:pb-4">
-                <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+                <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
                     <ChevronLeftIcon className="h-5 h-5" />
                     Volver a Mis Equipos
                 </button>
@@ -347,7 +347,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
     // Vista de la lista de equipos
     return (
         <div className="p-4 sm:p-6 pb-[5.5rem] md:pb-4 text-white">
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+            <button onClick={onBack} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
                 <ChevronLeftIcon className="h-5 h-5" />
                 Volver a DaviPlay
             </button>

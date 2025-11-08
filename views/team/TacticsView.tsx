@@ -59,7 +59,7 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
                 <div className="p-6 max-h-[60vh] overflow-y-auto">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center text-center p-8">
-                            <SpinnerIcon className="w-12 h-12 text-[var(--color-primary-500)]" />
+                            <SpinnerIcon className="w-12 h-12 text-amber-500" />
                             <p className="mt-4 font-semibold">Analizando jugadas...</p>
                         </div>
                     ) : (
@@ -225,7 +225,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Tácticas y Formaciones</h1>
                 {isCaptain && (
-                    <button onClick={handleSave} className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-5 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                    <button onClick={handleSave} className="bg-amber-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-amber-700 transition-colors shadow-sm">
                         Guardar Táctica
                     </button>
                 )}
@@ -279,7 +279,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                             value={formation}
                             onChange={(e) => handleFormationChange(e.target.value as Formation)}
                             disabled={!isCaptain}
-                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-gray-700 border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             <option value="Custom">Personalizada</option>
                             {FORMATIONS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
@@ -293,7 +293,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             readOnly={!isCaptain}
-                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-gray-700 border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full p-2 border rounded-lg shadow-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-gray-700 border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
                             placeholder="Ej: Presión alta, buscar al delantero, etc."
                         />
                     </div>
@@ -305,7 +305,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                     className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
                     style={{ left: dragPosition.x, top: dragPosition.y }}
                 >
-                    <div className="w-16 h-16 bg-gray-600 rounded-full flex flex-col items-center justify-center shadow-lg text-center p-1 opacity-90 ring-2 ring-[var(--color-primary-500)] border-2 border-gray-400">
+                    <div className="w-16 h-16 bg-gray-600 rounded-full flex flex-col items-center justify-center shadow-lg text-center p-1 opacity-90 ring-2 ring-amber-500 border-2 border-gray-400">
                         <span className="font-black text-xl text-orange-400">{draggedPlayerDetails.number || '?'}</span>
                         <span className="text-[9px] font-semibold uppercase text-gray-200 truncate w-full">
                             {draggedPlayerDetails.name.split(' ').pop()}

@@ -90,7 +90,7 @@ const MatchModal: React.FC<{
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
                     <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-white/10 hover:bg-white/20">Cancelar</button>
-                    <button onClick={handleSubmit} className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm">Guardar</button>
+                    <button onClick={handleSubmit} className="py-2 px-5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm">Guardar</button>
                 </div>
             </div>
         </div>
@@ -116,7 +116,7 @@ const TopPerformerCard: React.FC<{ player: Player | undefined; stat: number; tit
                 {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-gray-400"/>}
             </div>
             <div>
-                <p className="text-xs font-bold text-[var(--color-primary-400)] uppercase tracking-wide">{title}</p>
+                <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">{title}</p>
                 <p className="font-bold text-lg text-white">{player.name}</p>
                 <div className="flex items-center gap-2 mt-1 text-gray-300">
                     {icon}
@@ -278,7 +278,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
                                     <div className="font-bold text-lg">{match.scoreA} - {match.scoreB}</div>
                                     {isCaptain && (
                                         <>
-                                            <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-[var(--color-primary-400)] hover:underline">Editar</button>
+                                            <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-amber-400 hover:underline">Editar</button>
                                             <button onClick={() => setMatchToDelete(match)} className="text-gray-400 hover:text-red-400 p-1 rounded-full"><TrashIcon className="w-4 h-4"/></button>
                                         </>
                                     )}

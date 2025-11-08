@@ -72,7 +72,7 @@ const AddPlayerModal: React.FC<{
                                     <p className="font-semibold">{player.name}</p>
                                     <p className="text-xs text-gray-400">{player.position} - {typeof player.level === 'number' ? `Nvl ${player.level}`: player.level}</p>
                                 </div>
-                                <button onClick={() => { onAdd(player); onClose(); }} className="bg-[var(--color-primary-600)] text-white font-bold py-1.5 px-4 rounded-lg hover:bg-[var(--color-primary-700)] text-sm">
+                                <button onClick={() => { onAdd(player); onClose(); }} className="bg-amber-600 text-white font-bold py-1.5 px-4 rounded-lg hover:bg-amber-700 text-sm">
                                     Añadir
                                 </button>
                             </div>

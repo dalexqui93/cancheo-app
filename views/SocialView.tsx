@@ -95,7 +95,7 @@ const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = 
             </p>
             <button
                 onClick={() => onNavigate(View.PLAYER_PROFILE_CREATOR)}
-                className="mt-6 bg-[var(--color-primary-600)] text-white font-bold py-3 px-8 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 shadow-md"
+                className="mt-6 bg-amber-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-amber-700 transition-transform transform hover:scale-105 shadow-md"
             >
                 Crear mi Perfil de Jugador
             </button>
@@ -107,7 +107,7 @@ const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = 
 const HubWidget: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, icon, children, className = '' }) => (
     <div className={`bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4 ${className}`}>
         <div className="flex items-center gap-3 mb-3">
-            <div className="text-[var(--color-primary-400)]">{icon}</div>
+            <div className="text-amber-400">{icon}</div>
             <h3 className="font-bold text-white/90">{title}</h3>
         </div>
         <div>{children}</div>
@@ -119,7 +119,7 @@ const PlayerCardComponent: React.FC<{ player: Player, onNavigateToCreator: () =>
 
     const Stat: React.FC<{ icon: React.ReactNode; label: string; value: number }> = ({ icon, label, value }) => (
         <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-1 text-[var(--color-primary-400)]">{icon}</div>
+            <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-1 text-amber-400">{icon}</div>
             <p className="font-black text-2xl">{value}</p>
             <p className="text-xs font-semibold text-white/70 uppercase">{label}</p>
         </div>
@@ -132,7 +132,7 @@ const PlayerCardComponent: React.FC<{ player: Player, onNavigateToCreator: () =>
                     <div>
                         <p className="text-sm font-bold text-white/70">NIVEL {player.level}</p>
                         <h2 className="text-3xl font-black tracking-tight">{player.name}</h2>
-                        <p className="font-semibold text-[var(--color-primary-400)]">{player.position}</p>
+                        <p className="font-semibold text-amber-400">{player.position}</p>
                     </div>
                      <div className="w-20 h-20 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
                         {player.profilePicture ? (
@@ -149,7 +149,7 @@ const PlayerCardComponent: React.FC<{ player: Player, onNavigateToCreator: () =>
                         <span>{player.xp || 0} / 1000 XP</span>
                     </div>
                     <div className="w-full bg-black/30 rounded-full h-2.5">
-                        <div className="bg-[var(--color-primary-500)] h-2.5 rounded-full progress-bar-fill" style={{ width: `${xpPercentage}%` }}></div>
+                        <div className="bg-amber-500 h-2.5 rounded-full progress-bar-fill" style={{ width: `${xpPercentage}%` }}></div>
                     </div>
                 </div>
 
@@ -188,11 +188,11 @@ const DailyChallengesWidget: React.FC = () => (
         <div className="space-y-2">
             <div className="text-sm bg-black/20 p-2 rounded-md">
                 <p className="font-semibold">Juega 1 partido</p>
-                <p className="text-xs text-[var(--color-primary-400)] font-bold">+150 XP</p>
+                <p className="text-xs text-amber-400 font-bold">+150 XP</p>
             </div>
             <div className="text-sm bg-black/20 p-2 rounded-md">
                 <p className="font-semibold">Reacciona a 3 posts en el foro</p>
-                <p className="text-xs text-[var(--color-primary-400)] font-bold">+50 XP</p>
+                <p className="text-xs text-amber-400 font-bold">+50 XP</p>
             </div>
         </div>
     </HubWidget>
@@ -226,7 +226,7 @@ const HubNavigation: React.FC<{ onNavigate: (section: SocialSection) => void }> 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 {navItems.map(item => (
                     <button key={item.section} onClick={() => onNavigate(item.section)} className="text-center p-3 rounded-lg hover:bg-white/10 transition-colors">
-                        <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center text-[var(--color-primary-400)] mb-1">
+                        <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center text-amber-400 mb-1">
                             {item.icon}
                         </div>
                         <p className="text-xs font-bold">{item.label}</p>
@@ -262,7 +262,7 @@ const PlayerHub: React.FC<{ user: User; onSectionNavigate: (section: SocialSecti
 // --- Main Social View ---
 
 const BackButton: React.FC<{ onClick: () => void, text: string }> = ({ onClick, text }) => (
-    <button onClick={onClick} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] font-semibold mb-6 hover:underline">
+    <button onClick={onClick} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
         <ChevronLeftIcon className="h-5 h-5" />
         {text}
     </button>
@@ -374,7 +374,7 @@ const TeamChallengeCard: React.FC<{
         {isCaptain && !isMyTeam ? (
             <button
                 onClick={(e) => { e.stopPropagation(); onChallenge(team); }}
-                className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm flex-shrink-0"
+                className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm text-sm flex-shrink-0"
             >
                 <SwordsIcon className="w-4 h-4" />
                 Retar
@@ -447,7 +447,7 @@ const ChallengeView: React.FC<{
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         placeholder="Buscar equipo por nombre..."
-                        className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                        className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                 </div>
                 <div className="flex space-x-2">
@@ -455,7 +455,7 @@ const ChallengeView: React.FC<{
                         <button
                             key={level}
                             onClick={() => setLevelFilter(level)}
-                            className={`py-1.5 px-4 rounded-full text-sm font-semibold transition flex-grow ${levelFilter === level ? 'bg-[var(--color-primary-600)] text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600'}`}
+                            className={`py-1.5 px-4 rounded-full text-sm font-semibold transition flex-grow ${levelFilter === level ? 'bg-amber-600 text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600'}`}
                         >
                             {level === 'All' ? 'Todos' : level}
                         </button>
@@ -529,7 +529,7 @@ const FindPlayersView: React.FC<{
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     placeholder="Buscar jugador por nombre..."
-                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)]"
+                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-amber-500"
                 />
             </div>
 
@@ -769,7 +769,7 @@ const PlayerRecruitCard: React.FC<{
                             Cancelar
                         </button>
                     ) : (
-                        <button onClick={() => onSendInvitation(recruitingTeam, player)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm">
+                        <button onClick={() => onSendInvitation(recruitingTeam, player)} className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm text-sm">
                             <UserPlusIcon className="w-4 h-4"/>
                             Reclutar
                         </button>

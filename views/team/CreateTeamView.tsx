@@ -85,13 +85,13 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
 
     return (
         <div className="p-4 sm:p-6 min-h-screen flex flex-col justify-center items-center">
-             <button onClick={onBack} className="absolute top-6 left-4 flex items-center gap-2 text-[var(--color-primary-400)] font-semibold hover:underline">
+             <button onClick={onBack} className="absolute top-6 left-4 flex items-center gap-2 text-amber-400 font-semibold hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
                 Volver
             </button>
             <div className="w-full max-w-lg">
                 <div className="text-center py-12 px-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl">
-                    <ShieldIcon className="mx-auto h-16 w-16 text-[var(--color-primary-400)]" />
+                    <ShieldIcon className="mx-auto h-16 w-16 text-amber-400" />
                     <h2 className="mt-4 text-2xl font-bold tracking-tight">Crea tu Equipo</h2>
                     <p className="mt-2 text-base text-gray-400 max-w-md mx-auto">Reúne a tu plantilla, define tus tácticas y prepárate para competir.</p>
                     
@@ -107,7 +107,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                                     )}
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <button type="button" onClick={handleLogoClick} className="font-semibold text-[var(--color-primary-400)] hover:underline text-left">
+                                    <button type="button" onClick={handleLogoClick} className="font-semibold text-amber-400 hover:underline text-left">
                                         Subir logo
                                     </button>
                                      <button type="button" onClick={() => setShowLogoGallery(true)} className="font-semibold text-yellow-500 hover:underline text-left flex items-center gap-1">
@@ -120,7 +120,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                         </div>
                         <div>
                             <label htmlFor="team-name" className="block text-sm font-medium text-gray-300">Nombre del Equipo</label>
-                            <input type="text" id="team-name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-black/30" />
+                            <input type="text" id="team-name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 bg-black/30" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">Nivel Competitivo</label>
@@ -130,7 +130,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                                         key={l}
                                         type="button"
                                         onClick={() => setLevel(l)}
-                                        className={`py-2 px-4 rounded-md text-sm font-semibold transition flex-grow ${level === l ? 'bg-[var(--color-primary-600)] text-white shadow' : 'bg-white/10 text-gray-200 hover:bg-white/20'}`}
+                                        className={`py-2 px-4 rounded-md text-sm font-semibold transition flex-grow ${level === l ? 'bg-amber-600 text-white shadow' : 'bg-white/10 text-gray-200 hover:bg-white/20'}`}
                                     >
                                         {l}
                                     </button>
@@ -138,7 +138,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
                             </div>
                         </div>
                         <div className="border-t border-white/10 pt-5 flex justify-end gap-3">
-                            <button type="submit" disabled={isCreating} className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center w-36 h-10">
+                            <button type="submit" disabled={isCreating} className="py-2 px-5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center w-36 h-10">
                                 {isCreating ? <SpinnerIcon className="w-5 h-5"/> : 'Crear Equipo'}
                             </button>
                         </div>

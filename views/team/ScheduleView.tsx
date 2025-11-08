@@ -66,7 +66,7 @@ const EventModal: React.FC<{
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
                     <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-white/10 hover:bg-white/20">Cancelar</button>
-                    <button onClick={handleSave} className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm">Guardar Evento</button>
+                    <button onClick={handleSave} className="py-2 px-5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm">Guardar Evento</button>
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@ const EventCard: React.FC<{ event: TeamEvent }> = ({ event }) => {
         <div className="flex items-start gap-4">
             <div className="text-center w-20 flex-shrink-0">
                 <p className="font-black text-4xl text-white">{event.date.getDate()}</p>
-                <p className="font-bold text-sm text-[var(--color-primary-400)] uppercase">{event.date.toLocaleDateString('es-CO', {month: 'short'})}</p>
+                <p className="font-bold text-sm text-amber-400 uppercase">{event.date.toLocaleDateString('es-CO', {month: 'short'})}</p>
             </div>
             <div className="flex-grow bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl">
                 <div className="flex items-center gap-3">
