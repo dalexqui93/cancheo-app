@@ -307,7 +307,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         e.target.value = ''; // Reset file input
     };
 
-    const handleStartRecording = async () => {
+    const handleStartRecording = async (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
         if (isRecording) return;
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -378,7 +379,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         }
     };
 
-    const handleStopRecording = () => {
+    const handleStopRecording = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
@@ -522,10 +524,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 </button>
                             ) : (
                                 <button
-                                    onMouseDown={handleStartRecording}
-                                    onMouseUp={handleStopRecording}
-                                    onTouchStart={handleStartRecording}
-                                    onTouchEnd={handleStopRecording}
+                                    onMouseDown={(e) => handleStartRecording(e)}
+                                    onMouseUp={(e) => handleStopRecording(e)}
+                                    onTouchStart={(e) => handleStartRecording(e)}
+                                    onTouchEnd={(e) => handleStopRecording(e)}
                                     className={`p-3 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-amber-600'} text-white shadow-sm`}
                                 >
                                     <MicrophoneIcon className="w-5 h-5" />
