@@ -80,11 +80,8 @@ interface ChatMessageBubbleProps {
 const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId, highlightTerm }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
     const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-    const [touchCurrent, setTouchCurrent] = useState<{ x: number; y: number } | null>(null);
+    const [touchDelta, setTouchDelta] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const [isSwiping, setIsSwiping] = useState(false);
-    const [swipeDirectionLocked, setSwipeDirectionLocked] = useState<'horizontal' | 'vertical' | null>(null);
-
-    const translateX = isSwiping && touchStart && touchCurrent ? Math.max(0, Math.min(80, touchCurrent.x - touchStart.x)) : 0;
 
     const getHighlightedText = (text: string, highlight: string) => {
         if (!highlight.trim()) {
@@ -107,43 +104,51 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
     };
 
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        if (e.targetTouches.length !== 1) return;
         setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
-        setTouchCurrent({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        setTouchDelta({ x: 0, y: 0 });
+        setIsSwiping(false);
     }, []);
 
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
-        if (!touchStart) return;
+        if (!touchStart || e.targetTouches.length !== 1) return;
 
-        const currentX = e.targetTouches[0].clientX;
-        const currentY = e.targetTouches[0].clientY;
-        const deltaX = currentX - touchStart.x;
-        const deltaY = currentY - touchStart.y;
+        const deltaX = e.targetTouches[0].clientX - touchStart.x;
+        const deltaY = e.targetTouches[0].clientY - touchStart.y;
 
-        if (swipeDirectionLocked === null) {
-            if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY) * 2) {
-                setSwipeDirectionLocked('horizontal');
-            } else if (Math.abs(deltaY) > 10) {
-                setSwipeDirectionLocked('vertical');
+        if (!isSwiping) {
+            // Wait for a minimum movement before deciding the gesture direction
+            if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+                return;
+            }
+            // If horizontal movement is dominant, it's a swipe.
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                setIsSwiping(true);
+            } else {
+                // Otherwise, it's a vertical scroll, so we abort the swipe gesture.
+                setTouchStart(null);
+                return;
             }
         }
 
-        if (swipeDirectionLocked === 'horizontal') {
+        // Once confirmed as a swipe, prevent default scroll behavior and update position.
+        if (isSwiping) {
             e.preventDefault();
-            setIsSwiping(true);
-            setTouchCurrent({ x: currentX, y: currentY });
+            setTouchDelta({ x: deltaX, y: deltaY });
         }
-    }, [touchStart, swipeDirectionLocked]);
+    }, [touchStart, isSwiping]);
 
     const handleTouchEnd = useCallback(() => {
-        if (isSwiping && translateX > 50) {
+        if (isSwiping && touchDelta.x > 50) { // Reply threshold
             onReply(message);
         }
-        setIsSwiping(false);
+        // Reset gesture state
         setTouchStart(null);
-        setTouchCurrent(null);
-        setSwipeDirectionLocked(null);
-    }, [isSwiping, translateX, onReply, message]);
+        setTouchDelta({ x: 0, y: 0 });
+        setIsSwiping(false);
+    }, [isSwiping, touchDelta, onReply, message]);
 
+    const translateX = isSwiping ? Math.max(0, Math.min(80, touchDelta.x)) : 0;
 
     useEffect(() => {
         if (!bubbleRef.current || isCurrentUser || message.deleted) {
@@ -221,7 +226,10 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
             <div 
                 id={message.id} 
                 className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
-                style={{ transform: `translateX(${translateX}px)`, transition: isSwiping ? 'none' : 'transform 0.2s ease-out' }}
+                style={{ 
+                    transform: `translateX(${translateX}px)`, 
+                    transition: !touchStart ? 'transform 0.2s ease-out' : 'none' 
+                }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
