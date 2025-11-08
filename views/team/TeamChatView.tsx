@@ -360,6 +360,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         const { id, timestamp, readBy, ...messageData } = newMessage;
         const dataToSend: Partial<ChatMessage> = { ...messageData };
         if (!dataToSend.replyTo) delete dataToSend.replyTo;
+        if (!dataToSend.attachment) delete dataToSend.attachment;
         
         setInputText('');
         setReplyingTo(null);
@@ -526,7 +527,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         <div className="flex flex-col h-screen text-white animate-fade-in team-chat-bg relative">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
              {/* Header */}
-            <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm sticky top-0">
+            <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
                 <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
                     <ChevronLeftIcon className="w-6 h-6" />
                 </button>
@@ -576,7 +577,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </main>
 
             {/* Input */}
-            <footer className="relative z-10 flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm sticky bottom-0">
+            <footer className="relative z-10 flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
                 {canSendMessage ? (
                     <>
                         {attachment && (
