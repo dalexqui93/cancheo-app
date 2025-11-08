@@ -76,28 +76,51 @@ const ChatMessageBubble: React.FC<{
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
     const bubbleRef = useRef<HTMLDivElement>(null);
     const [swipeX, setSwipeX] = useState(0);
-    const touchStartX = useRef(0);
+    const touchStartPos = useRef<{ x: number, y: number } | null>(null);
+    const swipeDirection = useRef<'horizontal' | 'vertical' | null>(null);
+
 
     const handleTouchStart = (e: React.TouchEvent) => {
-        e.preventDefault();
-        touchStartX.current = e.touches[0].clientX;
+        touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        swipeDirection.current = null;
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        e.preventDefault();
-        const currentX = e.touches[0].clientX;
-        const diff = currentX - touchStartX.current;
-        if (diff > 0 && diff < 100) { // Only swipe right
-            setSwipeX(diff);
-        }
-    };
+        if (!touchStartPos.current) return;
 
-    const handleTouchEnd = (e: React.TouchEvent) => {
-        e.preventDefault();
-        if (swipeX > 60) { // Threshold to trigger reply
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const deltaX = currentX - touchStartPos.current.x;
+        const deltaY = currentY - touchStartPos.current.y;
+
+        if (swipeDirection.current === null) {
+            // Determine direction on first significant move
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                 if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    swipeDirection.current = 'horizontal';
+                } else {
+                    swipeDirection.current = 'vertical';
+                }
+            }
+        }
+        
+        if (swipeDirection.current === 'horizontal') {
+            e.preventDefault();
+            const diff = currentX - touchStartPos.current.x;
+            if (diff > 0 && diff < 100) { // Only swipe right
+                setSwipeX(diff);
+            }
+        }
+        // If vertical, do nothing and let the browser scroll
+    };
+    
+    const handleTouchEnd = () => {
+        if (swipeDirection.current === 'horizontal' && swipeX > 60) {
             onReply(message);
         }
         setSwipeX(0);
+        touchStartPos.current = null;
+        swipeDirection.current = null;
     };
 
     useEffect(() => {
