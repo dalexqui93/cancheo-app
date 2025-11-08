@@ -18,6 +18,9 @@ import { MicrophoneIcon } from '../../components/icons/MicrophoneIcon';
 import { PaperclipIcon } from '../../components/icons/PaperclipIcon';
 import { TrashIcon } from '../../components/icons/TrashIcon';
 import ImageLightbox from '../../components/ImageLightbox';
+import { SearchIcon } from '../../components/icons/SearchIcon';
+import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
+import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 
 interface TeamChatViewProps {
     team: Team;
@@ -71,9 +74,10 @@ interface ChatMessageBubbleProps {
     onOpenLightbox: (imageUrl: string) => void;
     onScrollToMessage: (messageId: string) => void;
     highlightedMessageId: string | null;
+    highlightTerm: string | null;
 }
 
-const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
+const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId, highlightTerm }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
     const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
     const [touchCurrent, setTouchCurrent] = useState<{ x: number; y: number } | null>(null);
@@ -81,6 +85,26 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
     const [swipeDirectionLocked, setSwipeDirectionLocked] = useState<'horizontal' | 'vertical' | null>(null);
 
     const translateX = isSwiping && touchStart && touchCurrent ? Math.max(0, Math.min(80, touchCurrent.x - touchStart.x)) : 0;
+
+    const getHighlightedText = (text: string, highlight: string) => {
+        if (!highlight.trim()) {
+            return <span>{text}</span>;
+        }
+        const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+        return (
+            <span>
+                {parts.map((part, i) =>
+                    part.toLowerCase() === highlight.toLowerCase() ? (
+                        <mark key={i} className="bg-amber-400 text-black rounded px-0.5">
+                            {part}
+                        </mark>
+                    ) : (
+                        part
+                    )
+                )}
+            </span>
+        );
+    };
 
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
         setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
@@ -236,7 +260,11 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
                                 )}
                             </div>
                         )}
-                        {message.text && <p className="text-sm break-words">{message.text}</p>}
+                        {message.text && (
+                            <p className="text-sm break-words">
+                                {highlightTerm ? getHighlightedText(message.text, highlightTerm) : message.text}
+                            </p>
+                        )}
                         <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
                             <span>{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
                             {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
@@ -307,6 +335,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [recordingTime, setRecordingTime] = useState(0);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<string[]>([]);
+    const [currentResultIndex, setCurrentResultIndex] = useState(-1);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
@@ -330,16 +362,66 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }, [team.id]);
 
     useEffect(() => {
-        if (!isLoading) {
+        if (!isLoading && !isSearching) {
             messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
         }
-    }, [messages, attachment, isLoading]);
+    }, [messages, attachment, isLoading, isSearching]);
 
      useEffect(() => {
         return () => {
             if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
         };
     }, []);
+    
+    useEffect(() => {
+        if (isSearching && searchTerm.length > 2) {
+            const results = messages
+                .filter(m => m.text && !m.deleted && m.senderId !== 'system' && m.text.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map(m => m.id)
+                .reverse(); // Search from newest to oldest
+            setSearchResults(results);
+            setCurrentResultIndex(results.length > 0 ? 0 : -1);
+        } else {
+            setSearchResults([]);
+            setCurrentResultIndex(-1);
+            if (!isSearching) setHighlightedMessageId(null);
+        }
+    }, [searchTerm, messages, isSearching]);
+    
+    useEffect(() => {
+        if (isSearching && currentResultIndex > -1 && searchResults.length > 0) {
+            const messageId = searchResults[currentResultIndex];
+            setHighlightedMessageId(messageId);
+            const element = document.getElementById(messageId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }, [isSearching, currentResultIndex, searchResults]);
+
+    const handleOpenSearch = () => {
+        setCurrentView('chat');
+        setIsSearching(true);
+    };
+    
+    const handleCloseSearch = () => {
+        setIsSearching(false);
+        setSearchTerm('');
+        setHighlightedMessageId(null);
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
+    
+    const handleNextResult = () => {
+        if (searchResults.length < 2) return;
+        setCurrentResultIndex(prev => (prev + 1) % searchResults.length);
+    };
+    
+    const handlePrevResult = () => {
+        if (searchResults.length < 2) return;
+        setCurrentResultIndex(prev => (prev - 1 + searchResults.length) % searchResults.length);
+    };
 
     const handleReply = useCallback((messageToReply: ChatMessage) => {
         setReplyingTo(messageToReply);
@@ -559,22 +641,46 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             <div className="absolute inset-0 bg-black/60 z-0"></div>
              {/* Header */}
             <header className="sticky top-0 z-20 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-                <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
-                    <ChevronLeftIcon className="w-6 h-6" />
-                </button>
-                <button onClick={() => setCurrentView('info')} className="flex items-center flex-grow min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
-                        {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                 {isSearching ? (
+                    <div className="flex items-center w-full gap-2 animate-fade-in">
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Buscar en el chat..."
+                            className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            autoFocus
+                        />
+                        {searchResults.length > 0 && (
+                            <span className="text-sm font-mono text-gray-400 whitespace-nowrap">{currentResultIndex + 1}/{searchResults.length}</span>
+                        )}
+                        <button onClick={handlePrevResult} disabled={searchResults.length < 2} className="p-2 rounded-full hover:bg-gray-700 text-gray-300 disabled:opacity-50"><ChevronUpIcon className="w-5 h-5"/></button>
+                        <button onClick={handleNextResult} disabled={searchResults.length < 2} className="p-2 rounded-full hover:bg-gray-700 text-gray-300 disabled:opacity-50"><ChevronDownIcon className="w-5 h-5"/></button>
+                        <button onClick={handleCloseSearch} className="p-2 rounded-full hover:bg-gray-700 text-gray-300"><XIcon className="w-5 h-5"/></button>
                     </div>
-                    <div className="text-left min-w-0">
-                        <h2 className="font-bold text-lg truncate">{team.name}</h2>
-                        <p className="text-xs text-gray-400">{team.players.length} miembros</p>
-                    </div>
-                </button>
+                ) : (
+                    <>
+                        <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
+                            <ChevronLeftIcon className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setCurrentView('info')} className="flex items-center flex-grow min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
+                                {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                            </div>
+                            <div className="text-left min-w-0">
+                                <h2 className="font-bold text-lg truncate">{team.name}</h2>
+                                <p className="text-xs text-gray-400">{team.players.length} miembros</p>
+                            </div>
+                        </button>
+                        <button onClick={handleOpenSearch} className="p-2 rounded-full text-gray-300 hover:text-white ml-auto">
+                            <SearchIcon className="w-6 h-6" />
+                        </button>
+                    </>
+                )}
             </header>
 
             {/* Messages */}
-            <main className="flex-grow p-4 pt-4 pb-24 z-10">
+            <main className="flex-grow p-4 pt-4 pb-24 z-10 overflow-y-auto">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
@@ -600,6 +706,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 onOpenLightbox={setLightboxImage}
                                 onScrollToMessage={handleScrollToMessage}
                                 highlightedMessageId={highlightedMessageId}
+                                highlightTerm={isSearching ? searchTerm : null}
                             />
                         ))}
                         <div ref={messagesEndRef} />
