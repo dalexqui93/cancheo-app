@@ -21,6 +21,13 @@ interface TeamChatViewProps {
 
 const EMOJIS = ['👍', '😂', '⚽', '🔥', '👏', '🏆', '🎉', '💪'];
 
+const BanIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+         <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+    </svg>
+);
+
+
 const ChatMessageBubble: React.FC<{ 
     message: ChatMessage, 
     isCurrentUser: boolean, 
@@ -29,6 +36,20 @@ const ChatMessageBubble: React.FC<{
     onDeleteForEveryone: (messageId: string) => void,
 }> = ({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone }) => {
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
+
+    if (message.deleted) {
+        return (
+            <div className={`flex flex-col ${alignment}`}>
+                <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
+                    <p className="text-sm italic text-gray-500 flex items-center gap-2">
+                        <BanIcon className="w-4 h-4 flex-shrink-0" />
+                        <span>Este mensaje fue eliminado</span>
+                    </p>
+                </div>
+            </div>
+        );
+    }
+    
     const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
     const sender = isCurrentUser ? 'Tú' : message.senderName;
     

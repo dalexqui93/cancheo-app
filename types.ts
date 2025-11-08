@@ -354,6 +354,7 @@ export interface ChatMessage {
         senderName: string;
         text: string;
     };
+    deleted?: boolean;
 }
 
 export interface Group {

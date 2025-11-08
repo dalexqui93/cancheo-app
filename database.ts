@@ -820,10 +820,22 @@ export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessa
 
 export const deleteChatMessage = async (teamId: string, messageId: string): Promise<void> => {
     if (isFirebaseConfigured) {
-        return db.collection('teams').doc(teamId).collection('chat').doc(messageId).delete();
+        const messageRef = db.collection('teams').doc(teamId).collection('chat').doc(messageId);
+        // Soft delete: update the message to indicate it's deleted
+        return messageRef.update({
+            deleted: true,
+            text: '', // Clear the original text
+            replyTo: firebase.firestore.FieldValue.delete() // Remove the reply context
+        });
     }
+    // Handle demo mode
     if (demoData.chats && demoData.chats[teamId]) {
-        demoData.chats[teamId] = demoData.chats[teamId].filter(m => m.id !== messageId);
+        const msgIndex = demoData.chats[teamId].findIndex(m => m.id === messageId);
+        if (msgIndex > -1) {
+            demoData.chats[teamId][msgIndex].deleted = true;
+            demoData.chats[teamId][msgIndex].text = '';
+            delete demoData.chats[teamId][msgIndex].replyTo;
+        }
     }
     return Promise.resolve();
 };
