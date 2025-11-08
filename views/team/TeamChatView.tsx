@@ -70,7 +70,9 @@ const ChatMessageBubble: React.FC<{
     onMarkAsRead: (messageId: string) => void,
     teamPlayerCount: number,
     onOpenLightbox: (imageUrl: string) => void;
-}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox }) => {
+    onScrollToMessage: (messageId: string) => void;
+    highlightedMessageId: string | null;
+}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
     const bubbleRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +107,7 @@ const ChatMessageBubble: React.FC<{
 
     if (message.deleted) {
         return (
-            <div ref={bubbleRef} className={`flex flex-col ${alignment} group`}>
+            <div ref={bubbleRef} id={message.id} className={`flex flex-col ${alignment} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
                 <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
                         <p className="text-sm italic text-gray-500 flex items-center gap-2">
@@ -130,15 +132,18 @@ const ChatMessageBubble: React.FC<{
     const sender = isCurrentUser ? 'Tú' : message.senderName;
     
     return (
-        <div ref={bubbleRef} className={`flex flex-col ${alignment} group`}>
+        <div ref={bubbleRef} id={message.id} className={`flex flex-col ${alignment} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}>
             <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
                     <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
                     {message.replyTo && (
-                        <div className="mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50">
+                        <button 
+                            onClick={() => message.replyTo?.messageId && onScrollToMessage(message.replyTo.messageId)}
+                            className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30"
+                        >
                             <p className="text-xs font-bold">{message.replyTo.senderName}</p>
                             <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
-                        </div>
+                        </button>
                     )}
                     {message.attachment && (
                         <div className="my-2">
@@ -170,7 +175,7 @@ const ChatMessageBubble: React.FC<{
                         <DotsVerticalIcon className="w-4 h-4" />
                     </button>
                     <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
-                        <button onClick={() => onReply(message)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
+                        <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
                         {isCurrentUser ? (
                             <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
                         ) : (
@@ -193,6 +198,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
@@ -216,8 +222,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }, [team.id]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, attachment]);
+        if (!isLoading) {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, attachment, isLoading]);
 
      useEffect(() => {
         return () => {
@@ -261,7 +269,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             senderProfilePicture: currentUser.profilePicture,
             text: inputText,
             timestamp: new Date(),
-            replyTo: replyingTo ? { senderName: replyingTo.senderName, text: replyingTo.text } : undefined,
+            replyTo: replyingTo ? { messageId: replyingTo.id, senderName: replyingTo.senderName, text: replyingTo.text } : undefined,
             attachment: messageAttachment ? { ...messageAttachment } : undefined,
             readBy: [currentUser.id],
         };
@@ -397,6 +405,19 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         }
     }, [team.id, currentUser.id]);
 
+    const handleScrollToMessage = (messageId: string) => {
+        const element = document.getElementById(messageId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setHighlightedMessageId(messageId);
+            setTimeout(() => {
+                setHighlightedMessageId(null);
+            }, 1500);
+        } else {
+            addNotification({type: 'info', title: 'Mensaje no encontrado', message: 'El mensaje original puede haber sido eliminado o no está cargado.'})
+        }
+    };
+
     const isCaptain = currentUser.id === team.captainId;
     const canSendMessage = !team.messagingPermissions || team.messagingPermissions === 'all' || (team.messagingPermissions === 'captain' && isCaptain);
 
@@ -406,7 +427,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="flex flex-col min-h-screen text-white animate-fade-in team-chat-bg relative">
+        <div className="flex flex-col h-screen text-white animate-fade-in team-chat-bg relative">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
              {/* Header */}
             <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm sticky top-0">
@@ -449,6 +470,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 onMarkAsRead={handleMarkAsRead}
                                 teamPlayerCount={team.players.length}
                                 onOpenLightbox={setLightboxImage}
+                                onScrollToMessage={handleScrollToMessage}
+                                highlightedMessageId={highlightedMessageId}
                             />
                         ))}
                         <div ref={messagesEndRef} />

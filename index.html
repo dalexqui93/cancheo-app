@@ -217,6 +217,11 @@
                 text-shadow: 0 0 8px rgba(255, 51, 51, 0.7);
             }
         }
+        @keyframes highlight-pulse {
+            0% { background-color: rgba(var(--color-primary-rgb), 0); }
+            50% { background-color: rgba(var(--color-primary-rgb), 0.3); }
+            100% { background-color: rgba(var(--color-primary-rgb), 0); }
+        }
 
         .goal-animation-text {
             position: absolute;
@@ -272,6 +277,9 @@
         }
         .animate-marquee-scroll {
             animation: marquee-scroll 15s linear infinite;
+        }
+        .animate-highlight-pulse {
+            animation: highlight-pulse 1.5s ease-in-out;
         }
 
 

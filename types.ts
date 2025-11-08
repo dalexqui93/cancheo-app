@@ -351,6 +351,7 @@ export interface ChatMessage {
     text: string;
     timestamp: Date;
     replyTo?: {
+        messageId?: string;
         senderName: string;
         text: string;
     };
