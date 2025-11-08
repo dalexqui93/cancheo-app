@@ -75,61 +75,61 @@ const ChatMessageBubble: React.FC<{
 }> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
     const [swipeX, setSwipeX] = useState(0);
-    const touchStartPos = useRef<{ x: number, y: number } | null>(null);
-    const swipeDirection = useRef<'horizontal' | 'vertical' | null>(null);
-    const [isSwiping, setIsSwiping] = useState(false);
 
-    const SWIPE_THRESHOLD = 10;
+    const gestureInfo = useRef({
+        startX: 0,
+        startY: 0,
+        direction: null as 'horizontal' | 'vertical' | null,
+    }).current;
 
     const handleTouchStart = (e: React.TouchEvent) => {
-        setIsSwiping(true);
-        touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        swipeDirection.current = null;
+        gestureInfo.startX = e.touches[0].clientX;
+        gestureInfo.startY = e.touches[0].clientY;
+        gestureInfo.direction = null; // Reset direction on new touch
+        
+        if (bubbleRef.current) {
+            bubbleRef.current.style.transition = 'transform 0s'; // No transition while dragging
+        }
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        if (!touchStartPos.current) return;
+        const deltaX = e.touches[0].clientX - gestureInfo.startX;
+        const deltaY = e.touches[0].clientY - gestureInfo.startY;
 
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const deltaX = currentX - touchStartPos.current.x;
-        const deltaY = currentY - touchStartPos.current.y;
-        
-        if (swipeDirection.current === 'vertical') {
-            return; // Already scrolling, do nothing.
+        // Determine direction if not already set, using a small threshold to avoid accidental triggers
+        if (!gestureInfo.direction && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+            gestureInfo.direction = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
         }
 
-        if (swipeDirection.current === null) {
-            // Decide direction based on the first significant movement
-            if (Math.abs(deltaX) > SWIPE_THRESHOLD || Math.abs(deltaY) > SWIPE_THRESHOLD) {
-                // If vertical movement is greater, it's a scroll. Give it priority.
-                if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                    swipeDirection.current = 'vertical';
-                    return; // Let the browser handle the scroll
-                } else {
-                    // Otherwise, it's a horizontal swipe.
-                    swipeDirection.current = 'horizontal';
-                }
-            }
-        }
-        
-        if (swipeDirection.current === 'horizontal') {
-            // This is a confirmed horizontal swipe, so prevent default to stop scrolling
+        // If horizontal, prevent scroll and handle swipe UI
+        if (gestureInfo.direction === 'horizontal') {
             e.preventDefault();
-            // Only allow swiping to the right for reply action
-            const swipeDistance = Math.max(0, Math.min(deltaX, 100));
-            setSwipeX(swipeDistance);
+            const swipeDistance = Math.max(0, Math.min(deltaX, 100)); // Only allow swipe to the right
+            if (bubbleRef.current) {
+                bubbleRef.current.style.transform = `translateX(${swipeDistance}px)`;
+            }
+            setSwipeX(swipeDistance); // Update for the icon's opacity
         }
+        // If vertical, do nothing and allow native browser scroll
     };
     
     const handleTouchEnd = () => {
-        setIsSwiping(false);
-        if (swipeDirection.current === 'horizontal' && swipeX > 60) {
+        let currentX = 0;
+        if (gestureInfo.direction === 'horizontal' && bubbleRef.current) {
+            const transformValue = bubbleRef.current.style.transform;
+            currentX = transformValue ? parseFloat(transformValue.replace(/translateX\((.+)px\)/, '$1')) : 0;
+        }
+
+        if (currentX > 60) {
             onReply(message);
         }
-        setSwipeX(0);
-        touchStartPos.current = null;
-        swipeDirection.current = null;
+        
+        // Reset styles smoothly regardless of action
+        if (bubbleRef.current) {
+            bubbleRef.current.style.transition = 'transform 0.3s ease-out';
+            bubbleRef.current.style.transform = 'translateX(0px)';
+        }
+        setSwipeX(0); // Reset icon opacity
     };
 
     useEffect(() => {
@@ -199,18 +199,19 @@ const ChatMessageBubble: React.FC<{
     
     return (
         <div 
-            ref={bubbleRef} 
             id={message.id} 
-            className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''} ${!isSwiping ? 'transition-transform duration-200 ease-out' : ''}`}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{ transform: `translateX(${swipeX}px)` }}
+            className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
         >
              <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pl-2 text-white" style={{ opacity: Math.min(swipeX / 60, 1) }}>
                 <ArrowUturnLeftIcon className="w-5 h-5" />
             </div>
-            <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div 
+                ref={bubbleRef}
+                className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+            >
                 <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
                     <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
                     {message.replyTo && (
