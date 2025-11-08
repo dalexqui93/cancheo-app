@@ -188,7 +188,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
         return (
             <div ref={bubbleRef} id={message.id} className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
                 <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
+                    <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700 shadow-none">
                         <p className="text-sm italic text-gray-500 flex items-center gap-2">
                             <BanIcon className="w-4 h-4 flex-shrink-0" />
                             <span>Este mensaje fue eliminado</span>
@@ -230,7 +230,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
                     ref={bubbleRef}
                     className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                    <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
+                    <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative shadow-none`}>
                         <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
                         {message.replyTo && (
                             <button 

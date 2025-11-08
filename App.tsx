@@ -1709,7 +1709,8 @@ const App = () => {
 
     return (
         <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
-            {(showDarkSocialBg || isChatView) && <div className="absolute inset-0 bg-black/60 z-0"></div>}
+            {showDarkSocialBg && <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/80 z-0"></div>}
+            
             <div className="relative z-10">
                 <FirebaseWarningBanner />
                 {showHeader && <Header 
