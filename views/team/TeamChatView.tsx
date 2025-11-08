@@ -74,6 +74,73 @@ const ChatMessageBubble: React.FC<{
     highlightedMessageId: string | null;
 }> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
+    const [swipeX, setSwipeX] = useState(0);
+
+    const gestureInfo = useRef({
+        startX: 0,
+        startY: 0,
+        direction: null as 'horizontal' | 'vertical' | null,
+    }).current;
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        gestureInfo.startX = e.touches[0].clientX;
+        gestureInfo.startY = e.touches[0].clientY;
+        gestureInfo.direction = null;
+        
+        if (bubbleRef.current) {
+            bubbleRef.current.style.transition = 'transform 0s';
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        const deltaX = e.touches[0].clientX - gestureInfo.startX;
+        const deltaY = e.touches[0].clientY - gestureInfo.startY;
+
+        if (gestureInfo.direction === 'vertical') {
+            return;
+        }
+
+        if (!gestureInfo.direction) {
+            const absDeltaX = Math.abs(deltaX);
+            const absDeltaY = Math.abs(deltaY);
+
+            if (absDeltaX > 10 || absDeltaY > 10) {
+                if (absDeltaY > absDeltaX) {
+                    gestureInfo.direction = 'vertical';
+                    return;
+                } else {
+                    gestureInfo.direction = 'horizontal';
+                }
+            }
+        }
+        
+        if (gestureInfo.direction === 'horizontal') {
+            e.preventDefault();
+            const swipeDistance = Math.max(0, Math.min(deltaX, 100));
+            if (bubbleRef.current) {
+                bubbleRef.current.style.transform = `translateX(${swipeDistance}px)`;
+            }
+            setSwipeX(swipeDistance);
+        }
+    };
+    
+    const handleTouchEnd = () => {
+        let currentX = 0;
+        if (gestureInfo.direction === 'horizontal' && bubbleRef.current) {
+            const transformValue = bubbleRef.current.style.transform;
+            currentX = transformValue ? parseFloat(transformValue.replace(/translateX\((.+)px\)/, '$1')) : 0;
+        }
+
+        if (currentX > 60) {
+            onReply(message);
+        }
+        
+        if (bubbleRef.current) {
+            bubbleRef.current.style.transition = 'transform 0.3s ease-out';
+            bubbleRef.current.style.transform = 'translateX(0px)';
+        }
+        setSwipeX(0);
+    };
 
     useEffect(() => {
         if (!bubbleRef.current || isCurrentUser || message.deleted) {
@@ -145,9 +212,15 @@ const ChatMessageBubble: React.FC<{
             id={message.id} 
             className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
         >
+             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pl-2 text-white" style={{ opacity: Math.min(swipeX / 60, 1) }}>
+                <ArrowUturnLeftIcon className="w-5 h-5" />
+            </div>
             <div 
                 ref={bubbleRef}
                 className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
                 <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
                     <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
