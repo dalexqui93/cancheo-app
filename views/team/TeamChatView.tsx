@@ -73,14 +73,17 @@ const ChatMessageBubble: React.FC<{
     onScrollToMessage: (messageId: string) => void;
     highlightedMessageId: string | null;
 }> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
-    const alignment = isCurrentUser ? 'items-end' : 'items-start';
     const bubbleRef = useRef<HTMLDivElement>(null);
     const [swipeX, setSwipeX] = useState(0);
     const touchStartPos = useRef<{ x: number, y: number } | null>(null);
     const swipeDirection = useRef<'horizontal' | 'vertical' | null>(null);
+    const [isSwiping, setIsSwiping] = useState(false);
 
+    const SWIPE_THRESHOLD = 10;
+    const SWIPE_RATIO = 1.5;
 
     const handleTouchStart = (e: React.TouchEvent) => {
+        setIsSwiping(true); // Disable transition during swipe
         touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         swipeDirection.current = null;
     };
@@ -93,32 +96,34 @@ const ChatMessageBubble: React.FC<{
         const deltaX = currentX - touchStartPos.current.x;
         const deltaY = currentY - touchStartPos.current.y;
 
+        if (swipeDirection.current === 'vertical') {
+            return;
+        }
+        
         if (swipeDirection.current === null) {
-            // Determine direction on first significant move
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                 if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (Math.abs(deltaX) > SWIPE_THRESHOLD || Math.abs(deltaY) > SWIPE_THRESHOLD) {
+                if (Math.abs(deltaX) > Math.abs(deltaY) * SWIPE_RATIO) {
                     swipeDirection.current = 'horizontal';
                 } else {
                     swipeDirection.current = 'vertical';
+                    return;
                 }
             }
         }
         
         if (swipeDirection.current === 'horizontal') {
             e.preventDefault();
-            const diff = currentX - touchStartPos.current.x;
-            if (diff > 0 && diff < 100) { // Only swipe right
-                setSwipeX(diff);
-            }
+            const swipeDistance = Math.max(0, Math.min(deltaX, 100));
+            setSwipeX(swipeDistance);
         }
-        // If vertical, do nothing and let the browser scroll
     };
     
     const handleTouchEnd = () => {
+        setIsSwiping(false); // Re-enable transition for snap-back
         if (swipeDirection.current === 'horizontal' && swipeX > 60) {
             onReply(message);
         }
-        setSwipeX(0);
+        setSwipeX(0); // Snap back
         touchStartPos.current = null;
         swipeDirection.current = null;
     };
@@ -147,7 +152,6 @@ const ChatMessageBubble: React.FC<{
 
         return () => {
             if (bubbleRef.current) {
-                // FIX: Check if bubbleRef.current is not null before calling unobserve.
                 observer.unobserve(bubbleRef.current);
             }
         };
@@ -165,7 +169,7 @@ const ChatMessageBubble: React.FC<{
 
     if (message.deleted) {
         return (
-            <div ref={bubbleRef} id={message.id} className={`flex flex-col ${alignment} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
+            <div ref={bubbleRef} id={message.id} className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
                 <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
                         <p className="text-sm italic text-gray-500 flex items-center gap-2">
@@ -193,11 +197,11 @@ const ChatMessageBubble: React.FC<{
         <div 
             ref={bubbleRef} 
             id={message.id} 
-            className={`relative flex flex-col ${alignment} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+            className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''} ${!isSwiping ? 'transition-transform duration-200 ease-out' : ''}`}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ transform: `translateX(${swipeX}px)`, transition: 'transform 0.2s ease-out' }}
+            style={{ transform: `translateX(${swipeX}px)` }}
         >
              <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pl-2 text-white" style={{ opacity: Math.min(swipeX / 60, 1) }}>
                 <ArrowUturnLeftIcon className="w-5 h-5" />
