@@ -22,6 +22,8 @@ import { ShoeIcon } from '../../components/icons/ShoeIcon';
 import * as db from '../../database';
 import { PlusIcon } from '../../components/icons/PlusIcon';
 import { ChevronRightIcon } from '../../components/icons/ChevronRightIcon';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import { LogoutIcon } from '../../components/icons/LogoutIcon';
 
 
 type TeamView = 'dashboard' | 'roster' | 'tactics' | 'schedule' | 'performance' | 'chat';
@@ -36,6 +38,9 @@ interface MyTeamDashboardProps {
     setIsPremiumModalOpen: (isOpen: boolean) => void;
     onUpdateUserTeams: (teamIds: string[]) => Promise<void>;
     setSection: (section: SocialSection) => void;
+    onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
+    onLeaveTeam: (teamId: string) => void;
+    setActiveChatTeam: (team: Team) => void;
 }
 
 const mockMessages: ChatMessage[] = [
@@ -86,7 +91,7 @@ const Widget: React.FC<{ title: string; icon: React.ReactNode; children: React.R
     </div>
 );
 
-const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, setSection: (section: SocialSection) => void }> = ({ team, setView, setSection }) => {
+const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, setSection: (section: SocialSection) => void, setActiveChatTeam: (team: Team) => void }> = ({ team, setView, setSection, setActiveChatTeam }) => {
     const nextMatch = team.schedule?.filter(e => e.type === 'match' && e.date >= new Date()).sort((a,b) => a.date.getTime() - b.date.getTime())[0];
     const topScorer = [...team.players].sort((a, b) => b.stats.goals - a.stats.goals)[0];
     const topAssister = [...team.players].sort((a, b) => b.stats.assists - a.stats.assists)[0];
@@ -127,7 +132,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
                     {teamForm.length === 0 && <p className="text-sm text-white/60">Sin partidos recientes.</p>}
                 </div>
             </Widget>
-            <Widget title="Chat Rápido" icon={<ChatBubbleLeftRightIcon className="w-5 h-5"/>} onClick={() => setSection('chat')}>
+            <Widget title="Chat Rápido" icon={<ChatBubbleLeftRightIcon className="w-5 h-5"/>} onClick={() => { setActiveChatTeam(team); setSection('chat'); }}>
                  <div className="space-y-1 text-sm">
                     <p className="truncate"><strong className="text-white/80">{mockMessages.slice(-1)[0]?.senderName}:</strong> <span className="text-white/60">{mockMessages.slice(-1)[0]?.text}</span></p>
                  </div>
@@ -163,10 +168,11 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
 };
 
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection }) => {
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection, onRemovePlayerFromTeam, onLeaveTeam, setActiveChatTeam }) => {
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(userTeams.length === 1 ? userTeams[0] : null);
     const [isCreating, setIsCreating] = useState(userTeams.length === 0);
     const [view, setView] = useState<TeamView>('dashboard');
+    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
     const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
         const currentUserAsPlayer = user.playerProfile || {
@@ -223,22 +229,20 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
 
         const handleUpdatePlayer = (updatedPlayer: Player) => {
             const updatedPlayers = team.players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p);
-            onUpdateTeam(team.id, { ...team, players: updatedPlayers });
+            onUpdateTeam(team.id, { players: updatedPlayers });
             addNotification({type: 'success', title: 'Jugador Actualizado', message: `${updatedPlayer.name} ha sido actualizado.`})
         };
     
         const handleAddPlayer = (newPlayer: Player) => {
             const updatedPlayers = [...team.players, newPlayer];
-            onUpdateTeam(team.id, { ...team, players: updatedPlayers });
+            onUpdateTeam(team.id, { players: updatedPlayers });
             addNotification({type: 'success', title: 'Jugador Añadido', message: `${newPlayer.name} se ha unido al equipo.`})
         };
         
         const handleRemovePlayer = (playerId: string) => {
-            const updatedPlayers = team.players.filter(p => p.id !== playerId);
-            onUpdateTeam(team.id, { ...team, players: updatedPlayers });
-            addNotification({type: 'info', title: 'Jugador Eliminado', message: 'El jugador ha sido eliminado de la plantilla.'})
-        }
-
+            onRemovePlayerFromTeam(team.id, playerId);
+        };
+        
         const TABS: { id: TeamView; label: string; icon: React.ReactNode }[] = [
             { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon className="w-5 h-5"/> },
             { id: 'roster', label: 'Plantilla', icon: <TshirtIcon className="w-5 h-5"/> },
@@ -253,16 +257,16 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                 case 'roster':
                     return <RosterView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allUsers={allUsers} />;
                 case 'tactics':
-                    return <TacticsView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updatedTeam) => onUpdateTeam(team.id, updatedTeam)} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
+                    return <TacticsView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
                 case 'schedule':
-                    return <ScheduleView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updatedTeam) => onUpdateTeam(team.id, updatedTeam)} addNotification={addNotification} />;
+                    return <ScheduleView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} addNotification={addNotification} />;
                 case 'performance':
-                    return <PerformanceView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updatedTeam) => onUpdateTeam(team.id, updatedTeam)} />;
+                    return <PerformanceView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} />;
                 case 'chat':
                      return null;
                 case 'dashboard':
                 default:
-                    return <DashboardGrid team={team} setView={setView} setSection={setSection} />;
+                    return <DashboardGrid team={team} setView={setView} setSection={setSection} setActiveChatTeam={setActiveChatTeam} />;
             }
         };
 
@@ -280,6 +284,11 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                             <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
                             <p className="opacity-80 font-semibold">{team.level}</p>
                         </div>
+                        {!isCaptain && (
+                            <button onClick={() => setIsLeaveModalOpen(true)} className="absolute top-4 right-4 p-2 text-red-400 rounded-full hover:bg-red-500/20">
+                                <LogoutIcon className="w-6 h-6" />
+                            </button>
+                        )}
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                         <HeaderStatCard label="Victorias" value={team.stats.wins} colorClass="text-green-400" />
@@ -297,6 +306,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                             isActive={view === tab.id}
                             onClick={() => {
                                 if (tab.id === 'chat') {
+                                    setActiveChatTeam(team);
                                     setSection('chat');
                                 } else {
                                     setView(tab.id);
@@ -309,6 +319,19 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                 <main className="mt-6">
                     {renderContent()}
                 </main>
+
+                <ConfirmationModal
+                    isOpen={isLeaveModalOpen}
+                    onClose={() => setIsLeaveModalOpen(false)}
+                    onConfirm={() => {
+                        onLeaveTeam(team.id);
+                        setSelectedTeam(null); // Go back to team list
+                        setIsLeaveModalOpen(false);
+                    }}
+                    title={`¿Abandonar ${team.name}?`}
+                    message="Ya no serás miembro de este equipo. Esta acción no se puede deshacer."
+                    confirmButtonText="Sí, abandonar"
+                />
             </div>
         );
     }

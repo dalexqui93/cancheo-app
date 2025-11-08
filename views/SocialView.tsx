@@ -569,10 +569,10 @@ const FindPlayersView: React.FC<{
     );
 };
 
-
 const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam, weatherData }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
+    const [activeChatTeam, setActiveChatTeam] = useState<Team | null>(null);
     
     const userTeams = useMemo(() => user.teamIds ? allTeams.filter(t => user.teamIds.includes(t.id)) : [], [allTeams, user.teamIds]);
     
@@ -607,7 +607,22 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     onUpdateUserTeams={onUpdateUserTeams}
                     onLeaveTeam={onLeaveTeam}
                     onRemovePlayerFromTeam={onRemovePlayerFromTeam}
+                    setSection={setSection}
+                    setActiveChatTeam={setActiveChatTeam}
                  />;
+            case 'chat':
+                if (!activeChatTeam || !user.playerProfile) {
+                    setSection('hub'); // Failsafe
+                    return null;
+                }
+                return <TeamChatView
+                    team={activeChatTeam}
+                    currentUser={user.playerProfile}
+                    onBack={() => {
+                        setSection('my-team');
+                    }}
+                    onUpdateTeam={(updates) => onUpdateTeam(activeChatTeam.id, updates)}
+                />;
             case 'challenge':
                 return <div className="p-4 sm:p-6 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} weatherData={weatherData} /></div>;
             case 'find-players':
