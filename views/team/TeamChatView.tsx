@@ -637,12 +637,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="relative animate-fade-in team-chat-bg">
+        <div className="relative animate-fade-in team-chat-bg min-h-screen">
             <div className="absolute inset-0 bg-black/60"></div>
-
-            <div className="relative">
+    
+            <div className="relative flex flex-col h-screen">
                 {/* Header */}
-                <header className="sticky top-0 z-20 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+                <header className="fixed top-0 left-0 right-0 z-20 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
                     {isSearching ? (
                         <div className="flex items-center w-full gap-2 animate-fade-in">
                             <input
@@ -682,7 +682,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </header>
     
                 {/* Messages */}
-                <main className="px-4 py-4 pt-24 pb-40">
+                <main className="flex-grow overflow-y-auto px-4 py-4 pt-24 pb-40">
                     {isLoading ? (
                         <div className="flex justify-center items-center h-full">
                             <SpinnerIcon className="w-8 h-8 text-amber-500" />
