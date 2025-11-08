@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation } from './types';
@@ -1254,14 +1253,13 @@ const App = () => {
     
         const notificationForRemovedPlayer: Omit<Notification, 'id' | 'timestamp'> = {
             type: 'error',
-            title: 'Has sido eliminado',
-            message: `El capitán te ha eliminado de ${team.name}.`,
+            title: 'Has sido expulsado del equipo',
+            message: `El capitán de "${team.name}" te ha eliminado de la plantilla.`,
             read: false,
         };
         const newNotification = { ...notificationForRemovedPlayer, id: Date.now(), timestamp: new Date() };
         const updatedNotifications = [newNotification, ...(userToRemove.notifications || [])].slice(0, 50);
 
-// Fix: Added missing 'senderName' property to system message data
         const systemMessageData = {
             senderId: 'system',
             senderName: 'Sistema',
@@ -1301,8 +1299,8 @@ const App = () => {
         const updatedTeamIds = user.teamIds?.filter(id => id !== teamId) || [];
 
         const notificationForCaptain: Omit<Notification, 'id'| 'timestamp'> = {
-            type: 'info',
-            title: 'Un jugador ha abandonado',
+            type: 'error',
+            title: 'Baja en el equipo',
             message: `${user.name} ha abandonado ${team.name}.`,
             read: false
         };
@@ -1310,7 +1308,6 @@ const App = () => {
         const captain = allUsers.find(u => u.id === team.captainId);
         const updatedCaptainNotifications = [newNotification, ...(captain?.notifications || [])].slice(0, 50);
 
-// Fix: Added missing 'senderName' property to system message data
         const systemMessageData = {
             senderId: 'system',
             senderName: 'Sistema',
@@ -1426,6 +1423,14 @@ const App = () => {
                 u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
             ));
         }
+
+        // Enviar mensaje al chat del equipo
+        const systemMessageData = {
+            senderId: 'system',
+            senderName: 'Sistema',
+            text: `${invitation.toUserName} se ha unido al equipo. ¡Bienvenido!`,
+        };
+        await db.addChatMessage(invitation.teamId, systemMessageData);
 
         // Delete the invitation
         await db.deleteInvitation(invitation.id);
