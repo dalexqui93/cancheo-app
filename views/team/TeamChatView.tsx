@@ -518,37 +518,39 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main ref={mainContentRef} className="relative z-10 flex-grow p-4 overflow-y-auto overscroll-contain min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-                {isLoading ? (
-                     <div className="flex justify-center items-center h-full">
-                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
-                    </div>
-                ) : filteredMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {filteredMessages.map(msg => (
-                            <ChatMessageBubble 
-                                key={msg.id} 
-                                message={msg} 
-                                isCurrentUser={msg.senderId === currentUser.id} 
-                                currentUser={currentUser}
-                                onReply={handleReply} 
-                                onDelete={handleDeleteMessage}
-                                onDeleteForEveryone={handleDeleteForEveryone}
-                                onMarkAsRead={handleMarkAsRead}
-                                teamPlayerCount={team.players.length}
-                                onOpenLightbox={setLightboxImage}
-                                onScrollToMessage={handleScrollToMessage}
-                                highlightedMessageId={highlightedMessageId}
-                            />
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
+            <main className="relative z-10 flex-grow min-h-0 flex flex-col">
+                <div ref={mainContentRef} className="flex-grow p-4 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full">
+                            <SpinnerIcon className="w-8 h-8 text-amber-500" />
+                        </div>
+                    ) : filteredMessages.length === 0 ? (
+                        <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                            <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                            <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {filteredMessages.map(msg => (
+                                <ChatMessageBubble 
+                                    key={msg.id} 
+                                    message={msg} 
+                                    isCurrentUser={msg.senderId === currentUser.id} 
+                                    currentUser={currentUser}
+                                    onReply={handleReply} 
+                                    onDelete={handleDeleteMessage}
+                                    onDeleteForEveryone={handleDeleteForEveryone}
+                                    onMarkAsRead={handleMarkAsRead}
+                                    teamPlayerCount={team.players.length}
+                                    onOpenLightbox={setLightboxImage}
+                                    onScrollToMessage={handleScrollToMessage}
+                                    highlightedMessageId={highlightedMessageId}
+                                />
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* Input */}
