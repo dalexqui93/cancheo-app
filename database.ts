@@ -299,8 +299,8 @@ const initializeDemoData = () => {
     demoData.posts = postsToSeed;
     demoData.announcements = announcementsToSeed.map((a, i) => ({ id: `announcement-${i}`, ...a, createdAt: new Date() }));
     demoData.chats['t1'] = [
-        { id: 'msg1', senderId: 'player-2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
-        { id: 'msg2', senderId: 'player-1', senderName: 'Juan Perez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
+        { id: 'msg1', senderId: 'player-2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3), readBy: ['player-1', 'player-3'] },
+        { id: 'msg2', senderId: 'player-1', senderName: 'Juan Perez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' }, readBy: ['player-2'] },
     ];
     demoData.invitations = [];
 
@@ -807,15 +807,37 @@ export const listenToTeamChat = (teamId: string, callback: (messages: ChatMessag
 
 export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<ChatMessage> => {
     if (isFirebaseConfigured) {
-        const dataToSave = { ...messageData, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+        const dataToSave = { ...messageData, readBy: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection('teams').doc(teamId).collection('chat').add(dataToSave);
-        return { id: docRef.id, ...messageData, timestamp: new Date() };
+        return { id: docRef.id, ...messageData, timestamp: new Date(), readBy: [] };
     }
-    const newMessage: ChatMessage = { id: `msg-${Date.now()}`, ...messageData, timestamp: new Date() };
+    const newMessage: ChatMessage = { id: `msg-${Date.now()}`, ...messageData, timestamp: new Date(), readBy: [] };
     if (!demoData.chats) demoData.chats = {};
     if (!demoData.chats[teamId]) demoData.chats[teamId] = [];
     demoData.chats[teamId].push(newMessage);
     return Promise.resolve(newMessage);
+};
+
+export const markMessageAsRead = async (teamId, messageId, userId) => {
+    if (isFirebaseConfigured) {
+        const messageRef = db.collection('teams').doc(teamId).collection('chat').doc(messageId);
+        return messageRef.update({
+            readBy: firebase.firestore.FieldValue.arrayUnion(userId)
+        });
+    }
+    if (demoData.chats && demoData.chats[teamId]) {
+        const msgIndex = demoData.chats[teamId].findIndex(m => m.id === messageId);
+        if (msgIndex > -1) {
+            const message = demoData.chats[teamId][msgIndex];
+            if (!message.readBy) {
+                message.readBy = [];
+            }
+            if (!message.readBy.includes(userId)) {
+                message.readBy.push(userId);
+            }
+        }
+    }
+    return Promise.resolve();
 };
 
 export const deleteChatMessage = async (teamId: string, messageId: string): Promise<void> => {

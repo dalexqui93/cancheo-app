@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Team, Player, ChatMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { PaperAirplaneIcon } from '../../components/icons/PaperAirplaneIcon';
@@ -11,6 +11,9 @@ import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 import TeamInfoView from './TeamInfoView';
 import { DotsVerticalIcon } from '../../components/icons/DotsVerticalIcon';
 import { BellSlashIcon } from '../../components/icons/BellSlashIcon';
+import { ClockIcon } from '../../components/icons/ClockIcon';
+import { CheckIcon } from '../../components/icons/CheckIcon';
+import { DoubleCheckIcon } from '../../components/icons/DoubleCheckIcon';
 
 interface TeamChatViewProps {
     team: Team;
@@ -27,19 +30,69 @@ const BanIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
+const MessageStatusIcon: React.FC<{
+  message: ChatMessage;
+  teamPlayerCount: number;
+}> = ({ message, teamPlayerCount }) => {
+  if (message.id.startsWith('temp-')) {
+    return <ClockIcon className="w-4 h-4 text-gray-400" aria-label="Enviando" />;
+  }
+
+  const isReadAll = message.readBy && message.readBy.length >= teamPlayerCount - 1;
+
+  if (isReadAll) {
+    return <DoubleCheckIcon className="w-5 h-5 text-green-400" aria-label="Leído por todos" />;
+  }
+  
+  return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
+};
+
 
 const ChatMessageBubble: React.FC<{ 
     message: ChatMessage, 
     isCurrentUser: boolean, 
+    currentUser: Player,
     onReply: (message: ChatMessage) => void,
     onDelete: (messageId: string) => void,
     onDeleteForEveryone: (messageId: string) => void,
-}> = ({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone }) => {
+    onMarkAsRead: (messageId: string) => void,
+    teamPlayerCount: number,
+}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount }) => {
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
+    const bubbleRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!bubbleRef.current || isCurrentUser || message.deleted) {
+            return;
+        }
+
+        const hasBeenReadByMe = message.readBy?.includes(currentUser.id);
+        if (hasBeenReadByMe) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    onMarkAsRead(message.id);
+                    observer.unobserve(entry.target);
+                }
+            },
+            { threshold: 0.8 }
+        );
+
+        observer.observe(bubbleRef.current);
+
+        return () => {
+            if (bubbleRef.current) {
+                observer.unobserve(bubbleRef.current);
+            }
+        };
+    }, [message.id, isCurrentUser, currentUser.id, message.readBy, onMarkAsRead, message.deleted]);
 
     if (message.deleted) {
         return (
-            <div className={`flex flex-col ${alignment} group`}>
+            <div ref={bubbleRef} className={`flex flex-col ${alignment} group`}>
                 <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
                         <p className="text-sm italic text-gray-500 flex items-center gap-2">
@@ -64,7 +117,7 @@ const ChatMessageBubble: React.FC<{
     const sender = isCurrentUser ? 'Tú' : message.senderName;
     
     return (
-        <div className={`flex flex-col ${alignment} group`}>
+        <div ref={bubbleRef} className={`flex flex-col ${alignment} group`}>
             <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
                     <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
@@ -75,7 +128,10 @@ const ChatMessageBubble: React.FC<{
                         </div>
                     )}
                     <p className="text-sm break-words">{message.text}</p>
-                    <p className="text-xs opacity-70 mt-1 text-right">{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</p>
+                    <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
+                        <span>{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                        {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
+                    </div>
                 </div>
                 <div className="relative">
                     <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
@@ -148,7 +204,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
     const handleSendMessage = async () => {
         if (inputText.trim()) {
-            // Optimistic update
             const tempId = `temp-${Date.now()}`;
             const newMessage: ChatMessage = {
                 id: tempId,
@@ -158,12 +213,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 text: inputText,
                 timestamp: new Date(),
                 replyTo: replyingTo ? { senderName: replyingTo.senderName, text: replyingTo.text } : undefined,
+                readBy: [currentUser.id],
             };
             setMessages(prev => [...prev, newMessage]);
 
-            const { id, timestamp, ...messageData } = newMessage;
+            const { id, timestamp, readBy, ...messageData } = newMessage;
             
-            // Sanitize the object to remove undefined properties before sending to Firestore
             Object.keys(messageData).forEach(key => (messageData as any)[key] === undefined && delete (messageData as any)[key]);
 
 
@@ -175,7 +230,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 await db.addChatMessage(team.id, messageData as Omit<ChatMessage, 'id' | 'timestamp'>);
             } catch (error) {
                 console.error("Error al enviar el mensaje:", String(error));
-                // Revert optimistic update on failure
                 setMessages(prev => prev.filter(m => m.id !== tempId));
             }
         }
@@ -184,6 +238,14 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const handleEmojiSelect = (emoji: string) => {
         setInputText(prev => prev + emoji);
     };
+
+    const handleMarkAsRead = useCallback(async (messageId: string) => {
+        try {
+            await db.markMessageAsRead(team.id, messageId, currentUser.id);
+        } catch (error) {
+            console.error("Failed to mark message as read:", error);
+        }
+    }, [team.id, currentUser.id]);
 
     const isCaptain = currentUser.id === team.captainId;
     const canSendMessage = !team.messagingPermissions || team.messagingPermissions === 'all' || (team.messagingPermissions === 'captain' && isCaptain);
@@ -230,9 +292,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 key={msg.id} 
                                 message={msg} 
                                 isCurrentUser={msg.senderId === currentUser.id} 
+                                currentUser={currentUser}
                                 onReply={setReplyingTo} 
                                 onDelete={handleDeleteMessage}
                                 onDeleteForEveryone={handleDeleteForEveryone}
+                                onMarkAsRead={handleMarkAsRead}
+                                teamPlayerCount={team.players.length}
                             />
                         ))}
                         <div ref={messagesEndRef} />
