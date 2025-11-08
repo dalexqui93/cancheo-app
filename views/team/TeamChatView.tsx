@@ -105,7 +105,7 @@ const ChatMessageBubble: React.FC<{
             const absDeltaY = Math.abs(deltaY);
 
             if (absDeltaX > 10 || absDeltaY > 10) {
-                if (absDeltaY > absDeltaX) {
+                if (absDeltaY > absDeltaX * 1.5) { // Prioritize vertical scroll more strongly
                     gestureInfo.direction = 'vertical';
                     return;
                 } else {
@@ -585,7 +585,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main ref={mainContentRef} className="relative z-10 flex-grow p-4 overflow-y-auto">
+            <main ref={mainContentRef} className="relative z-10 flex-grow p-4 overflow-y-auto overscroll-contain">
                 {isLoading ? (
                      <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
