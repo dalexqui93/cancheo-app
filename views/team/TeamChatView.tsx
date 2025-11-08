@@ -85,10 +85,10 @@ const ChatMessageBubble: React.FC<{
     const handleTouchStart = (e: React.TouchEvent) => {
         gestureInfo.startX = e.touches[0].clientX;
         gestureInfo.startY = e.touches[0].clientY;
-        gestureInfo.direction = null; // Reset direction on new touch
+        gestureInfo.direction = null;
         
         if (bubbleRef.current) {
-            bubbleRef.current.style.transition = 'transform 0s'; // No transition while dragging
+            bubbleRef.current.style.transition = 'transform 0s';
         }
     };
 
@@ -96,31 +96,24 @@ const ChatMessageBubble: React.FC<{
         const deltaX = e.touches[0].clientX - gestureInfo.startX;
         const deltaY = e.touches[0].clientY - gestureInfo.startY;
 
-        // If we've already decided this is a vertical scroll, do nothing more.
         if (gestureInfo.direction === 'vertical') {
             return;
         }
 
-        // If a direction hasn't been determined yet...
         if (!gestureInfo.direction) {
             const absDeltaX = Math.abs(deltaX);
             const absDeltaY = Math.abs(deltaY);
 
-            // Only decide on a direction after a small threshold is passed.
             if (absDeltaX > 10 || absDeltaY > 10) {
-                // If vertical movement is greater than horizontal, it's a scroll.
-                // This is more forgiving for diagonal scroll gestures.
                 if (absDeltaY > absDeltaX) {
                     gestureInfo.direction = 'vertical';
-                    return; // Let the browser handle scrolling.
+                    return;
                 } else {
-                    // Otherwise, it's a horizontal swipe.
                     gestureInfo.direction = 'horizontal';
                 }
             }
         }
         
-        // If we've determined it's a horizontal swipe, prevent default and animate.
         if (gestureInfo.direction === 'horizontal') {
             e.preventDefault();
             const swipeDistance = Math.max(0, Math.min(deltaX, 100));
@@ -142,12 +135,11 @@ const ChatMessageBubble: React.FC<{
             onReply(message);
         }
         
-        // Reset styles smoothly regardless of action
         if (bubbleRef.current) {
             bubbleRef.current.style.transition = 'transform 0.3s ease-out';
             bubbleRef.current.style.transform = 'translateX(0px)';
         }
-        setSwipeX(0); // Reset icon opacity
+        setSwipeX(0);
     };
 
     useEffect(() => {
