@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { Team, Player, ChatMessage } from '../../types';
+import type { Team, Player, ChatMessage, Notification } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { PaperAirplaneIcon } from '../../components/icons/PaperAirplaneIcon';
 import { FaceSmileIcon } from '../../components/icons/FaceSmileIcon';
@@ -23,6 +23,7 @@ interface TeamChatViewProps {
     currentUser: Player;
     onBack: () => void;
     onUpdateTeam: (updates: Partial<Team>) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
 const EMOJIS = ['👍', '😂', '⚽', '🔥', '👏', '🏆', '🎉', '💪'];
@@ -180,7 +181,7 @@ const ChatMessageBubble: React.FC<{
     );
 };
 
-const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [inputText, setInputText] = useState('');
@@ -306,6 +307,18 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const handleStartRecording = async () => {
         if (isRecording) return;
         try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+
+            if (!hasMicrophone) {
+                addNotification({
+                    type: 'error',
+                    title: 'Micrófono no encontrado',
+                    message: 'No se ha detectado un micrófono en tu dispositivo. Conecta uno para poder grabar audios.'
+                });
+                return;
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorderRef.current = new MediaRecorder(stream);
             audioChunksRef.current = [];
@@ -337,7 +350,28 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
         } catch (err) {
             console.error("No se pudo obtener acceso al micrófono:", err);
-            alert("No se pudo acceder al micrófono. Por favor, revisa los permisos en tu navegador.");
+            
+            let title = 'Error de Micrófono';
+            let message = 'No se pudo acceder al micrófono. Revisa que el dispositivo esté conectado y que los permisos estén activados en tu navegador.';
+
+            if (err instanceof DOMException) {
+                if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    title = 'Micrófono no encontrado';
+                    message = 'No se ha detectado un micrófono. Por favor, conecta uno e inténtalo de nuevo.';
+                } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    title = 'Permiso denegado';
+                    message = 'Has bloqueado el acceso al micrófono. Debes activarlo en los ajustes de tu navegador para grabar audios.';
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    title = 'Error de Hardware';
+                    message = 'No se pudo leer desde el micrófono. Puede que esté siendo usado por otra aplicación.';
+                }
+            }
+
+            addNotification({
+                type: 'error',
+                title: title,
+                message: message
+            });
         }
     };
 

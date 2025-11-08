@@ -439,7 +439,7 @@ const ChallengeView: React.FC<{
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Retar un Equipo</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra un rival y desafíalo a un partido amistoso.</p>
             
-            <div className="mt-6 space-y-4 sticky top-0 bg-slate-50 dark:bg-gray-900 py-4 z-10 -mx-4 px-4 md:static md:bg-transparent md:py-0 md:top-auto md:z-auto">
+            <div className="mt-6 space-y-4 -mx-4 px-4 md:static md:bg-transparent md:py-0 md:top-auto md:z-auto">
                 <div className="relative">
                     <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                     <input 
@@ -624,6 +624,7 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                         setSection('my-team');
                     }}
                     onUpdateTeam={(updates) => onUpdateTeam(activeChatTeam.id, updates)}
+                    addNotification={addNotification}
                 />;
             case 'challenge':
                 return <div className="bg-slate-50 dark:bg-gray-900 pb-[6.5rem]"><ChallengeView allTeams={allTeams} user={user} onBack={() => setSection('hub')} addNotification={addNotification} weatherData={weatherData} /></div>;
