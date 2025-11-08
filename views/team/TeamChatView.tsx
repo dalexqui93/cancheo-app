@@ -79,10 +79,12 @@ const ChatMessageBubble: React.FC<{
     const touchStartX = useRef(0);
 
     const handleTouchStart = (e: React.TouchEvent) => {
+        e.preventDefault();
         touchStartX.current = e.touches[0].clientX;
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
+        e.preventDefault();
         const currentX = e.touches[0].clientX;
         const diff = currentX - touchStartX.current;
         if (diff > 0 && diff < 100) { // Only swipe right
@@ -90,7 +92,8 @@ const ChatMessageBubble: React.FC<{
         }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        e.preventDefault();
         if (swipeX > 60) { // Threshold to trigger reply
             onReply(message);
         }
@@ -171,7 +174,7 @@ const ChatMessageBubble: React.FC<{
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ transform: `translateX(${swipeX}px)` }}
+            style={{ transform: `translateX(${swipeX}px)`, transition: 'transform 0.2s ease-out' }}
         >
              <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pl-2 text-white" style={{ opacity: Math.min(swipeX / 60, 1) }}>
                 <ArrowUturnLeftIcon className="w-5 h-5" />
