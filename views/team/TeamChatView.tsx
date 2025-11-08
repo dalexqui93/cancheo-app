@@ -231,6 +231,41 @@ const ChatMessageBubble: React.FC<{
     );
 };
 
+// Función para comprimir imágenes
+const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height = height * (MAX_WIDTH / width);
+                    width = MAX_WIDTH;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.75)); // Comprimir a JPEG con 75% de calidad
+                } else {
+                    reject(new Error('No se pudo obtener el contexto del canvas.'));
+                }
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
+};
+
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -340,22 +375,35 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         setInputText(prev => prev + emoji);
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                alert('El archivo es demasiado grande. El límite es 10MB.');
+            if (file.size > 15 * 1024 * 1024) { // 15MB limit
+                addNotification({ type: 'error', title: 'Archivo muy grande', message: 'El límite para archivos es 15MB.'});
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = (event) => {
+
+            try {
+                let dataUrl: string;
+                if (file.type.startsWith('image/')) {
+                    dataUrl = await compressImage(file);
+                } else {
+                    dataUrl = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => resolve(event.target?.result as string);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                }
                 setAttachment({
                     fileName: file.name,
-                    mimeType: file.type,
-                    dataUrl: event.target?.result as string,
+                    mimeType: file.type.startsWith('image/') ? 'image/jpeg' : file.type,
+                    dataUrl: dataUrl,
                 });
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error("Error al procesar el archivo:", String(error));
+                addNotification({ type: 'error', title: 'Error de Archivo', message: 'No se pudo procesar el archivo seleccionado.'});
+            }
         }
         e.target.value = ''; // Reset file input
     };
@@ -377,7 +425,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             }
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderRef.current = new MediaRecorder(stream);
+            mediaRecorderRef.current = new MediaRecorder(stream, { audioBitsPerSecond: 24000 }); // Reducir bitrate para compresión
             audioChunksRef.current = [];
 
             mediaRecorderRef.current.ondataavailable = (event) => {
