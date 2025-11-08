@@ -817,3 +817,13 @@ export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessa
     demoData.chats[teamId].push(newMessage);
     return Promise.resolve(newMessage);
 };
+
+export const deleteChatMessage = async (teamId: string, messageId: string): Promise<void> => {
+    if (isFirebaseConfigured) {
+        return db.collection('teams').doc(teamId).collection('chat').doc(messageId).delete();
+    }
+    if (demoData.chats && demoData.chats[teamId]) {
+        demoData.chats[teamId] = demoData.chats[teamId].filter(m => m.id !== messageId);
+    }
+    return Promise.resolve();
+};

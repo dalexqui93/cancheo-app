@@ -25,8 +25,9 @@ const ChatMessageBubble: React.FC<{
     message: ChatMessage, 
     isCurrentUser: boolean, 
     onReply: (message: ChatMessage) => void,
-    onDelete: (messageId: string) => void
-}> = ({ message, isCurrentUser, onReply, onDelete }) => {
+    onDelete: (messageId: string) => void,
+    onDeleteForEveryone: (messageId: string) => void,
+}> = ({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone }) => {
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
     const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
     const sender = isCurrentUser ? 'Tú' : message.senderName;
@@ -51,7 +52,11 @@ const ChatMessageBubble: React.FC<{
                     </button>
                     <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
                         <button onClick={() => onReply(message)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
-                        <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
+                        {isCurrentUser ? (
+                            <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
+                        ) : (
+                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -91,6 +96,14 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         newDeletedIds.add(messageId);
         setDeletedMessageIds(newDeletedIds);
         localStorage.setItem(`deleted_messages_${team.id}`, JSON.stringify(Array.from(newDeletedIds)));
+    };
+
+    const handleDeleteForEveryone = async (messageId: string) => {
+        try {
+            await db.deleteChatMessage(team.id, messageId);
+        } catch (error) {
+            console.error("Error al eliminar mensaje para todos:", String(error));
+        }
     };
 
     const handleClearChat = () => {
@@ -182,7 +195,14 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 ) : (
                     <div className="space-y-4">
                         {filteredMessages.map(msg => (
-                            <ChatMessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === currentUser.id} onReply={setReplyingTo} onDelete={handleDeleteMessage} />
+                            <ChatMessageBubble 
+                                key={msg.id} 
+                                message={msg} 
+                                isCurrentUser={msg.senderId === currentUser.id} 
+                                onReply={setReplyingTo} 
+                                onDelete={handleDeleteMessage}
+                                onDeleteForEveryone={handleDeleteForEveryone}
+                            />
                         ))}
                         <div ref={messagesEndRef} />
                     </div>
