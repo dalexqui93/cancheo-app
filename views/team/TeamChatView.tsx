@@ -1,23 +1,22 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Team, Player, ChatMessage, Notification } from '../../types';
+import * as db from '../../database';
+
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { PaperAirplaneIcon } from '../../components/icons/PaperAirplaneIcon';
-import { FaceSmileIcon } from '../../components/icons/FaceSmileIcon';
-import { XIcon } from '../../components/icons/XIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
+import { PaperclipIcon } from '../../components/icons/PaperclipIcon';
+import { FaceSmileIcon } from '../../components/icons/FaceSmileIcon';
 import { ArrowUturnLeftIcon } from '../../components/icons/ArrowUturnLeftIcon';
-import * as db from '../../database';
-import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
-import TeamInfoView from './TeamInfoView';
+import { XIcon } from '../../components/icons/XIcon';
 import { DotsVerticalIcon } from '../../components/icons/DotsVerticalIcon';
-import { BellSlashIcon } from '../../components/icons/BellSlashIcon';
-import { ClockIcon } from '../../components/icons/ClockIcon';
+import { TrashIcon } from '../../components/icons/TrashIcon';
 import { CheckIcon } from '../../components/icons/CheckIcon';
 import { DoubleCheckIcon } from '../../components/icons/DoubleCheckIcon';
-import { MicrophoneIcon } from '../../components/icons/MicrophoneIcon';
-import { PaperclipIcon } from '../../components/icons/PaperclipIcon';
-import { TrashIcon } from '../../components/icons/TrashIcon';
-import ImageLightbox from '../../components/ImageLightbox';
+import TeamInfoView from './TeamInfoView';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import { timeSince } from '../../utils/timeSince';
+import { ShieldIcon } from '../../components/icons/ShieldIcon';
 
 interface TeamChatViewProps {
     team: Team;
@@ -27,648 +26,188 @@ interface TeamChatViewProps {
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
-const EMOJIS = ['👍', '😂', '⚽', '🔥', '👏', '🏆', '🎉', '💪'];
-
-const BanIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-         <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-    </svg>
-);
-
-const FileIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    </svg>
-);
-
-
-const MessageStatusIcon: React.FC<{
-  message: ChatMessage;
-  teamPlayerCount: number;
-}> = ({ message, teamPlayerCount }) => {
-  if (message.id.startsWith('temp-')) {
-    return <ClockIcon className="w-4 h-4 text-gray-400" aria-label="Enviando" />;
-  }
-
-  const isReadAll = message.readBy && message.readBy.length >= teamPlayerCount - 1;
-
-  if (isReadAll) {
-    return <DoubleCheckIcon className="w-5 h-5 text-green-400" aria-label="Leído por todos" />;
-  }
-  
-  return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
-};
-
-
-const ChatMessageBubble: React.FC<{ 
-    message: ChatMessage, 
-    isCurrentUser: boolean, 
-    currentUser: Player,
-    onReply: (message: ChatMessage) => void,
-    onDelete: (messageId: string) => void,
-    onDeleteForEveryone: (messageId: string) => void,
-    onMarkAsRead: (messageId: string) => void,
-    teamPlayerCount: number,
-    onOpenLightbox: (imageUrl: string) => void;
-    onScrollToMessage: (messageId: string) => void;
-    highlightedMessageId: string | null;
-}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
-    const alignment = isCurrentUser ? 'items-end' : 'items-start';
-    const bubbleRef = useRef<HTMLDivElement>(null);
-    const [swipeX, setSwipeX] = useState(0);
-    const touchStartX = useRef(0);
-
-    const handleTouchStart = (e: React.TouchEvent) => {
-        e.preventDefault();
-        touchStartX.current = e.touches[0].clientX;
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        e.preventDefault();
-        const currentX = e.touches[0].clientX;
-        const diff = currentX - touchStartX.current;
-        if (diff > 0 && diff < 100) { // Only swipe right
-            setSwipeX(diff);
-        }
-    };
-
-    const handleTouchEnd = (e: React.TouchEvent) => {
-        e.preventDefault();
-        if (swipeX > 60) { // Threshold to trigger reply
-            onReply(message);
-        }
-        setSwipeX(0);
-    };
-
-    useEffect(() => {
-        if (!bubbleRef.current || isCurrentUser || message.deleted) {
-            return;
-        }
-
-        const hasBeenReadByMe = message.readBy?.includes(currentUser.id);
-        if (hasBeenReadByMe) {
-            return;
-        }
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    onMarkAsRead(message.id);
-                    observer.unobserve(entry.target);
-                }
-            },
-            { threshold: 0.8 }
-        );
-
-        observer.observe(bubbleRef.current);
-
-        return () => {
-            if (bubbleRef.current) {
-                // FIX: Check if bubbleRef.current is not null before calling unobserve.
-                observer.unobserve(bubbleRef.current);
-            }
-        };
-    }, [message.id, isCurrentUser, currentUser.id, message.readBy, onMarkAsRead, message.deleted]);
-
+const MessageBubble: React.FC<{
+    message: ChatMessage;
+    isOwn: boolean;
+    isGroupStart: boolean;
+    onReply: (message: ChatMessage) => void;
+    onDelete: (message: ChatMessage) => void;
+}> = ({ message, isOwn, isGroupStart, onReply, onDelete }) => {
     if (message.senderId === 'system') {
         return (
             <div className="text-center my-2">
-                <span className="bg-black/30 backdrop-blur-sm text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">
-                    {message.text}
-                </span>
+                <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">{message.text}</span>
             </div>
         );
     }
-
     if (message.deleted) {
         return (
-            <div ref={bubbleRef} id={message.id} className={`flex flex-col ${alignment} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
-                <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
-                        <p className="text-sm italic text-gray-500 flex items-center gap-2">
-                            <BanIcon className="w-4 h-4 flex-shrink-0" />
-                            <span>Este mensaje fue eliminado</span>
-                        </p>
-                    </div>
-                    <div className="relative">
-                        <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                            <DotsVerticalIcon className="w-4 h-4" />
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
-                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
-                        </div>
-                    </div>
+            <div className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xs md:max-w-md p-2 rounded-lg italic text-sm ${isOwn ? 'bg-gray-700' : 'bg-gray-600'} text-gray-400`}>
+                    Mensaje eliminado
                 </div>
             </div>
         );
     }
     
-    const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
-    const sender = isCurrentUser ? 'Tú' : message.senderName;
-    
     return (
-        <div 
-            ref={bubbleRef} 
-            id={message.id} 
-            className={`relative flex flex-col ${alignment} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{ transform: `translateX(${swipeX}px)`, transition: 'transform 0.2s ease-out' }}
-        >
-             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pl-2 text-white" style={{ opacity: Math.min(swipeX / 60, 1) }}>
-                <ArrowUturnLeftIcon className="w-5 h-5" />
-            </div>
-            <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
-                    <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
-                    {message.replyTo && (
-                        <button 
-                            onClick={() => message.replyTo?.messageId && onScrollToMessage(message.replyTo.messageId)}
-                            className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30"
-                        >
-                            <p className="text-xs font-bold">{message.replyTo.senderName}</p>
-                            <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
-                        </button>
-                    )}
-                    {message.attachment && (
-                        <div className="my-2">
-                            {message.attachment.mimeType.startsWith('image/') && (
-                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={() => onOpenLightbox(message.attachment.dataUrl)} />
-                            )}
-                            {message.attachment.mimeType.startsWith('audio/') && (
-                                <audio controls src={message.attachment.dataUrl} className="w-full h-10"></audio>
-                            )}
-                            {!message.attachment.mimeType.startsWith('image/') && !message.attachment.mimeType.startsWith('audio/') && (
-                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                    <FileIcon className="w-8 h-8 flex-shrink-0" />
-                                    <div className="truncate">
-                                        <p className="font-semibold text-sm truncate">{message.attachment.fileName}</p>
-                                        <p className="text-xs opacity-80">Descargar</p>
-                                    </div>
-                                </a>
-                            )}
-                        </div>
-                    )}
-                    {message.text && <p className="text-sm break-words">{message.text}</p>}
-                    <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
-                        <span>{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                        {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
-                    </div>
+        <div className={`flex items-end gap-2 group ${isOwn ? 'justify-end' : 'justify-start'} ${isGroupStart ? 'mt-3' : 'mt-0.5'}`}>
+            {!isOwn && (
+                <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden">
+                    {isGroupStart && message.senderProfilePicture ? <img src={message.senderProfilePicture} alt={message.senderName} className="w-full h-full object-cover"/> : isGroupStart ? <UserIcon className="w-5 h-5 text-gray-400 m-1.5"/> : null}
                 </div>
-                <div className="relative">
-                    <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                        <DotsVerticalIcon className="w-4 h-4" />
-                    </button>
-                    <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
-                        <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
-                        {isCurrentUser ? (
-                            <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
-                        ) : (
-                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
-                        )}
+            )}
+             <div className={`relative max-w-xs md:max-w-md p-2 rounded-lg ${isOwn ? 'bg-blue-600' : 'bg-gray-600'}`}>
+                {isGroupStart && !isOwn && <p className="font-bold text-sm text-amber-400 mb-1">{message.senderName}</p>}
+                
+                {message.replyTo && (
+                    <div className="border-l-2 border-blue-300 pl-2 mb-1 opacity-80">
+                        <p className="font-bold text-xs">{message.replyTo.senderName}</p>
+                        <p className="text-xs truncate">{message.replyTo.text}</p>
                     </div>
+                )}
+                
+                <p className="text-white text-sm whitespace-pre-wrap">{message.text}</p>
+                <div className="text-right text-xs text-gray-300 mt-1 flex justify-end items-center gap-1">
+                    <span>{new Date(message.timestamp).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</span>
+                    {isOwn && (message.readBy && message.readBy.length > 1 ? <DoubleCheckIcon className="w-4 h-4 text-blue-400" /> : <CheckIcon className="w-4 h-4" />)}
                 </div>
-            </div>
+
+                <div className="absolute top-0 right-0 -translate-y-1/2 flex items-center bg-gray-700 border border-gray-600 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => onReply(message)} className="p-1.5 hover:bg-gray-600 rounded-l-full"><ArrowUturnLeftIcon className="w-4 h-4"/></button>
+                    {isOwn && <button onClick={() => onDelete(message)} className="p-1.5 hover:bg-gray-600 rounded-r-full"><TrashIcon className="w-4 h-4"/></button>}
+                </div>
+             </div>
         </div>
     );
 };
 
-// Función para comprimir imágenes
-const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > MAX_WIDTH) {
-                    height = height * (MAX_WIDTH / width);
-                    width = MAX_WIDTH;
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.75)); // Comprimir a JPEG con 75% de calidad
-                } else {
-                    reject(new Error('No se pudo obtener el contexto del canvas.'));
-                }
-            };
-            img.onerror = reject;
-        };
-        reader.onerror = reject;
-    });
-};
-
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [inputText, setInputText] = useState('');
-    const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
-    const [showEmojis, setShowEmojis] = useState(false);
-    const [attachment, setAttachment] = useState<{ fileName: string; mimeType: string; dataUrl: string; } | null>(null);
-    const [isRecording, setIsRecording] = useState(false);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-    const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-
+    const [newMessage, setNewMessage] = useState('');
+    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+    const [showInfo, setShowInfo] = useState(false);
+    const [messageToDelete, setMessageToDelete] = useState<ChatMessage | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const mainContentRef = useRef<HTMLDivElement>(null);
-    const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const recordingIntervalRef = useRef<number | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    
-    const [deletedMessageIds, setDeletedMessageIds] = useState<Set<string>>(() => {
-        const stored = localStorage.getItem(`deleted_messages_${team.id}`);
-        return stored ? new Set(JSON.parse(stored)) : new Set();
-    });
 
     useEffect(() => {
-        setIsLoading(true);
         const unsubscribe = db.listenToTeamChat(team.id, (fetchedMessages) => {
             setMessages(fetchedMessages);
-            setIsLoading(false);
         });
         return () => unsubscribe();
     }, [team.id]);
 
     useEffect(() => {
-        if (!isLoading) {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages, attachment, isLoading]);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
-     useEffect(() => {
-        return () => {
-            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
-        };
-    }, []);
+    const handleSendMessage = async () => {
+        if (!newMessage.trim()) return;
 
-    const handleDeleteMessage = (messageId: string) => {
-        const newDeletedIds = new Set(deletedMessageIds);
-        newDeletedIds.add(messageId);
-        setDeletedMessageIds(newDeletedIds);
-        localStorage.setItem(`deleted_messages_${team.id}`, JSON.stringify(Array.from(newDeletedIds)));
-    };
-
-    const handleDeleteForEveryone = async (messageId: string) => {
-        try {
-            await db.deleteChatMessage(team.id, messageId);
-        } catch (error) {
-            console.error("Error al eliminar mensaje para todos:", String(error));
-        }
-    };
-
-    const handleClearChat = () => {
-        const allMessageIds = messages.map(m => m.id);
-        const newDeletedIds = new Set([...deletedMessageIds, ...allMessageIds]);
-        setDeletedMessageIds(newDeletedIds);
-        localStorage.setItem(`deleted_messages_${team.id}`, JSON.stringify(Array.from(newDeletedIds)));
-    };
-
-    const filteredMessages = messages.filter(m => !deletedMessageIds.has(m.id));
-
-    const handleSendMessage = async (audioAttachment?: { fileName: string; mimeType: string; dataUrl: string; }) => {
-        const messageAttachment = audioAttachment || attachment;
-        if (inputText.trim() === '' && !messageAttachment) return;
-
-        const tempId = `temp-${Date.now()}`;
-        const newMessage: ChatMessage = {
-            id: tempId,
+        const messageData = {
             senderId: currentUser.id,
             senderName: currentUser.name,
             senderProfilePicture: currentUser.profilePicture,
-            text: inputText,
-            timestamp: new Date(),
-            replyTo: replyingTo ? { messageId: replyingTo.id, senderName: replyingTo.senderName, text: replyingTo.text } : undefined,
-            attachment: messageAttachment ? { ...messageAttachment } : undefined,
-            readBy: [currentUser.id],
+            text: newMessage,
+            ...(replyTo && { replyTo: { messageId: replyTo.id, senderName: replyTo.senderName, text: replyTo.text } }),
         };
-        setMessages(prev => [...prev, newMessage]);
-
-        const { id, timestamp, readBy, ...messageData } = newMessage;
-        const dataToSend: Partial<ChatMessage> = { ...messageData };
-        if (!dataToSend.replyTo) delete dataToSend.replyTo;
-        if (!dataToSend.attachment) delete dataToSend.attachment;
-        
-        setInputText('');
-        setReplyingTo(null);
-        setShowEmojis(false);
-        setAttachment(null);
         
         try {
-            await db.addChatMessage(team.id, dataToSend as Omit<ChatMessage, 'id' | 'timestamp'>);
+            await db.addChatMessage(team.id, messageData);
+            setNewMessage('');
+            setReplyTo(null);
         } catch (error) {
-            console.error("Error al enviar el mensaje:", String(error));
-            setMessages(prev => prev.filter(m => m.id !== tempId));
+            addNotification({type: 'error', title: 'Error', message: 'No se pudo enviar el mensaje.'});
         }
     };
     
-    const handleEmojiSelect = (emoji: string) => {
-        setInputText(prev => prev + emoji);
+    const handleClearChat = () => {
+        // This is a local-only operation for now
+        setMessages([]);
+        addNotification({type: 'info', title: 'Chat Vaciado', message: 'Tu vista del chat ha sido limpiada.'});
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 15 * 1024 * 1024) { // 15MB limit
-                addNotification({ type: 'error', title: 'Archivo muy grande', message: 'El límite para archivos es 15MB.'});
-                return;
-            }
-
-            try {
-                let dataUrl: string;
-                if (file.type.startsWith('image/')) {
-                    dataUrl = await compressImage(file);
-                } else {
-                    dataUrl = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (event) => resolve(event.target?.result as string);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                }
-                setAttachment({
-                    fileName: file.name,
-                    mimeType: file.type.startsWith('image/') ? 'image/jpeg' : file.type,
-                    dataUrl: dataUrl,
-                });
-            } catch (error) {
-                console.error("Error al procesar el archivo:", String(error));
-                addNotification({ type: 'error', title: 'Error de Archivo', message: 'No se pudo procesar el archivo seleccionado.'});
-            }
-        }
-        e.target.value = ''; // Reset file input
-    };
-
-    const handleStartRecording = async (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-        if (isRecording) return;
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const hasMicrophone = devices.some(device => device.kind === 'audioinput');
-
-            if (!hasMicrophone) {
-                addNotification({
-                    type: 'error',
-                    title: 'Micrófono no encontrado',
-                    message: 'No se ha detectado un micrófono en tu dispositivo. Conecta uno para poder grabar audios.'
-                });
-                return;
-            }
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderRef.current = new MediaRecorder(stream, { audioBitsPerSecond: 24000 }); // Reducir bitrate para compresión
-            audioChunksRef.current = [];
-
-            mediaRecorderRef.current.ondataavailable = (event) => {
-                audioChunksRef.current.push(event.data);
-            };
-
-            mediaRecorderRef.current.onstop = () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const dataUrl = event.target?.result as string;
-                    handleSendMessage({
-                        fileName: `audio_${Date.now()}.webm`,
-                        mimeType: 'audio/webm;codecs=opus',
-                        dataUrl,
-                    });
-                };
-                reader.readAsDataURL(audioBlob);
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            mediaRecorderRef.current.start();
-            setIsRecording(true);
-            recordingIntervalRef.current = window.setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-
-        } catch (err) {
-            console.error("No se pudo obtener acceso al micrófono:", err);
-            
-            let title = 'Error de Micrófono';
-            let message = 'No se pudo acceder al micrófono. Revisa que el dispositivo esté conectado y que los permisos estén activados en tu navegador.';
-
-            if (err instanceof DOMException) {
-                if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                    title = 'Micrófono no encontrado';
-                    message = 'No se ha detectado un micrófono. Por favor, conecta uno e inténtalo de nuevo.';
-                } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    title = 'Permiso denegado';
-                    message = 'Has bloqueado el acceso al micrófono. Debes activarlo en los ajustes de tu navegador para grabar audios.';
-                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-                    title = 'Error de Hardware';
-                    message = 'No se pudo leer desde el micrófono. Puede que esté siendo usado por otra aplicación.';
-                }
-            }
-
-            addNotification({
-                type: 'error',
-                title: title,
-                message: message
-            });
-        }
-    };
-
-    const handleStopRecording = (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-            setIsRecording(false);
-            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
-            setRecordingTime(0);
-        }
-    };
-    
-    const handleMarkAsRead = useCallback(async (messageId: string) => {
-        try {
-            await db.markMessageAsRead(team.id, messageId, currentUser.id);
-        } catch (error) {
-            console.error("Failed to mark message as read:", error);
-        }
-    }, [team.id, currentUser.id]);
-
-    const handleScrollToMessage = (messageId: string) => {
-        const element = document.getElementById(messageId);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setHighlightedMessageId(messageId);
-            setTimeout(() => {
-                setHighlightedMessageId(null);
-            }, 1500);
-        } else {
-            addNotification({type: 'info', title: 'Mensaje no encontrado', message: 'El mensaje original puede haber sido eliminado o no está cargado.'})
-        }
-    };
-
-    const isCaptain = currentUser.id === team.captainId;
-    const canSendMessage = !team.messagingPermissions || team.messagingPermissions === 'all' || (team.messagingPermissions === 'captain' && isCaptain);
-
-
-    if (currentView === 'info') {
-        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setCurrentView('chat')} onUpdateTeam={onUpdateTeam} onClearChat={handleClearChat} />;
+    if (showInfo) {
+        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setShowInfo(false)} onUpdateTeam={onUpdateTeam} onClearChat={handleClearChat} />;
     }
 
     return (
-        <div className="flex flex-col h-screen text-white animate-fade-in team-chat-bg relative">
-            <div className="absolute inset-0 bg-black/60 z-0"></div>
-             {/* Header */}
-            <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+        <div className="h-screen bg-gray-900 text-white flex flex-col animate-fade-in">
+            {/* Header */}
+            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
                 <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
                     <ChevronLeftIcon className="w-6 h-6" />
                 </button>
-                <button onClick={() => setCurrentView('info')} className="flex items-center flex-grow min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
-                        {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                <button onClick={() => setShowInfo(true)} className="flex items-center gap-3 flex-grow min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden">
+                        {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover"/> : <ShieldIcon className="w-6 h-6 text-gray-400 m-2"/>}
                     </div>
-                    <div className="text-left min-w-0">
-                        <h2 className="font-bold text-lg truncate">{team.name}</h2>
-                        <p className="text-xs text-gray-400">{team.players.length} miembros</p>
+                    <div className="truncate">
+                        <h2 className="font-bold truncate">{team.name}</h2>
+                        <p className="text-xs text-gray-400 truncate">{team.players.length} miembros</p>
                     </div>
                 </button>
             </header>
 
             {/* Messages */}
-            <main ref={mainContentRef} className="relative z-10 flex-grow p-4 overflow-y-auto">
-                {isLoading ? (
-                     <div className="flex justify-center items-center h-full">
-                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
-                    </div>
-                ) : filteredMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {filteredMessages.map(msg => (
-                            <ChatMessageBubble 
-                                key={msg.id} 
-                                message={msg} 
-                                isCurrentUser={msg.senderId === currentUser.id} 
-                                currentUser={currentUser}
-                                onReply={(m) => { setReplyingTo(m); (document.activeElement as HTMLElement)?.blur(); }} 
-                                onDelete={handleDeleteMessage}
-                                onDeleteForEveryone={handleDeleteForEveryone}
-                                onMarkAsRead={handleMarkAsRead}
-                                teamPlayerCount={team.players.length}
-                                onOpenLightbox={setLightboxImage}
-                                onScrollToMessage={handleScrollToMessage}
-                                highlightedMessageId={highlightedMessageId}
-                            />
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
+            <main className="flex-grow overflow-y-auto p-4 space-y-1">
+                {messages.map((msg, index) => {
+                    const prevMsg = messages[index - 1];
+                    const isGroupStart = !prevMsg || prevMsg.senderId !== msg.senderId || (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime()) > 5 * 60 * 1000;
+                    return (
+                        <MessageBubble 
+                            key={msg.id} 
+                            message={msg} 
+                            isOwn={msg.senderId === currentUser.id}
+                            isGroupStart={isGroupStart}
+                            onReply={setReplyTo}
+                            onDelete={setMessageToDelete}
+                        />
+                    );
+                })}
+                <div ref={messagesEndRef} />
             </main>
 
             {/* Input */}
-            <footer className="relative z-10 flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
-                {canSendMessage ? (
-                    <>
-                        {attachment && (
-                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg flex items-center gap-3">
-                                <div className="flex-shrink-0">
-                                    {attachment.mimeType.startsWith('image/') ? (
-                                        <img src={attachment.dataUrl} alt="preview" className="w-10 h-10 rounded object-cover" />
-                                    ) : (
-                                        <FileIcon className="w-10 h-10 text-gray-400" />
-                                    )}
-                                </div>
-                                <p className="text-sm truncate flex-grow">{attachment.fileName}</p>
-                                <button onClick={() => setAttachment(null)} className="p-1 rounded-full hover:bg-gray-600 flex-shrink-0">
-                                    <XIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                        {replyingTo && (
-                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500">
-                                <p className="text-sm font-bold">Respondiendo a {replyingTo.senderName}</p>
-                                <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
-                                <button onClick={() => setReplyingTo(null)} className="absolute top-1 right-1 p-1 rounded-full hover:bg-gray-600">
-                                    <XIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                        {showEmojis && (
-                            <div className="p-2 mb-2 bg-gray-700 rounded-lg grid grid-cols-8 gap-2">
-                                {EMOJIS.map(emoji => (
-                                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="p-2 text-2xl rounded-lg hover:bg-gray-600 transition-colors">
-                                        {emoji}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                            <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
-                                <PaperclipIcon className="w-6 h-6" />
-                            </button>
-                            <button onClick={() => setShowEmojis(prev => !prev)} className="p-2 rounded-full hover:bg-gray-700 text-gray-400">
-                                <FaceSmileIcon className="w-6 h-6" />
-                            </button>
-                            
-                            {isRecording ? (
-                                <div className="flex-grow flex items-center justify-center gap-2 h-10 bg-gray-700 rounded-full px-4">
-                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
-                                    <span className="font-mono text-sm">{new Date(recordingTime * 1000).toISOString().substr(14, 5)}</span>
-                                </div>
-                            ) : (
-                                <input
-                                    type="text"
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder="Escribe un mensaje..."
-                                    className="flex-grow w-full bg-gray-700 border-transparent rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                />
-                            )}
-
-                            {(inputText.trim() || attachment) ? (
-                                <button onClick={() => handleSendMessage()} className="p-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 shadow-sm transition-colors" disabled={!inputText.trim() && !attachment}>
-                                    <PaperAirplaneIcon className="w-5 h-5" />
-                                </button>
-                            ) : (
-                                <button
-                                    onMouseDown={(e) => handleStartRecording(e)}
-                                    onMouseUp={(e) => handleStopRecording(e)}
-                                    onTouchStart={(e) => handleStartRecording(e)}
-                                    onTouchEnd={(e) => handleStopRecording(e)}
-                                    className={`p-3 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-amber-600'} text-white shadow-sm`}
-                                >
-                                    <MicrophoneIcon className="w-5 h-5" />
-                                </button>
-                            )}
+            <footer className="flex-shrink-0 p-4 border-t border-white/10 bg-gray-800/50 backdrop-blur-sm">
+                {replyTo && (
+                    <div className="bg-gray-700 p-2 rounded-t-lg flex justify-between items-start">
+                        <div className="border-l-2 border-blue-400 pl-2">
+                            <p className="font-bold text-sm text-blue-300">{replyTo.senderName}</p>
+                            <p className="text-xs text-gray-300 truncate">{replyTo.text}</p>
                         </div>
-                    </>
-                ) : (
-                    <div className="bg-gray-800 rounded-lg p-3 text-center flex items-center justify-center gap-2">
-                        <BellSlashIcon className="w-5 h-5 text-gray-400" />
-                        <p className="text-sm font-semibold text-gray-400">Solo los capitanes pueden enviar mensajes.</p>
+                        <button onClick={() => setReplyTo(null)} className="p-1"><XIcon className="w-4 h-4"/></button>
                     </div>
                 )}
+                <div className="flex items-center gap-2">
+                    <button className="p-2 text-gray-400 hover:text-white"><FaceSmileIcon className="w-6 h-6"/></button>
+                    <input 
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                        placeholder="Escribe un mensaje..."
+                        className="flex-grow bg-gray-700 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button className="p-2 text-gray-400 hover:text-white"><PaperclipIcon className="w-6 h-6"/></button>
+                    <button onClick={handleSendMessage} disabled={!newMessage.trim()} className="p-2 rounded-full bg-blue-600 text-white disabled:bg-gray-600">
+                        <PaperAirplaneIcon className="w-6 h-6"/>
+                    </button>
+                </div>
             </footer>
-            {lightboxImage && (
-                <ImageLightbox
-                    images={[lightboxImage]}
-                    startIndex={0}
-                    onClose={() => setLightboxImage(null)}
-                />
-            )}
+             <ConfirmationModal
+                isOpen={!!messageToDelete}
+                onClose={() => setMessageToDelete(null)}
+                onConfirm={() => {
+                    if(messageToDelete) {
+                        db.deleteChatMessage(team.id, messageToDelete.id);
+                    }
+                    setMessageToDelete(null);
+                }}
+                title="¿Eliminar mensaje?"
+                message="Este mensaje se eliminará para todos. Esta acción no se puede deshacer."
+                confirmButtonText="Sí, eliminar para todos"
+            />
         </div>
     );
 };
