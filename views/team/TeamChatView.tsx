@@ -679,39 +679,41 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 )}
             </header>
 
-            <main className="relative z-10 flex-grow p-4 space-y-4 overflow-y-auto min-h-0">
-                {isLoading ? (
-                    <div className="flex justify-center items-center h-full">
-                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
-                    </div>
-                ) : filteredMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                    </div>
-                ) : (
-                    <>
-                        {filteredMessages.map(msg => (
-                            <ChatMessageBubble 
-                                key={msg.id} 
-                                message={msg} 
-                                isCurrentUser={msg.senderId === currentUser.id} 
-                                currentUser={currentUser}
-                                onReply={handleReply} 
-                                onDelete={handleDeleteMessage}
-                                onDeleteForEveryone={handleDeleteForEveryone}
-                                onMarkAsRead={handleMarkAsRead}
-                                teamPlayerCount={team.players.length}
-                                onOpenLightbox={setLightboxImage}
-                                onScrollToMessage={handleScrollToMessage}
-                                highlightedMessageId={highlightedMessageId}
-                                highlightTerm={isSearching ? searchTerm : null}
-                            />
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </>
-                )}
-            </main>
+            <div className="relative z-10 flex-grow min-h-0">
+                <main className="absolute inset-0 p-4 space-y-4 overflow-y-auto scrollbar-hide">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full">
+                            <SpinnerIcon className="w-8 h-8 text-amber-500" />
+                        </div>
+                    ) : filteredMessages.length === 0 ? (
+                        <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                            <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                            <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
+                        </div>
+                    ) : (
+                        <>
+                            {filteredMessages.map(msg => (
+                                <ChatMessageBubble 
+                                    key={msg.id} 
+                                    message={msg} 
+                                    isCurrentUser={msg.senderId === currentUser.id} 
+                                    currentUser={currentUser}
+                                    onReply={handleReply} 
+                                    onDelete={handleDeleteMessage}
+                                    onDeleteForEveryone={handleDeleteForEveryone}
+                                    onMarkAsRead={handleMarkAsRead}
+                                    teamPlayerCount={team.players.length}
+                                    onOpenLightbox={setLightboxImage}
+                                    onScrollToMessage={handleScrollToMessage}
+                                    highlightedMessageId={highlightedMessageId}
+                                    highlightTerm={isSearching ? searchTerm : null}
+                                />
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </>
+                    )}
+                </main>
+            </div>
 
             <footer className="relative z-20 flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
                 {canSendMessage ? (
