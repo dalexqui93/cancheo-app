@@ -1702,13 +1702,14 @@ const App = () => {
     const isSocialView = view === View.SOCIAL;
     const socialSectionsWithDarkBg = ['hub', 'my-team'];
     const showDarkSocialBg = isSocialView && socialSectionsWithDarkBg.includes(socialSection);
+    const isChatView = isSocialView && socialSection === 'chat';
     
-    const showHeader = ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
-    const showBottomNav = user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
+    const showHeader = !isChatView && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
+    const showBottomNav = !isChatView && user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
 
     return (
-        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''}`}>
-            {showDarkSocialBg && <div className="absolute inset-0"></div>}
+        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
+            {(showDarkSocialBg || isChatView) && <div className="absolute inset-0 bg-black/60 z-0"></div>}
             <div className="relative z-10">
                 <FirebaseWarningBanner />
                 {showHeader && <Header 
@@ -1723,7 +1724,7 @@ const App = () => {
                                 onAcceptInvitation={handleAcceptInvitation}
                                 onRejectInvitation={handleRejectInvitation}
                                 currentTime={currentTime}/>}
-                <main className={`transition-all duration-300 overflow-x-hidden ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
+                <main className={`transition-all duration-300 ${!isChatView && 'overflow-x-hidden'} ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
                     {renderView()}
                 </main>
                 {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}

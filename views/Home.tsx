@@ -125,7 +125,7 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                 setDisplayScore({ a: currentScoreA, b: currentScoreB });
             }
         }
-    }, [match.scoreA, match.scoreB]);
+    }, [match.scoreA, match.scoreB, displayScore.a, displayScore.b]);
 
 
     const teamNameA = match.teamName || match.userName;
