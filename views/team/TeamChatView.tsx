@@ -96,21 +96,38 @@ const ChatMessageBubble: React.FC<{
         const deltaX = e.touches[0].clientX - gestureInfo.startX;
         const deltaY = e.touches[0].clientY - gestureInfo.startY;
 
-        // Determine direction if not already set, using a small threshold to avoid accidental triggers
-        if (!gestureInfo.direction && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
-            gestureInfo.direction = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+        // If we've already decided this is a vertical scroll, do nothing more.
+        if (gestureInfo.direction === 'vertical') {
+            return;
         }
 
-        // If horizontal, prevent scroll and handle swipe UI
+        // If a direction hasn't been determined yet...
+        if (!gestureInfo.direction) {
+            const absDeltaX = Math.abs(deltaX);
+            const absDeltaY = Math.abs(deltaY);
+
+            // Only decide on a direction after a small threshold is passed.
+            if (absDeltaX > 10 || absDeltaY > 10) {
+                // If horizontal movement is significantly greater than vertical, it's a swipe.
+                if (absDeltaX > absDeltaY * 2) {
+                    gestureInfo.direction = 'horizontal';
+                } else {
+                    // Otherwise, it's a scroll. Lock it in and let the browser handle it.
+                    gestureInfo.direction = 'vertical';
+                    return;
+                }
+            }
+        }
+        
+        // If we've determined it's a horizontal swipe, prevent default and animate.
         if (gestureInfo.direction === 'horizontal') {
             e.preventDefault();
-            const swipeDistance = Math.max(0, Math.min(deltaX, 100)); // Only allow swipe to the right
+            const swipeDistance = Math.max(0, Math.min(deltaX, 100));
             if (bubbleRef.current) {
                 bubbleRef.current.style.transform = `translateX(${swipeDistance}px)`;
             }
-            setSwipeX(swipeDistance); // Update for the icon's opacity
+            setSwipeX(swipeDistance);
         }
-        // If vertical, do nothing and allow native browser scroll
     };
     
     const handleTouchEnd = () => {
