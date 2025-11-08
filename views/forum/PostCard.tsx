@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
 import type { ForumPost, User, SportsEmoji, Notification, ForumComment } from '../../types';
-import { UserIcon } from '../icons/UserIcon';
-import { DotsHorizontalIcon } from '../icons/DotsHorizontalIcon';
-import { PaperAirplaneIcon } from '../icons/PaperAirplaneIcon';
+import { UserIcon } from '../../components/icons/UserIcon';
+import { DotsHorizontalIcon } from '../../components/icons/DotsHorizontalIcon';
+import { PaperAirplaneIcon } from '../../components/icons/PaperAirplaneIcon';
 import { timeSince } from '../../utils/timeSince';
 import { GoogleGenAI } from '@google/genai';
-import { XIcon } from '../icons/XIcon';
-import { SparklesIcon } from '../icons/SparklesIcon';
-import { SpinnerIcon } from '../icons/SpinnerIcon';
-import { ExclamationTriangleIcon } from '../icons/ExclamationTriangleIcon';
+import { XIcon } from '../../components/icons/XIcon';
+import { SparklesIcon } from '../../components/icons/SparklesIcon';
+import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
+import { ExclamationTriangleIcon } from '../../components/icons/ExclamationTriangleIcon';
 
 interface PostCardProps {
     post: ForumPost;

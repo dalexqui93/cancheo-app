@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Notification, ForumPost, ForumComment, SportsEmoji, ForumReaction } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import CreatePost from '../../components/forum/CreatePost';
-import PostCard from '../../components/forum/PostCard';
+import PostCard from './PostCard';
 import EditPostModal from '../../components/forum/EditPostModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { GoogleGenAI } from '@google/genai';

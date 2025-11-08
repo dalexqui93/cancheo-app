@@ -17,6 +17,7 @@ import { DoubleCheckIcon } from '../../components/icons/DoubleCheckIcon';
 import { MicrophoneIcon } from '../../components/icons/MicrophoneIcon';
 import { PaperclipIcon } from '../../components/icons/PaperclipIcon';
 import { TrashIcon } from '../../components/icons/TrashIcon';
+import ImageLightbox from '../../components/ImageLightbox';
 
 interface TeamChatViewProps {
     team: Team;
@@ -68,7 +69,8 @@ const ChatMessageBubble: React.FC<{
     onDeleteForEveryone: (messageId: string) => void,
     onMarkAsRead: (messageId: string) => void,
     teamPlayerCount: number,
-}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount }) => {
+    onOpenLightbox: (imageUrl: string) => void;
+}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox }) => {
     const alignment = isCurrentUser ? 'items-end' : 'items-start';
     const bubbleRef = useRef<HTMLDivElement>(null);
 
@@ -141,7 +143,7 @@ const ChatMessageBubble: React.FC<{
                     {message.attachment && (
                         <div className="my-2">
                             {message.attachment.mimeType.startsWith('image/') && (
-                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-full h-auto cursor-pointer" onClick={() => window.open(message.attachment.dataUrl, '_blank')} />
+                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={() => onOpenLightbox(message.attachment.dataUrl)} />
                             )}
                             {message.attachment.mimeType.startsWith('audio/') && (
                                 <audio controls src={message.attachment.dataUrl} className="w-full h-10"></audio>
@@ -190,6 +192,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [attachment, setAttachment] = useState<{ fileName: string; mimeType: string; dataUrl: string; } | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
@@ -443,6 +446,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 onDeleteForEveryone={handleDeleteForEveryone}
                                 onMarkAsRead={handleMarkAsRead}
                                 teamPlayerCount={team.players.length}
+                                onOpenLightbox={setLightboxImage}
                             />
                         ))}
                         <div ref={messagesEndRef} />
@@ -536,6 +540,13 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                     </div>
                 )}
             </footer>
+            {lightboxImage && (
+                <ImageLightbox
+                    images={[lightboxImage]}
+                    startIndex={0}
+                    onClose={() => setLightboxImage(null)}
+                />
+            )}
         </div>
     );
 };
