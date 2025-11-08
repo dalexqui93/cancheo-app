@@ -263,6 +263,20 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         const stored = localStorage.getItem(`deleted_messages_${team.id}`);
         return stored ? new Set(JSON.parse(stored)) : new Set();
     });
+    
+    // Effect to control body scroll, crucial for web-view wrappers
+    useEffect(() => {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+      };
+    }, []);
 
     useEffect(() => {
         setIsLoading(true);
@@ -499,7 +513,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="flex flex-col h-screen text-white animate-fade-in team-chat-bg fixed inset-0 z-20">
+        <div className="flex flex-col text-white animate-fade-in team-chat-bg fixed inset-0 z-20">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
              {/* Header */}
             <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
@@ -519,7 +533,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
             {/* Messages */}
             <main className="relative z-10 flex-grow min-h-0 flex flex-col">
-                <div ref={mainContentRef} className="flex-grow p-4 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div ref={mainContentRef} className="flex-grow p-4 overflow-y-auto overscroll-contain touch-action-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {isLoading ? (
                         <div className="flex justify-center items-center h-full">
                             <SpinnerIcon className="w-8 h-8 text-amber-500" />
