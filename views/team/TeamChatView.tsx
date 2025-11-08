@@ -75,6 +75,51 @@ interface ChatMessageBubbleProps {
 
 const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
+    const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+    const [touchCurrent, setTouchCurrent] = useState<{ x: number; y: number } | null>(null);
+    const [isSwiping, setIsSwiping] = useState(false);
+    const [swipeDirectionLocked, setSwipeDirectionLocked] = useState<'horizontal' | 'vertical' | null>(null);
+
+    const translateX = isSwiping && touchStart && touchCurrent ? Math.max(0, Math.min(80, touchCurrent.x - touchStart.x)) : 0;
+
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        setTouchCurrent({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+    }, []);
+
+    const handleTouchMove = useCallback((e: React.TouchEvent) => {
+        if (!touchStart) return;
+
+        const currentX = e.targetTouches[0].clientX;
+        const currentY = e.targetTouches[0].clientY;
+        const deltaX = currentX - touchStart.x;
+        const deltaY = currentY - touchStart.y;
+
+        if (swipeDirectionLocked === null) {
+            if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY) * 2) {
+                setSwipeDirectionLocked('horizontal');
+            } else if (Math.abs(deltaY) > 10) {
+                setSwipeDirectionLocked('vertical');
+            }
+        }
+
+        if (swipeDirectionLocked === 'horizontal') {
+            e.preventDefault();
+            setIsSwiping(true);
+            setTouchCurrent({ x: currentX, y: currentY });
+        }
+    }, [touchStart, swipeDirectionLocked]);
+
+    const handleTouchEnd = useCallback(() => {
+        if (isSwiping && translateX > 50) {
+            onReply(message);
+        }
+        setIsSwiping(false);
+        setTouchStart(null);
+        setTouchCurrent(null);
+        setSwipeDirectionLocked(null);
+    }, [isSwiping, translateX, onReply, message]);
+
 
     useEffect(() => {
         if (!bubbleRef.current || isCurrentUser || message.deleted) {
@@ -142,61 +187,73 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
     const sender = isCurrentUser ? 'Tú' : message.senderName;
     
     return (
-        <div 
-            id={message.id} 
-            className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
-        >
-            <div 
-                ref={bubbleRef}
-                className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
+        <div className="relative">
+            <div
+                className="absolute left-0 top-0 bottom-0 flex items-center justify-center pl-4 transition-opacity"
+                style={{ opacity: Math.min(1, translateX / 50) }}
             >
-                <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
-                    <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
-                    {message.replyTo && (
-                        <button 
-                            onClick={() => message.replyTo?.messageId && onScrollToMessage(message.replyTo.messageId)}
-                            className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30"
-                        >
-                            <p className="text-xs font-bold">{message.replyTo.senderName}</p>
-                            <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
+                <ArrowUturnLeftIcon className="w-6 h-6 text-white" />
+            </div>
+            <div 
+                id={message.id} 
+                className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+                style={{ transform: `translateX(${translateX}px)`, transition: isSwiping ? 'none' : 'transform 0.2s ease-out' }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+            >
+                <div 
+                    ref={bubbleRef}
+                    className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
+                >
+                    <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative`}>
+                        <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
+                        {message.replyTo && (
+                            <button 
+                                onClick={() => message.replyTo?.messageId && onScrollToMessage(message.replyTo.messageId)}
+                                className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30"
+                            >
+                                <p className="text-xs font-bold">{message.replyTo.senderName}</p>
+                                <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
+                            </button>
+                        )}
+                        {message.attachment && (
+                            <div className="my-2">
+                                {message.attachment.mimeType.startsWith('image/') && (
+                                    <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={() => onOpenLightbox(message.attachment.dataUrl)} />
+                                )}
+                                {message.attachment.mimeType.startsWith('audio/') && (
+                                    <audio controls src={message.attachment.dataUrl} className="w-full h-10"></audio>
+                                )}
+                                {!message.attachment.mimeType.startsWith('image/') && !message.attachment.mimeType.startsWith('audio/') && (
+                                    <a href={message.attachment.dataUrl} download={message.attachment.fileName} className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30">
+                                        <FileIcon className="w-8 h-8 flex-shrink-0" />
+                                        <div className="truncate">
+                                            <p className="font-semibold text-sm truncate">{message.attachment.fileName}</p>
+                                            <p className="text-xs opacity-80">Descargar</p>
+                                        </div>
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                        {message.text && <p className="text-sm break-words">{message.text}</p>}
+                        <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
+                            <span>{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                            {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
+                        </div>
+                    </div>
+                    <div className="relative">
+                        <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                            <DotsVerticalIcon className="w-4 h-4" />
                         </button>
-                    )}
-                    {message.attachment && (
-                        <div className="my-2">
-                            {message.attachment.mimeType.startsWith('image/') && (
-                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={() => onOpenLightbox(message.attachment.dataUrl)} />
-                            )}
-                            {message.attachment.mimeType.startsWith('audio/') && (
-                                <audio controls src={message.attachment.dataUrl} className="w-full h-10"></audio>
-                            )}
-                            {!message.attachment.mimeType.startsWith('image/') && !message.attachment.mimeType.startsWith('audio/') && (
-                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                    <FileIcon className="w-8 h-8 flex-shrink-0" />
-                                    <div className="truncate">
-                                        <p className="font-semibold text-sm truncate">{message.attachment.fileName}</p>
-                                        <p className="text-xs opacity-80">Descargar</p>
-                                    </div>
-                                </a>
+                        <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
+                            <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
+                            {isCurrentUser ? (
+                                <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
+                            ) : (
+                                <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
                             )}
                         </div>
-                    )}
-                    {message.text && <p className="text-sm break-words">{message.text}</p>}
-                    <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
-                        <span>{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                        {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
-                    </div>
-                </div>
-                <div className="relative">
-                    <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                        <DotsVerticalIcon className="w-4 h-4" />
-                    </button>
-                    <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
-                        <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
-                        {isCurrentUser ? (
-                            <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
-                        ) : (
-                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
-                        )}
                     </div>
                 </div>
             </div>
