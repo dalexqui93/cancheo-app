@@ -300,7 +300,7 @@ const initializeDemoData = () => {
     demoData.announcements = announcementsToSeed.map((a, i) => ({ id: `announcement-${i}`, ...a, createdAt: new Date() }));
     demoData.chats['t1'] = [
         { id: 'msg1', senderId: 'player-2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3), readBy: ['player-1', 'player-3'] },
-        { id: 'msg2', senderId: 'player-1', senderName: 'Juan Perez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' }, readBy: ['player-2'] },
+        { id: 'msg2', senderId: 'player-1', senderName: 'Juan Perez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { messageId: 'msg1', senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' }, readBy: ['player-2'] },
     ];
     demoData.invitations = [];
 
@@ -847,6 +847,7 @@ export const deleteChatMessage = async (teamId: string, messageId: string): Prom
         return messageRef.update({
             deleted: true,
             text: '', // Clear the original text
+            attachment: firebase.firestore.FieldValue.delete(),
             replyTo: firebase.firestore.FieldValue.delete() // Remove the reply context
         });
     }
@@ -857,6 +858,7 @@ export const deleteChatMessage = async (teamId: string, messageId: string): Prom
             demoData.chats[teamId][msgIndex].deleted = true;
             demoData.chats[teamId][msgIndex].text = '';
             delete demoData.chats[teamId][msgIndex].replyTo;
+            delete demoData.chats[teamId][msgIndex].attachment;
         }
     }
     return Promise.resolve();
