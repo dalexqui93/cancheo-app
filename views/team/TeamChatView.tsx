@@ -80,10 +80,9 @@ const ChatMessageBubble: React.FC<{
     const [isSwiping, setIsSwiping] = useState(false);
 
     const SWIPE_THRESHOLD = 10;
-    const SWIPE_RATIO = 1.5;
 
     const handleTouchStart = (e: React.TouchEvent) => {
-        setIsSwiping(true); // Disable transition during swipe
+        setIsSwiping(true);
         touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         swipeDirection.current = null;
     };
@@ -95,35 +94,40 @@ const ChatMessageBubble: React.FC<{
         const currentY = e.touches[0].clientY;
         const deltaX = currentX - touchStartPos.current.x;
         const deltaY = currentY - touchStartPos.current.y;
-
-        if (swipeDirection.current === 'vertical') {
-            return;
-        }
         
+        if (swipeDirection.current === 'vertical') {
+            return; // Already scrolling, do nothing.
+        }
+
         if (swipeDirection.current === null) {
+            // Decide direction based on the first significant movement
             if (Math.abs(deltaX) > SWIPE_THRESHOLD || Math.abs(deltaY) > SWIPE_THRESHOLD) {
-                if (Math.abs(deltaX) > Math.abs(deltaY) * SWIPE_RATIO) {
-                    swipeDirection.current = 'horizontal';
-                } else {
+                // If vertical movement is greater, it's a scroll. Give it priority.
+                if (Math.abs(deltaY) > Math.abs(deltaX)) {
                     swipeDirection.current = 'vertical';
-                    return;
+                    return; // Let the browser handle the scroll
+                } else {
+                    // Otherwise, it's a horizontal swipe.
+                    swipeDirection.current = 'horizontal';
                 }
             }
         }
         
         if (swipeDirection.current === 'horizontal') {
+            // This is a confirmed horizontal swipe, so prevent default to stop scrolling
             e.preventDefault();
+            // Only allow swiping to the right for reply action
             const swipeDistance = Math.max(0, Math.min(deltaX, 100));
             setSwipeX(swipeDistance);
         }
     };
     
     const handleTouchEnd = () => {
-        setIsSwiping(false); // Re-enable transition for snap-back
+        setIsSwiping(false);
         if (swipeDirection.current === 'horizontal' && swipeX > 60) {
             onReply(message);
         }
-        setSwipeX(0); // Snap back
+        setSwipeX(0);
         touchStartPos.current = null;
         swipeDirection.current = null;
     };
