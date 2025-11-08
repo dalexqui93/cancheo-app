@@ -356,6 +356,11 @@ export interface ChatMessage {
     };
     deleted?: boolean;
     readBy?: string[];
+    attachment?: {
+      fileName: string;
+      mimeType: string;
+      dataUrl: string;
+    };
 }
 
 export interface Group {
