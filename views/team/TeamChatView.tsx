@@ -59,8 +59,7 @@ const MessageStatusIcon: React.FC<{
   return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
 };
 
-
-const ChatMessageBubble: React.FC<{ 
+interface ChatMessageBubbleProps { 
     message: ChatMessage, 
     isCurrentUser: boolean, 
     currentUser: Player,
@@ -72,7 +71,9 @@ const ChatMessageBubble: React.FC<{
     onOpenLightbox: (imageUrl: string) => void;
     onScrollToMessage: (messageId: string) => void;
     highlightedMessageId: string | null;
-}> = ({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
+}
+
+const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -201,7 +202,7 @@ const ChatMessageBubble: React.FC<{
             </div>
         </div>
     );
-};
+});
 
 // Función para comprimir imágenes
 const compressImage = (file: File): Promise<string> => {
@@ -274,7 +275,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
 
     useEffect(() => {
         if (!isLoading) {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
         }
     }, [messages, attachment, isLoading]);
 
@@ -284,20 +285,25 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         };
     }, []);
 
-    const handleDeleteMessage = (messageId: string) => {
+    const handleReply = useCallback((messageToReply: ChatMessage) => {
+        setReplyingTo(messageToReply);
+        (document.activeElement as HTMLElement)?.blur();
+    }, []);
+
+    const handleDeleteMessage = useCallback((messageId: string) => {
         const newDeletedIds = new Set(deletedMessageIds);
         newDeletedIds.add(messageId);
         setDeletedMessageIds(newDeletedIds);
         localStorage.setItem(`deleted_messages_${team.id}`, JSON.stringify(Array.from(newDeletedIds)));
-    };
+    }, [deletedMessageIds, team.id]);
 
-    const handleDeleteForEveryone = async (messageId: string) => {
+    const handleDeleteForEveryone = useCallback(async (messageId: string) => {
         try {
             await db.deleteChatMessage(team.id, messageId);
         } catch (error) {
             console.error("Error al eliminar mensaje para todos:", String(error));
         }
-    };
+    }, [team.id]);
 
     const handleClearChat = () => {
         const allMessageIds = messages.map(m => m.id);
@@ -471,7 +477,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         }
     }, [team.id, currentUser.id]);
 
-    const handleScrollToMessage = (messageId: string) => {
+    const handleScrollToMessage = useCallback((messageId: string) => {
         const element = document.getElementById(messageId);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -482,7 +488,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         } else {
             addNotification({type: 'info', title: 'Mensaje no encontrado', message: 'El mensaje original puede haber sido eliminado o no está cargado.'})
         }
-    };
+    }, [addNotification]);
 
     const isCaptain = currentUser.id === team.captainId;
     const canSendMessage = !team.messagingPermissions || team.messagingPermissions === 'all' || (team.messagingPermissions === 'captain' && isCaptain);
@@ -512,7 +518,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main ref={mainContentRef} className="relative z-10 flex-grow p-4 overflow-y-auto overscroll-contain min-h-0">
+            <main ref={mainContentRef} className="relative z-10 flex-grow p-4 overflow-y-auto overscroll-contain min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
                 {isLoading ? (
                      <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
@@ -530,7 +536,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                 message={msg} 
                                 isCurrentUser={msg.senderId === currentUser.id} 
                                 currentUser={currentUser}
-                                onReply={(m) => { setReplyingTo(m); (document.activeElement as HTMLElement)?.blur(); }} 
+                                onReply={handleReply} 
                                 onDelete={handleDeleteMessage}
                                 onDeleteForEveryone={handleDeleteForEveryone}
                                 onMarkAsRead={handleMarkAsRead}
