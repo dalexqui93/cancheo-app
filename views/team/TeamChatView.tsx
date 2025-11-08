@@ -637,10 +637,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="fixed inset-0 flex flex-col text-white team-chat-bg">
-            <div className="absolute inset-0 bg-black/60 z-0"></div>
+        <div className="flex flex-col text-white" style={{ height: '100dvh' }}>
+            <div className="absolute inset-0 -z-10 team-chat-bg">
+                <div className="absolute inset-0 bg-black/60"></div>
+            </div>
             
-            <header className="relative z-20 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-20">
                 {isSearching ? (
                     <div className="flex items-center w-full gap-2 animate-fade-in">
                         <input
@@ -679,43 +681,41 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 )}
             </header>
 
-            <div className="relative z-10 flex-grow min-h-0">
-                <main className="absolute inset-0 p-4 space-y-4 overflow-y-auto scrollbar-hide">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-full">
-                            <SpinnerIcon className="w-8 h-8 text-amber-500" />
-                        </div>
-                    ) : filteredMessages.length === 0 ? (
-                        <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
-                            <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                            <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                        </div>
-                    ) : (
-                        <>
-                            {filteredMessages.map(msg => (
-                                <ChatMessageBubble 
-                                    key={msg.id} 
-                                    message={msg} 
-                                    isCurrentUser={msg.senderId === currentUser.id} 
-                                    currentUser={currentUser}
-                                    onReply={handleReply} 
-                                    onDelete={handleDeleteMessage}
-                                    onDeleteForEveryone={handleDeleteForEveryone}
-                                    onMarkAsRead={handleMarkAsRead}
-                                    teamPlayerCount={team.players.length}
-                                    onOpenLightbox={setLightboxImage}
-                                    onScrollToMessage={handleScrollToMessage}
-                                    highlightedMessageId={highlightedMessageId}
-                                    highlightTerm={isSearching ? searchTerm : null}
-                                />
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </>
-                    )}
-                </main>
-            </div>
+            <main className="flex-grow min-h-0 p-4 space-y-4 overflow-y-auto scrollbar-hide z-10">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                        <SpinnerIcon className="w-8 h-8 text-amber-500" />
+                    </div>
+                ) : filteredMessages.length === 0 ? (
+                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
+                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
+                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
+                    </div>
+                ) : (
+                    <>
+                        {filteredMessages.map(msg => (
+                            <ChatMessageBubble 
+                                key={msg.id} 
+                                message={msg} 
+                                isCurrentUser={msg.senderId === currentUser.id} 
+                                currentUser={currentUser}
+                                onReply={handleReply} 
+                                onDelete={handleDeleteMessage}
+                                onDeleteForEveryone={handleDeleteForEveryone}
+                                onMarkAsRead={handleMarkAsRead}
+                                teamPlayerCount={team.players.length}
+                                onOpenLightbox={setLightboxImage}
+                                onScrollToMessage={handleScrollToMessage}
+                                highlightedMessageId={highlightedMessageId}
+                                highlightTerm={isSearching ? searchTerm : null}
+                            />
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </>
+                )}
+            </main>
 
-            <footer className="relative z-20 flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+            <footer className="flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm z-20">
                 {canSendMessage ? (
                     <>
                         {attachment && (
