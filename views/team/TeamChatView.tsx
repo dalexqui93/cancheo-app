@@ -493,7 +493,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="flex flex-col h-screen text-white animate-fade-in team-chat-bg relative">
+        <div className="flex flex-col h-screen text-white animate-fade-in team-chat-bg fixed inset-0 z-20">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
              {/* Header */}
             <header className="relative z-10 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
