@@ -439,7 +439,7 @@ const ChallengeView: React.FC<{
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-6">Retar un Equipo</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-gray-400">Encuentra un rival y desafíalo a un partido amistoso.</p>
             
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 sticky top-0 bg-slate-50 dark:bg-gray-900 py-4 z-10 -mx-4 px-4 md:static md:bg-transparent md:py-0 md:top-auto md:z-auto">
                 <div className="relative">
                     <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                     <input 
@@ -465,7 +465,7 @@ const ChallengeView: React.FC<{
                 </div>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 pb-16">
                 {filteredAndSortedTeams.length > 0 ? (
                     filteredAndSortedTeams.map(team => (
                         <TeamChallengeCard 
@@ -665,10 +665,10 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
             {showExitButton && (
                 <button
                     onClick={() => onNavigate(View.HOME)}
-                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-br from-red-500 to-red-700 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center animate-pulse-glow transform transition-transform hover:scale-110"
+                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-black/40 backdrop-blur-sm border border-white/20 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transform transition-all hover:scale-110 hover:bg-red-600 hover:border-red-500"
                     aria-label="Salir de DaviPlay"
                 >
-                    <LogoutIcon className="w-8 h-8" />
+                    <LogoutIcon className="w-6 h-6" />
                 </button>
             )}
         </div>
