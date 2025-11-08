@@ -574,7 +574,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main className="relative z-10 flex-grow overflow-y-auto p-4">
+            <main className="relative z-10 flex-grow overflow-y-auto p-4 min-h-0">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
