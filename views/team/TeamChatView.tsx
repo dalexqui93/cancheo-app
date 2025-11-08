@@ -637,12 +637,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="flex flex-col text-white" style={{ height: '100dvh' }}>
-            <div className="absolute inset-0 -z-10 team-chat-bg">
-                <div className="absolute inset-0 bg-black/60"></div>
-            </div>
+        <div className="min-h-screen flex flex-col text-white team-chat-bg">
+            <div className="absolute inset-0 bg-black/60 z-0"></div>
             
-            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-20">
+            {/* Header */}
+            <header className="sticky top-0 z-20 flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
                 {isSearching ? (
                     <div className="flex items-center w-full gap-2 animate-fade-in">
                         <input
@@ -681,7 +680,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 )}
             </header>
 
-            <main className="flex-grow min-h-0 p-4 space-y-4 overflow-y-auto scrollbar-hide z-10">
+            {/* Messages */}
+            <main className="flex-grow p-4 space-y-4 pt-4 z-10 overflow-y-auto">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
@@ -715,7 +715,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 )}
             </main>
 
-            <footer className="flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm z-20">
+            {/* Input */}
+            <footer className="z-20 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
                 {canSendMessage ? (
                     <>
                         {attachment && (
