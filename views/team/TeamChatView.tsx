@@ -349,6 +349,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [currentResultIndex, setCurrentResultIndex] = useState(-1);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const mainRef = useRef<HTMLElement>(null);
     const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingIntervalRef = useRef<number | null>(null);
@@ -360,31 +361,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         return stored ? new Set(JSON.parse(stored)) : new Set();
     });
 
-    const footerRef = useRef<HTMLElement>(null);
-    const mainRef = useRef<HTMLElement>(null);
-    const headerRef = useRef<HTMLElement>(null);
-
-    useLayoutEffect(() => {
-        const mainEl = mainRef.current;
-        const footerEl = footerRef.current;
-        const headerEl = headerRef.current;
-        if (!mainEl || !footerEl || !headerEl) return;
-    
-        const observer = new ResizeObserver(() => {
-            mainEl.style.paddingTop = `${headerEl.offsetHeight}px`;
-            mainEl.style.paddingBottom = `${footerEl.offsetHeight}px`;
-        });
-    
-        observer.observe(footerEl);
-        observer.observe(headerEl);
-    
-        // Set initial padding
-        mainEl.style.paddingTop = `${headerEl.offsetHeight}px`;
-        mainEl.style.paddingBottom = `${footerEl.offsetHeight}px`;
-    
-        return () => observer.disconnect();
-    }, []);
-    
     useEffect(() => {
         setIsLoading(true);
         const unsubscribe = db.listenToTeamChat(team.id, (fetchedMessages) => {
@@ -670,9 +646,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="relative animate-fade-in">
+        <div className="h-screen flex flex-col animate-fade-in">
             {/* Header */}
-            <header ref={headerRef} className="fixed top-0 left-0 right-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-20">
+            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-20">
                 {isSearching ? (
                     <div className="flex items-center w-full gap-2 animate-fade-in">
                         <input
@@ -712,13 +688,13 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
 
             {/* Messages */}
-            <main ref={mainRef} className="px-4 py-4 min-h-screen">
+            <main ref={mainRef} className="flex-1 overflow-y-auto px-4 py-4">
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-full pt-20">
+                    <div className="flex justify-center items-center h-full">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
                     </div>
                 ) : filteredMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 pt-20">
+                    <div className="text-center text-gray-400 h-full flex flex-col justify-center items-center">
                         <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
                         <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
                     </div>
@@ -747,7 +723,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </main>
 
             {/* Input */}
-            <footer ref={footerRef} className="fixed bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm z-20">
+            <footer className="flex-shrink-0 p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm z-20">
                 {canSendMessage ? (
                     <div className="container mx-auto">
                         {attachment && (
