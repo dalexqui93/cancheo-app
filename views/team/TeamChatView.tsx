@@ -39,12 +39,22 @@ const ChatMessageBubble: React.FC<{
 
     if (message.deleted) {
         return (
-            <div className={`flex flex-col ${alignment}`}>
-                <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
-                    <p className="text-sm italic text-gray-500 flex items-center gap-2">
-                        <BanIcon className="w-4 h-4 flex-shrink-0" />
-                        <span>Este mensaje fue eliminado</span>
-                    </p>
+            <div className={`flex flex-col ${alignment} group`}>
+                <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
+                        <p className="text-sm italic text-gray-500 flex items-center gap-2">
+                            <BanIcon className="w-4 h-4 flex-shrink-0" />
+                            <span>Este mensaje fue eliminado</span>
+                        </p>
+                    </div>
+                    <div className="relative">
+                        <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                            <DotsVerticalIcon className="w-4 h-4" />
+                        </button>
+                        <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
+                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
