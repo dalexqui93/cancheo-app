@@ -75,9 +75,11 @@ interface ChatMessageBubbleProps {
     onScrollToMessage: (messageId: string) => void;
     highlightedMessageId: string | null;
     highlightTerm: string | null;
+    isFirstInGroup: boolean;
+    isLastInGroup: boolean;
 }
 
-const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId, highlightTerm }) => {
+const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ message, isCurrentUser, currentUser, onReply, onDelete, onDeleteForEveryone, onMarkAsRead, teamPlayerCount, onOpenLightbox, onScrollToMessage, highlightedMessageId, highlightTerm, isFirstInGroup, isLastInGroup }) => {
     const bubbleRef = useRef<HTMLDivElement>(null);
     const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
     const [touchDelta, setTouchDelta] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -117,21 +119,17 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
         const deltaY = e.targetTouches[0].clientY - touchStart.y;
 
         if (!isSwiping) {
-            // Wait for a minimum movement before deciding the gesture direction
             if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
                 return;
             }
-            // If horizontal movement is dominant, it's a swipe.
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
                 setIsSwiping(true);
             } else {
-                // Otherwise, it's a vertical scroll, so we abort the swipe gesture.
                 setTouchStart(null);
                 return;
             }
         }
 
-        // Once confirmed as a swipe, prevent default scroll behavior and update position.
         if (isSwiping) {
             e.preventDefault();
             setTouchDelta({ x: deltaX, y: deltaY });
@@ -142,7 +140,6 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
         if (isSwiping && touchDelta.x > 50) { // Reply threshold
             onReply(message);
         }
-        // Reset gesture state
         setTouchStart(null);
         setTouchDelta({ x: 0, y: 0 });
         setIsSwiping(false);
@@ -188,17 +185,33 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
             </div>
         );
     }
-
+    
+    const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
+    const bubbleClasses = isCurrentUser
+        ? `rounded-l-2xl ${isFirstInGroup ? 'rounded-tr-2xl' : 'rounded-tr-md'} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-md'}`
+        : `rounded-r-2xl ${isFirstInGroup ? 'rounded-tl-2xl' : 'rounded-tl-md'} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-md'}`;
+        
+    const Avatar = () => (
+        <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden">
+            {message.senderProfilePicture ? (
+                <img src={message.senderProfilePicture} alt={message.senderName} className="w-full h-full object-cover" />
+            ) : (
+                <UserIcon className="w-5 h-5 text-gray-400 m-1.5" />
+            )}
+        </div>
+    );
+    
     if (message.deleted) {
         return (
-            <div ref={bubbleRef} id={message.id} className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
-                <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700 shadow-none">
-                        <p className="text-sm italic text-gray-500 flex items-center gap-2">
-                            <BanIcon className="w-4 h-4 flex-shrink-0" />
-                            <span>Este mensaje fue eliminado</span>
-                        </p>
-                    </div>
+            <div ref={bubbleRef} id={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse' : ''}`}>
+                 {!isCurrentUser && <div className="w-8 flex-shrink-0"></div>}
+                <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700 shadow-none">
+                    <p className="text-sm italic text-gray-500 flex items-center gap-2">
+                        <BanIcon className="w-4 h-4 flex-shrink-0" />
+                        <span>Este mensaje fue eliminado</span>
+                    </p>
+                </div>
+                 {isCurrentUser && (
                     <div className="relative">
                         <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                             <DotsVerticalIcon className="w-4 h-4" />
@@ -207,25 +220,19 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
                             <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     }
     
-    const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
-    const sender = isCurrentUser ? 'Tú' : message.senderName;
-    
     return (
         <div className="relative">
-            <div
-                className="absolute left-0 top-0 bottom-0 flex items-center justify-center pl-4 transition-opacity"
-                style={{ opacity: Math.min(1, translateX / 50) }}
-            >
+            <div className="absolute left-0 top-0 bottom-0 flex items-center justify-center pl-4 transition-opacity" style={{ opacity: Math.min(1, translateX / 50) }}>
                 <ArrowUturnLeftIcon className="w-6 h-6 text-white" />
             </div>
             <div 
-                id={message.id} 
-                className={`relative flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} group ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+                id={message.id}
+                className={`flex items-end gap-2 group ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${message.id === highlightedMessageId ? 'animate-highlight-pulse rounded-2xl' : ''}`}
                 style={{ 
                     transform: `translateX(${translateX}px)`, 
                     transition: !touchStart ? 'transform 0.2s ease-out' : 'none' 
@@ -234,30 +241,27 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({ messag
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
             >
-                <div 
-                    ref={bubbleRef}
-                    className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                    <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${bubbleColor} relative shadow-none`}>
-                        <p className="text-xs font-bold mb-1 opacity-80">{sender}</p>
+                {!isCurrentUser && (
+                    <div className="w-8 flex-shrink-0">
+                        {isLastInGroup && <Avatar />}
+                    </div>
+                )}
+                <div ref={bubbleRef} className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`max-w-xs md:max-w-md px-4 py-2 relative shadow-none ${bubbleColor} ${bubbleClasses}`}>
+                        {!isCurrentUser && isFirstInGroup && (
+                            <p className="text-xs font-bold mb-1 text-amber-300">{message.senderName}</p>
+                        )}
                         {message.replyTo && (
-                            <button 
-                                onClick={() => message.replyTo?.messageId && onScrollToMessage(message.replyTo.messageId)}
-                                className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30"
-                            >
+                            <button onClick={() => message.replyTo?.messageId && onScrollToMessage(message.replyTo.messageId)} className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30">
                                 <p className="text-xs font-bold">{message.replyTo.senderName}</p>
                                 <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
                             </button>
                         )}
                         {message.attachment && (
                             <div className="my-2">
-                                {message.attachment.mimeType.startsWith('image/') && (
+                                {message.attachment.mimeType.startsWith('image/') ? (
                                     <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={() => onOpenLightbox(message.attachment.dataUrl)} />
-                                )}
-                                {message.attachment.mimeType.startsWith('audio/') && (
-                                    <audio controls src={message.attachment.dataUrl} className="w-full h-10"></audio>
-                                )}
-                                {!message.attachment.mimeType.startsWith('image/') && !message.attachment.mimeType.startsWith('audio/') && (
+                                ) : (
                                     <a href={message.attachment.dataUrl} download={message.attachment.fileName} className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30">
                                         <FileIcon className="w-8 h-8 flex-shrink-0" />
                                         <div className="truncate">
@@ -347,6 +351,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<string[]>([]);
     const [currentResultIndex, setCurrentResultIndex] = useState(-1);
+    const [typingUsers, setTypingUsers] = useState<Player[]>([]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [currentView, setCurrentView] = useState<'chat' | 'info'>('chat');
@@ -378,7 +383,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         observer.observe(footerEl);
         observer.observe(headerEl);
     
-        // Set initial padding
         mainEl.style.paddingTop = `${headerEl.offsetHeight}px`;
         mainEl.style.paddingBottom = `${footerEl.offsetHeight}px`;
     
@@ -398,7 +402,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         if (!isLoading && !isSearching) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
         }
-    }, [messages.length, attachment, isLoading, isSearching]);
+    }, [messages.length, attachment, isLoading, isSearching, typingUsers]);
 
      useEffect(() => {
         return () => {
@@ -431,6 +435,41 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             }
         }
     }, [isSearching, currentResultIndex, searchResults]);
+
+    useEffect(() => {
+        if (team.players.length < 2 || !db.isFirebaseConfigured) return;
+
+        const typingTimeouts = new Map<string, number>();
+
+        const intervalId = setInterval(() => {
+            const otherPlayers = team.players.filter(p => p.id !== currentUser.id);
+            if (otherPlayers.length === 0) return;
+
+            // Randomly make a player start typing
+            otherPlayers.forEach(player => {
+                const isAlreadyTyping = typingTimeouts.has(player.id);
+                if (!isAlreadyTyping && Math.random() < 0.1) { // 10% chance to start every 2s
+                    const typingDuration = Math.random() * 4000 + 3000; // Type for 3-7 seconds
+                    
+                    setTypingUsers(prev => {
+                        if (prev.some(u => u.id === player.id)) return prev; // Avoid duplicates
+                        return [...prev, player];
+                    });
+
+                    const timeoutId = window.setTimeout(() => {
+                        setTypingUsers(prev => prev.filter(u => u.id !== player.id));
+                        typingTimeouts.delete(player.id);
+                    }, typingDuration);
+                    typingTimeouts.set(player.id, timeoutId);
+                }
+            });
+        }, 2000);
+
+        return () => {
+            clearInterval(intervalId);
+            typingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+        };
+    }, [team.players, currentUser.id]);
 
     const handleOpenSearch = () => {
         setCurrentView('chat');
@@ -717,30 +756,53 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                     <div className="flex justify-center items-center h-full pt-20">
                         <SpinnerIcon className="w-8 h-8 text-amber-500" />
                     </div>
-                ) : filteredMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 pt-20">
-                        <p className="font-bold">¡Bienvenido al chat de {team.name}!</p>
-                        <p className="text-sm mt-1">{deletedMessageIds.size > 0 ? 'Has vaciado tu historial de chat.' : 'Sé el primero en enviar un mensaje.'}</p>
-                    </div>
                 ) : (
-                    <div className="space-y-4">
-                        {filteredMessages.map(msg => (
-                            <ChatMessageBubble 
-                                key={msg.id} 
-                                message={msg} 
-                                isCurrentUser={msg.senderId === currentUser.id} 
-                                currentUser={currentUser}
-                                onReply={handleReply} 
-                                onDelete={handleDeleteMessage}
-                                onDeleteForEveryone={handleDeleteForEveryone}
-                                onMarkAsRead={handleMarkAsRead}
-                                teamPlayerCount={team.players.length}
-                                onOpenLightbox={setLightboxImage}
-                                onScrollToMessage={handleScrollToMessage}
-                                highlightedMessageId={highlightedMessageId}
-                                highlightTerm={isSearching ? searchTerm : null}
-                            />
-                        ))}
+                    <div className="space-y-1">
+                        {filteredMessages.map((msg, index) => {
+                             const prevMessage = filteredMessages[index - 1];
+                             const nextMessage = filteredMessages[index + 1];
+                             const isFirstInGroup = !prevMessage || prevMessage.senderId !== msg.senderId || prevMessage.senderId === 'system' || prevMessage.deleted;
+                             const isLastInGroup = !nextMessage || nextMessage.senderId !== msg.senderId || nextMessage.senderId === 'system' || nextMessage.deleted;
+                            return (
+                                <ChatMessageBubble 
+                                    key={msg.id} 
+                                    message={msg} 
+                                    isCurrentUser={msg.senderId === currentUser.id} 
+                                    currentUser={currentUser}
+                                    onReply={handleReply} 
+                                    onDelete={handleDeleteMessage}
+                                    onDeleteForEveryone={handleDeleteForEveryone}
+                                    onMarkAsRead={handleMarkAsRead}
+                                    teamPlayerCount={team.players.length}
+                                    onOpenLightbox={setLightboxImage}
+                                    onScrollToMessage={handleScrollToMessage}
+                                    highlightedMessageId={highlightedMessageId}
+                                    highlightTerm={isSearching ? searchTerm : null}
+                                    isFirstInGroup={isFirstInGroup}
+                                    isLastInGroup={isLastInGroup}
+                                />
+                            );
+                        })}
+                         {typingUsers.length > 0 && (
+                            <div className="flex items-end gap-2 animate-fade-in mt-2">
+                                <div className="flex -space-x-2">
+                                    {typingUsers.slice(0, 3).map(user => (
+                                        <div key={user.id} className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden border-2 border-gray-900">
+                                            {user.profilePicture ? (
+                                                <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <UserIcon className="w-5 h-5 text-gray-400 m-1.5" />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-gray-700 text-white flex items-center gap-1">
+                                    <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                                    <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" style={{ animationDelay: '0.2s' }}></div>
+                                    <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" style={{ animationDelay: '0.4s' }}></div>
+                                </div>
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
                 )}
