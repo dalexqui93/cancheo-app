@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import type { Team, Player, ChatMessage, Notification } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -830,7 +831,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                         {replyingTo && (
                             <div className="p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500 flex items-center justify-between gap-3 overflow-hidden">
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-white truncate">Respondiendo a {replyingTo.senderName}</p>
+                                    <p className="text-sm font-bold text-white truncate">Respondiendo a {replyingTo.senderName.split(' ')[0]}</p>
                                     <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
                                 </div>
                                 <button onClick={() => setReplyingTo(null)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-600">
