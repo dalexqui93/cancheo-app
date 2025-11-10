@@ -828,12 +828,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             </div>
                         )}
                         {replyingTo && (
-                            <div className="relative p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500 overflow-hidden">
-                                <div className="pr-6">
+                            <div className="p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500 flex items-center justify-between gap-3 overflow-hidden">
+                                <div className="min-w-0">
                                     <p className="text-sm font-bold text-white truncate">Respondiendo a {replyingTo.senderName}</p>
                                     <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
                                 </div>
-                                <button onClick={() => setReplyingTo(null)} className="absolute top-1/2 right-1 -translate-y-1/2 p-1 rounded-full hover:bg-gray-600">
+                                <button onClick={() => setReplyingTo(null)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-600">
                                     <XIcon className="w-4 h-4" />
                                 </button>
                             </div>
