@@ -343,13 +343,17 @@ export interface ForumPost {
     isFlagged?: boolean;
 }
 
-export interface ChatMessage {
+export interface BaseChatMessage {
     id: string;
+    timestamp: Date;
+}
+
+export interface UserMessage extends BaseChatMessage {
+    type: 'user';
     senderId: string;
     senderName: string;
     senderProfilePicture?: string;
     text: string;
-    timestamp: Date;
     replyTo?: {
         messageId?: string;
         senderName: string;
@@ -363,6 +367,20 @@ export interface ChatMessage {
       dataUrl: string;
     };
 }
+
+export interface SystemMessage extends BaseChatMessage {
+    type: 'system';
+    text: string;
+}
+
+export interface DateSeparator extends BaseChatMessage {
+    type: 'date';
+    date: string;
+}
+
+export type ChatMessage = UserMessage | SystemMessage;
+export type ChatItem = UserMessage | SystemMessage | DateSeparator;
+
 
 export interface Group {
     id: string;

@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
-import type { User, Team, Player, Notification, ChatMessage, SocialSection } from '../../types';
+// FIX: Import UserMessage type to correctly type mockMessages and resolve property access errors.
+import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage } from '../../types';
 import RosterView from './RosterView';
 import TacticsView from './TacticsView';
 import ScheduleView from './ScheduleView';
@@ -43,11 +45,12 @@ interface MyTeamDashboardProps {
     setActiveChatTeam: (team: Team) => void;
 }
 
-const mockMessages: ChatMessage[] = [
-    { id: 'msg1', senderId: 'u2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
-    { id: 'msg2', senderId: 'u1', senderName: 'Carlos Pérez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
-    { id: 'msg3', senderId: 'u3', senderName: 'Luis Fernandez', text: 'Yo llevo los balones. ¿Alguien puede llevar los petos?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 50) },
-    { id: 'msg4', senderId: 'u4', senderName: 'Marta Gomez', text: 'Yo los llevo!', timestamp: new Date(new Date().getTime() - 1000 * 60 * 48) },
+// FIX: Added 'type' property to message objects to conform to the ChatMessage type. Changed array type to UserMessage[] to resolve property access errors.
+const mockMessages: UserMessage[] = [
+    { type: 'user', id: 'msg1', senderId: 'u2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
+    { type: 'user', id: 'msg2', senderId: 'u1', senderName: 'Carlos Pérez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { messageId: 'msg1', senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
+    { type: 'user', id: 'msg3', senderId: 'u3', senderName: 'Luis Fernandez', text: 'Yo llevo los balones. ¿Alguien puede llevar los petos?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 50) },
+    { type: 'user', id: 'msg4', senderId: 'u4', senderName: 'Marta Gomez', text: 'Yo los llevo!', timestamp: new Date(new Date().getTime() - 1000 * 60 * 48) },
 ];
 
 // --- Sub-Components for the new UI ---
@@ -237,9 +240,9 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
             const updatedPlayers = [...team.players, newPlayer];
             await onUpdateTeam(team.id, { players: updatedPlayers });
 
-            const systemMessageData = {
-                senderId: 'system',
-                senderName: 'Sistema',
+// FIX: The system message object must match the 'SystemMessage' type, which requires a 'type' property.
+            const systemMessageData: Omit<ChatMessage, "id" | "timestamp"> = {
+                type: 'system',
                 text: `${newPlayer.name} ha sido añadido al equipo por el capitán. ¡Bienvenido!`,
             };
             await db.addChatMessage(team.id, systemMessageData);
