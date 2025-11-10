@@ -1,22 +1,16 @@
-import React, { useMemo, useState } from 'react';
-import type { Player, Team, Match } from '../../types';
-import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
+import React, { useMemo, useState, useEffect } from 'react';
+import type { Player, Team, Match, ConfirmedBooking } from '../../types';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 import { SoccerBallIcon } from '../../components/icons/SoccerBallIcon';
 import { ShoeIcon } from '../../components/icons/ShoeIcon';
 import { YellowCardIcon } from '../../components/icons/YellowCardIcon';
 import { RedCardIcon } from '../../components/icons/RedCardIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
-import { PlusIcon } from '../../components/icons/PlusIcon';
-import { XIcon } from '../../components/icons/XIcon';
-import { TrashIcon } from '../../components/icons/TrashIcon';
-import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface PerformanceViewProps {
     team: Team;
-    isCaptain: boolean;
-    onBack: () => void;
-    onUpdateTeam: (team: Team) => void;
+    allBookings: ConfirmedBooking[];
+    onUpdateTeam: (updates: Partial<Team>) => void;
 }
 
 type SortKey = keyof Player['stats'] | 'name';
@@ -36,65 +30,6 @@ const recalculateTeamStats = (matches: Match[], teamId: string) => {
         else draws++;
     });
     return { wins, losses, draws };
-};
-
-const formatDateForInput = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const MatchModal: React.FC<{
-    match: Match | null;
-    onClose: () => void;
-    onSave: (data: { opponentName: string, scoreA: number, scoreB: number, date: string }) => void;
-}> = ({ match, onClose, onSave }) => {
-    const [opponentName, setOpponentName] = useState(match && 'name' in match.teamB ? match.teamB.name : '');
-    const [scoreA, setScoreA] = useState(match?.scoreA ?? 0);
-    const [scoreB, setScoreB] = useState(match?.scoreB ?? 0);
-    const [date, setDate] = useState(match ? formatDateForInput(new Date(match.date)) : formatDateForInput(new Date()));
-
-    const handleSubmit = () => {
-        if (opponentName.trim() && date) {
-            onSave({ opponentName, scoreA, scoreB, date });
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-md m-4 p-6" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold">{match ? 'Editar' : 'Agregar'} Partido</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6"/></button>
-                </div>
-                <div className="space-y-4">
-                    <div>
-                        <label className="font-semibold block mb-1">Nombre del Rival</label>
-                        <input type="text" value={opponentName} onChange={e => setOpponentName(e.target.value)} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
-                    </div>
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <label className="font-semibold block mb-1">Tu Marcador</label>
-                            <input type="number" value={scoreA} onChange={e => setScoreA(Number(e.target.value))} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
-                        </div>
-                        <div className="flex-1">
-                            <label className="font-semibold block mb-1">Marcador Rival</label>
-                            <input type="number" value={scoreB} onChange={e => setScoreB(Number(e.target.value))} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
-                        </div>
-                    </div>
-                     <div>
-                        <label className="font-semibold block mb-1">Fecha del Partido</label>
-                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
-                    </div>
-                </div>
-                <div className="mt-6 flex justify-end gap-3">
-                    <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-white/10 hover:bg-white/20">Cancelar</button>
-                    <button onClick={handleSubmit} className="py-2 px-5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm">Guardar</button>
-                </div>
-            </div>
-        </div>
-    );
 };
 
 
@@ -144,11 +79,56 @@ const SortableHeader: React.FC<{
     );
 };
 
-const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBack, onUpdateTeam }) => {
+const PerformanceView: React.FC<PerformanceViewProps> = ({ team, allBookings, onUpdateTeam }) => {
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'matchesPlayed', direction: 'desc' });
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingMatch, setEditingMatch] = useState<Match | null>(null);
-    const [matchToDelete, setMatchToDelete] = useState<Match | null>(null);
+    
+    useEffect(() => {
+        if (!allBookings || allBookings.length === 0) return;
+
+        const existingBookingIds = new Set((team.matchHistory || []).map(m => m.bookingId).filter(Boolean));
+
+        const newCompletedMatches = allBookings.filter(booking =>
+            booking.status === 'completed' &&
+            (booking.teamName?.toLowerCase() === team.name.toLowerCase()) &&
+            !existingBookingIds.has(booking.id) &&
+            typeof booking.scoreA === 'number' && typeof booking.scoreB === 'number'
+        );
+
+        if (newCompletedMatches.length === 0) {
+            return;
+        }
+
+        const newMatches: Match[] = newCompletedMatches.map(booking => ({
+            id: `mh-${booking.id}`,
+            bookingId: booking.id,
+            teamA: { id: team.id, name: team.name, logo: team.logo },
+            teamB: { id: `ext-${booking.id}`, name: booking.rivalName || 'Rival' },
+            scoreA: booking.scoreA,
+            scoreB: booking.scoreB,
+            date: new Date(booking.date),
+            status: 'jugado',
+        }));
+
+        const updatedHistory = [...(team.matchHistory || []), ...newMatches];
+        const newStats = recalculateTeamStats(updatedHistory, team.id);
+
+        const updatedPlayers = team.players.map(player => ({
+            ...player,
+            stats: {
+                ...player.stats,
+                matchesPlayed: (player.stats.matchesPlayed || 0) + newCompletedMatches.length
+            }
+        }));
+
+        onUpdateTeam({
+            ...team,
+            matchHistory: updatedHistory,
+            stats: newStats,
+            players: updatedPlayers
+        });
+
+    }, [allBookings, team, onUpdateTeam]);
+
 
     const matchHistory = useMemo(() => (team.matchHistory || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [team.matchHistory]);
     
@@ -156,7 +136,10 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
         const history = team.matchHistory || [];
         const totalMatches = history.length;
         const winPercentage = totalMatches > 0 ? ((team.stats.wins / totalMatches) * 100).toFixed(0) + '%' : 'N/A';
-        const goalsFor = history.reduce((sum, p) => sum + (p.scoreA || 0), 0);
+        const goalsFor = history.reduce((sum, match) => {
+            const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
+            return sum + (isTeamA ? (match.scoreA ?? 0) : (match.scoreB ?? 0));
+        }, 0);
 
         const sortedByGoals = [...team.players].sort((a, b) => b.stats.goals - a.stats.goals);
         const topScorer = sortedByGoals[0]?.stats.goals > 0 ? sortedByGoals[0] : undefined;
@@ -188,50 +171,6 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
         setSortConfig({ key, direction });
     };
 
-    const handleOpenModal = (match: Match | null) => {
-        setEditingMatch(match);
-        setIsModalOpen(true);
-    };
-
-    const handleSaveMatch = (data: { opponentName: string, scoreA: number, scoreB: number, date: string }) => {
-        let updatedHistory: Match[];
-
-        if (editingMatch) {
-            updatedHistory = (team.matchHistory || []).map(m => m.id === editingMatch.id ? {
-                ...m,
-                teamB: { id: `ext-${Date.now()}`, name: data.opponentName },
-                scoreA: data.scoreA,
-                scoreB: data.scoreB,
-                date: new Date(`${data.date}T00:00:00`),
-            } : m);
-        } else {
-            const newMatch: Match = {
-                id: `mh-${Date.now()}`,
-                teamA: { id: team.id, name: team.name, logo: team.logo },
-                teamB: { id: `ext-${Date.now()}`, name: data.opponentName },
-                scoreA: data.scoreA,
-                scoreB: data.scoreB,
-                date: new Date(`${data.date}T00:00:00`),
-                status: 'jugado',
-            };
-            updatedHistory = [...(team.matchHistory || []), newMatch];
-        }
-        
-        const newStats = recalculateTeamStats(updatedHistory, team.id);
-        onUpdateTeam({ ...team, matchHistory: updatedHistory, stats: newStats });
-        setIsModalOpen(false);
-        setEditingMatch(null);
-    };
-
-    const handleDeleteMatch = () => {
-        if (!matchToDelete) return;
-        const updatedHistory = (team.matchHistory || []).filter(m => m.id !== matchToDelete.id);
-        const newStats = recalculateTeamStats(updatedHistory, team.id);
-        onUpdateTeam({ ...team, matchHistory: updatedHistory, stats: newStats });
-        setMatchToDelete(null);
-    };
-
-
     return (
         <div className="space-y-6 animate-fade-in">
             <h1 className="text-3xl font-bold tracking-tight">Rendimiento del Equipo</h1>
@@ -239,9 +178,9 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatBox title="Récord General" value={`${team.stats.wins}-${team.stats.draws}-${team.stats.losses}`} subValue="V-E-P">
                     <div className="flex h-3 rounded-full overflow-hidden bg-black/30">
-                        <div className="bg-green-500" style={{width: `${(team.stats.wins/totalMatches)*100}%`}}></div>
-                        <div className="bg-yellow-500" style={{width: `${(team.stats.draws/totalMatches)*100}%`}}></div>
-                        <div className="bg-red-500" style={{width: `${(team.stats.losses/totalMatches)*100}%`}}></div>
+                        <div className="bg-green-500" style={{width: `${totalMatches > 0 ? (team.stats.wins/totalMatches)*100 : 0}%`}}></div>
+                        <div className="bg-yellow-500" style={{width: `${totalMatches > 0 ? (team.stats.draws/totalMatches)*100 : 0}%`}}></div>
+                        <div className="bg-red-500" style={{width: `${totalMatches > 0 ? (team.stats.losses/totalMatches)*100 : 0}%`}}></div>
                     </div>
                 </StatBox>
                 <StatBox title="Goles a Favor" value={goalsFor} />
@@ -254,20 +193,19 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
              </div>
 
             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl">
-                <div className="p-6 flex justify-between items-center">
+                <div className="p-6">
                     <h2 className="text-xl font-bold">Historial de Partidos</h2>
-                    {isCaptain && (
-                        <button onClick={() => handleOpenModal(null)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm text-sm border border-white/20">
-                            <PlusIcon className="w-5 h-5" />
-                            Agregar Partido
-                        </button>
-                    )}
+                     <p className="text-xs text-gray-400 mt-1">Solo se muestran los partidos jugados y reservados a través de la app.</p>
                 </div>
                 {matchHistory.length > 0 ? (
                     <div className="space-y-3 p-6 pt-0">
                         {matchHistory.map(match => {
-                            const result = (match.scoreA ?? 0) > (match.scoreB ?? 0) ? 'V' : (match.scoreA ?? 0) < (match.scoreB ?? 0) ? 'D' : 'E';
+                             const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
+                            const scoreUs = (isTeamA ? match.scoreA : match.scoreB) ?? 0;
+                            const scoreThem = (isTeamA ? match.scoreB : match.scoreA) ?? 0;
+                            const result = scoreUs > scoreThem ? 'V' : scoreUs < scoreThem ? 'D' : 'E';
                             const resultColor = result === 'V' ? 'bg-green-900/50 text-green-300' : result === 'D' ? 'bg-red-900/50 text-red-300' : 'bg-yellow-900/50 text-yellow-300';
+                            
                             return (
                                 <div key={match.id} className="bg-black/20 p-3 rounded-lg flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-black text-lg ${resultColor}`}>{result}</div>
@@ -275,19 +213,13 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
                                         <p className="font-semibold">vs. {'name' in match.teamB ? match.teamB.name : 'Rival'}</p>
                                         <p className="text-xs text-gray-400">{new Date(match.date).toLocaleDateString('es-CO', {year: 'numeric', month: 'long', day: 'numeric'})}</p>
                                     </div>
-                                    <div className="font-bold text-lg">{match.scoreA} - {match.scoreB}</div>
-                                    {isCaptain && (
-                                        <>
-                                            <button onClick={() => handleOpenModal(match)} className="text-sm font-semibold text-amber-400 hover:underline">Editar</button>
-                                            <button onClick={() => setMatchToDelete(match)} className="text-gray-400 hover:text-red-400 p-1 rounded-full"><TrashIcon className="w-4 h-4"/></button>
-                                        </>
-                                    )}
+                                    <div className="font-bold text-lg">{scoreUs} - {scoreThem}</div>
                                 </div>
                             )
                         })}
                     </div>
                 ) : (
-                    <p className="px-6 pb-6 text-gray-400">No hay partidos registrados.</p>
+                    <p className="px-6 pb-6 text-gray-400">No hay partidos registrados en la app.</p>
                 )}
             </div>
             
@@ -326,15 +258,6 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, isCaptain, onBa
                     </table>
                 </div>
             </div>
-            {isModalOpen && isCaptain && <MatchModal match={editingMatch} onClose={() => setIsModalOpen(false)} onSave={handleSaveMatch} />}
-            <ConfirmationModal
-                isOpen={!!matchToDelete && isCaptain}
-                onClose={() => setMatchToDelete(null)}
-                onConfirm={handleDeleteMatch}
-                title="Eliminar Partido"
-                message="¿Estás seguro de que quieres eliminar este partido del historial? Esta acción no se puede deshacer."
-                confirmButtonText="Sí, eliminar"
-            />
         </div>
     );
 };

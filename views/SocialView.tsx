@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation, WeatherData } from '../../types';
+import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation, WeatherData, ConfirmedBooking } from '../../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import { ShieldIcon } from '../components/icons/ShieldIcon';
@@ -70,6 +70,7 @@ interface SocialViewProps {
     user: User;
     allTeams: Team[];
     allUsers: User[];
+    allBookings: ConfirmedBooking[];
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onNavigate: (view: View) => void;
     setIsPremiumModalOpen: (isOpen: boolean) => void;
@@ -531,7 +532,7 @@ const FindPlayersView: React.FC<{
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     placeholder="Buscar jugador por nombre..."
-                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:border-transparent focus:ring-2 focus:ring-amber-500"
+                    className="w-full py-3 pl-11 pr-4 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 shadow-sm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
             </div>
 
@@ -571,7 +572,7 @@ const FindPlayersView: React.FC<{
     );
 };
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam, weatherData }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, allBookings, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam, weatherData }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     const [activeChatTeam, setActiveChatTeam] = useState<Team | null>(null);
@@ -602,6 +603,8 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, addNo
                     userTeams={userTeams}
                     user={user}
                     allUsers={allUsers}
+                    allBookings={allBookings}
+                    allTeams={allTeams}
                     onBack={() => setSection('hub')}
                     addNotification={addNotification}
                     onUpdateTeam={onUpdateTeam}

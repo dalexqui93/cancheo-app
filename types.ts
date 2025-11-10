@@ -263,6 +263,7 @@ export interface MatchTeam {
 }
 export interface Match {
     id: string;
+    bookingId?: string;
     teamA: MatchTeam;
     teamB: MatchTeam;
     scoreA?: number;

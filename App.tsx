@@ -1662,6 +1662,7 @@ const App = () => {
                                     user={user}
                                     allTeams={allTeams}
                                     allUsers={allUsers}
+                                    allBookings={allBookings}
                                     addNotification={showToast} 
                                     onNavigate={handleNavigate} 
                                     setIsPremiumModalOpen={setIsPremiumModalOpen} 

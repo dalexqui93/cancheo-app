@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 // FIX: Import UserMessage type to correctly type mockMessages and resolve property access errors.
-import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage } from '../../types';
+import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage, ConfirmedBooking } from '../../types';
 import RosterView from './RosterView';
 import TacticsView from './TacticsView';
 import ScheduleView from './ScheduleView';
@@ -34,6 +34,8 @@ interface MyTeamDashboardProps {
     userTeams: Team[];
     user: User;
     allUsers: User[];
+    allBookings: ConfirmedBooking[];
+    allTeams: Team[];
     onBack: () => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onUpdateTeam: (teamId: string, updates: Partial<Team>) => void;
@@ -171,7 +173,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
 };
 
 
-const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection, onRemovePlayerFromTeam, onLeaveTeam, setActiveChatTeam }) => {
+const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, allBookings, allTeams, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection, onRemovePlayerFromTeam, onLeaveTeam, setActiveChatTeam }) => {
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [isCreating, setIsCreating] = useState(userTeams.length === 0);
     const [view, setView] = useState<TeamView>('dashboard');
@@ -272,7 +274,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                 case 'schedule':
                     return <ScheduleView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} addNotification={addNotification} />;
                 case 'performance':
-                    return <PerformanceView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} />;
+                    return <PerformanceView team={team} allBookings={allBookings} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} />;
                 case 'chat':
                      return null;
                 case 'dashboard':
