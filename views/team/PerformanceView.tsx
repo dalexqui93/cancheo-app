@@ -121,7 +121,6 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ team, allBookings, on
         }));
 
         onUpdateTeam({
-            ...team,
             matchHistory: updatedHistory,
             stats: newStats,
             players: updatedPlayers

@@ -306,12 +306,29 @@ const initializeDemoData = () => {
 
     const nowForBooking = new Date();
     const liveStartTime = new Date(nowForBooking.getTime() - 30 * 60 * 1000); 
-    const liveHour = String(liveStartTime.getHours()).padStart(2, '0');
-    const liveMinute = String(liveStartTime.getMinutes()).padStart(2, '0');
+    const upcomingStartTime = new Date(nowForBooking.getTime() + 24 * 60 * 60 * 1000); 
+    const completedStartTime = new Date(nowForBooking.getTime() - 2 * 24 * 60 * 60 * 1000); 
 
     demoData.bookings = [
-        { id: 'booking-live', field: demoData.fields[1], time: `${liveHour}:${liveMinute}`, date: liveStartTime, userId: 'player-live', userName: 'Carlos Pérez', teamName: 'Equipo Rocket', rivalName: 'Los Invencibles', userPhone: '3110000001', extras: { balls: 0, vests: 1 }, totalPrice: 130000, paymentMethod: 'cash', status: 'confirmed' },
-        { id: 'booking-upcoming-1', field: demoData.fields[0], time: '19:00', date: new Date(), userId: 'player-up1', userName: 'Juan Rodriguez', teamName: 'Los Galácticos', rivalName: 'Furia Roja', userPhone: '3110000002', extras: { balls: 1, vests: 0 }, totalPrice: 95000, paymentMethod: 'card-1', status: 'confirmed' },
+        { id: 'booking-live', field: demoData.fields[1], time: `${String(liveStartTime.getHours()).padStart(2, '0')}:${String(liveStartTime.getMinutes()).padStart(2, '0')}`, date: liveStartTime, userId: 'player-1', userName: 'Juan Perez', teamName: 'Los Galácticos', rivalName: 'Los Invencibles', userPhone: '3110000001', extras: { balls: 0, vests: 1 }, totalPrice: 130000, paymentMethod: 'cash', status: 'confirmed', scoreA: 1, scoreB: 0 },
+        { id: 'booking-upcoming-1', field: demoData.fields[0], time: '19:00', date: upcomingStartTime, userId: 'player-1', userName: 'Juan Perez', teamName: 'Los Galácticos', rivalName: 'Furia Roja FC', userPhone: '3110000002', extras: { balls: 1, vests: 0 }, totalPrice: 95000, paymentMethod: 'card-1', status: 'confirmed' },
+        { 
+            id: 'booking-completed-1', 
+            field: demoData.fields[2], 
+            time: '20:00', 
+            date: completedStartTime, 
+            userId: 'player-1', 
+            userName: 'Juan Perez', 
+            teamName: 'Los Galácticos', 
+            rivalName: 'Atlético Barrial', 
+            userPhone: '3110000003', 
+            extras: { balls: 0, vests: 0 }, 
+            totalPrice: 75000, 
+            paymentMethod: 'cash', 
+            status: 'completed', 
+            scoreA: 5, 
+            scoreB: 3 
+        }
     ];
 };
 
@@ -355,7 +372,13 @@ export const getUsers = async () => {
 
 export const getTeams = async (): Promise<Team[]> => {
     if (isFirebaseConfigured) return getCollection('teams');
-    return Promise.resolve(JSON.parse(JSON.stringify(demoData.teams)));
+    const reviver = (key, value) => {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
+            return new Date(value);
+        }
+        return value;
+    };
+    return Promise.resolve(JSON.parse(JSON.stringify(demoData.teams), reviver));
 };
 
 export const getAllBookings = async () => {
@@ -550,7 +573,20 @@ export const updateTeam = async (teamId, updates) => {
     }
     const teamIndex = demoData.teams.findIndex(t => t.id === teamId);
     if (teamIndex > -1) {
-        demoData.teams[teamIndex] = { ...demoData.teams[teamIndex], ...updates };
+        const currentTeam = demoData.teams[teamIndex];
+        const newTeam = { ...currentTeam };
+
+        // Deep merge for nested objects like 'stats'
+        for (const key in updates) {
+            if (updates.hasOwnProperty(key)) {
+                if (typeof updates[key] === 'object' && !Array.isArray(updates[key]) && updates[key] !== null && currentTeam[key]) {
+                    newTeam[key] = { ...currentTeam[key], ...updates[key] };
+                } else {
+                    newTeam[key] = updates[key];
+                }
+            }
+        }
+        demoData.teams[teamIndex] = newTeam;
     }
     return Promise.resolve();
 };

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // FIX: Import UserMessage type to correctly type mockMessages and resolve property access errors.
 import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage, ConfirmedBooking } from '../../types';
 import RosterView from './RosterView';
@@ -174,10 +173,23 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
 
 
 const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, allBookings, allTeams, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection, onRemovePlayerFromTeam, onLeaveTeam, setActiveChatTeam }) => {
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(userTeams[0] || null);
     const [isCreating, setIsCreating] = useState(userTeams.length === 0);
     const [view, setView] = useState<TeamView>('dashboard');
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+    
+    useEffect(() => {
+        if (selectedTeam) {
+            const updatedTeamData = userTeams.find(t => t.id === selectedTeam.id);
+            // Compare stringified objects to prevent re-renders from object reference changes
+            if (updatedTeamData && JSON.stringify(updatedTeamData) !== JSON.stringify(selectedTeam)) {
+                setSelectedTeam(updatedTeamData);
+            }
+        } else if (userTeams.length > 0) {
+            // If no team is selected but teams become available, select the first one.
+            setSelectedTeam(userTeams[0]);
+        }
+    }, [userTeams, selectedTeam]);
 
     const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
         const currentUserAsPlayer = user.playerProfile || {
