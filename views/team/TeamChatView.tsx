@@ -195,7 +195,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isInfoView, setIsInfoView] = useState(false);
-    const parentRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setIsLoading(true);
@@ -226,9 +226,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }, [messages]);
 
     useLayoutEffect(() => {
-        if (parentRef.current) {
-            parentRef.current.scrollTop = parentRef.current.scrollHeight;
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }, [items]);
 
     if (isInfoView) {
@@ -236,8 +234,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     }
 
     return (
-        <div className="h-screen flex flex-col team-chat-bg">
-            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-10">
+        <div className="min-h-screen">
+            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-10 sticky top-0">
                  <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
                     <ChevronLeftIcon className="w-6 h-6" />
                 </button>
@@ -252,11 +250,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </button>
             </header>
             
-            <main
-                ref={parentRef}
-                className="flex-grow overflow-y-auto relative p-4"
-                style={{ overscrollBehaviorY: 'contain' }}
-            >
+            <main className="relative p-4 pb-32">
                  <div className="flex flex-col gap-1">
                     {isLoading && items.length === 0 ? (
                         <div className="absolute inset-0 flex justify-center items-center"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
@@ -295,13 +289,16 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                         })
                     )}
                 </div>
+                <div ref={messagesEndRef} />
             </main>
 
-            <MessageInput 
-                team={team}
-                currentUser={currentUser}
-                addNotification={addNotification}
-            />
+            <div className="fixed bottom-0 left-0 right-0 z-20">
+                <MessageInput 
+                    team={team}
+                    currentUser={currentUser}
+                    addNotification={addNotification}
+                />
+            </div>
         </div>
     );
 };
