@@ -1,3 +1,22 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -180,10 +199,10 @@ const ComplexEditorModal: React.FC<{
         department: complex?.department || '',
         description: complex?.description || '',
         images: complex?.images || [],
-        services: complex?.services?.map(s => s.name) || [],
-        latitude: complex?.fields?.[0]?.latitude || null,
-        longitude: complex?.fields?.[0]?.longitude || null,
-        subFields: complex?.fields?.map(f => ({
+        services: complex?.services.map(s => s.name) || [],
+        latitude: complex?.fields[0]?.latitude || null,
+        longitude: complex?.fields[0]?.longitude || null,
+        subFields: complex?.fields.map(f => ({
             id: f.id,
             name: f.name.includes(' - ') ? f.name.split(' - ').slice(1).join(' - ') : f.name,
             size: f.size,

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -16,9 +17,6 @@ import ImageLightbox from '../../components/ImageLightbox';
 import { SearchIcon } from '../../components/icons/SearchIcon';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 import MessageInput from '../../components/team/MessageInput';
-
-// Interfaces y tipos específicos del componente
-// ... (se podrían mover a un archivo de tipos si se vuelven más complejos)
 
 interface TeamChatViewProps {
     team: Team;
@@ -45,8 +43,6 @@ const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: numbe
   return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
 };
 
-// ... (El resto de los componentes pequeños como MessageStatusIcon, BanIcon, etc.)
-
 const ChatMessageBubble: React.FC<{ 
     message: UserMessage, 
     isCurrentUser: boolean, 
@@ -61,7 +57,7 @@ const ChatMessageBubble: React.FC<{
     isLastInGroup: boolean,
     teamPlayerCount: number,
 }> = React.memo(({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone, onOpenLightbox, onScrollToMessage, highlighted, highlightTerm, isFirstInGroup, isLastInGroup, teamPlayerCount }) => {
-    // ... (Lógica de swipe y renderizado de la burbuja del mensaje)
+    
     const getHighlightedText = (text: string, highlight: string) => {
         if (!highlight.trim()) return <span>{text}</span>;
         const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
@@ -183,13 +179,17 @@ const ChatMessageBubble: React.FC<{
     );
 });
 
-
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isInfoView, setIsInfoView] = useState(false);
-    
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [messages]);
 
     useEffect(() => {
         setIsLoading(true);
@@ -214,20 +214,14 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 lastDate = messageDate;
             }
             if (message.type === 'system') {
-                result.push({ type: 'system', ...message });
+                result.push(message);
             } else {
-                 result.push({ type: 'user', ...message });
+                 result.push(message as UserMessage);
             }
         });
         return result;
     }, [messages]);
 
-    useLayoutEffect(() => {
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-        }
-    }, [items]);
-    
     if (isInfoView) {
         return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={() => {}} />;
     }
@@ -249,44 +243,51 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </button>
             </header>
             
-            <main ref={scrollContainerRef} className="flex-grow overflow-y-auto overscroll-behavior-y-contain">
-                 <div className="p-4">
-                    {isLoading && items.length === 0 ? (
-                        <div className="flex justify-center items-center h-full"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
-                    ) : (
-                        items.map((item, index) => {
-                            const prevItem = items[index - 1];
-                            const nextItem = items[index + 1];
+            <main
+                ref={chatContainerRef}
+                className="flex-grow overflow-y-auto"
+                style={{ overscrollBehaviorY: 'contain' }}
+            >
+                {isLoading && items.length === 0 ? (
+                    <div className="flex justify-center items-center h-full"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
+                ) : (
+                    <div className="p-4 space-y-2">
+                        {items.map((item, index) => {
+                             const prevItem = items[index - 1];
+                             const nextItem = items[index + 1];
                             
-                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
-                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
+                             const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
+                             const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
                             
-                            if (item.type === 'date') {
-                                return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
+                            switch (item.type) {
+                                case 'date':
+                                    return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
+                                case 'system':
+                                    return <div key={item.id} className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>;
+                                case 'user':
+                                    return (
+                                        <ChatMessageBubble 
+                                            key={item.id}
+                                            message={item as UserMessage}
+                                            isCurrentUser={item.senderId === currentUser.id}
+                                            onReply={() => {}}
+                                            onDelete={() => {}}
+                                            onDeleteForEveryone={() => {}}
+                                            onOpenLightbox={() => {}}
+                                            onScrollToMessage={() => {}}
+                                            highlighted={false}
+                                            highlightTerm={null}
+                                            isFirstInGroup={isFirstInGroup}
+                                            isLastInGroup={isLastInGroup}
+                                            teamPlayerCount={team.players.length}
+                                        />
+                                    );
+                                default:
+                                    return null;
                             }
-                            if (item.type === 'system') {
-                                return <div key={item.id} className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>;
-                            }
-                            return (
-                                <ChatMessageBubble 
-                                    key={item.id}
-                                    message={item}
-                                    isCurrentUser={item.senderId === currentUser.id}
-                                    onReply={() => {}}
-                                    onDelete={() => {}}
-                                    onDeleteForEveryone={() => {}}
-                                    onOpenLightbox={() => {}}
-                                    onScrollToMessage={() => {}}
-                                    highlighted={false}
-                                    highlightTerm={null}
-                                    isFirstInGroup={isFirstInGroup}
-                                    isLastInGroup={isLastInGroup}
-                                    teamPlayerCount={team.players.length}
-                                />
-                            );
-                        })
-                    )}
-                </div>
+                        })}
+                    </div>
+                )}
             </main>
 
             <MessageInput 
