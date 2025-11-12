@@ -191,34 +191,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // Prevent pull-to-refresh on mobile
-    useEffect(() => {
-        const scrollContainer = scrollContainerRef.current;
-        if (!scrollContainer) return;
-
-        let startY = 0;
-        const handleTouchStart = (e: TouchEvent) => {
-            if (scrollContainer.scrollTop === 0) {
-                startY = e.touches[0].clientY;
-            }
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-            const currentY = e.touches[0].clientY;
-            if (scrollContainer.scrollTop === 0 && currentY > startY) {
-                e.preventDefault();
-            }
-        };
-
-        scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-        scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-        return () => {
-            scrollContainer.removeEventListener('touchstart', handleTouchStart);
-            scrollContainer.removeEventListener('touchmove', handleTouchMove);
-        };
-    }, []);
-
     useEffect(() => {
         setIsLoading(true);
         const unsubscribe = db.listenToTeamChat(team.id, (fetchedMessages) => {
@@ -277,7 +249,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </button>
             </header>
             
-            <main ref={scrollContainerRef} className="flex-grow overflow-y-auto">
+            <main ref={scrollContainerRef} className="flex-grow overflow-y-auto overscroll-behavior-y-contain">
                  <div className="p-4">
                     {isLoading && items.length === 0 ? (
                         <div className="flex justify-center items-center h-full"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
