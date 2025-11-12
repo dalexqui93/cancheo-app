@@ -16,7 +16,6 @@ import ImageLightbox from '../../components/ImageLightbox';
 import { SearchIcon } from '../../components/icons/SearchIcon';
 import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import MessageInput from '../../components/team/MessageInput';
 
 // Interfaces y tipos específicos del componente
@@ -193,17 +192,15 @@ const ChatMessageBubble: React.FC<{
 
 
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
-    // ... (toda la lógica del chat, ahora más limpia)
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isInfoView, setIsInfoView] = useState(false);
     
-    // Virtualization
-    const parentRef = useRef<HTMLDivElement>(null);
-    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const scrollContainer = parentRef.current;
+        const scrollContainer = scrollContainerRef.current;
         if (!scrollContainer) return;
 
         let startY = 0;
@@ -217,7 +214,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         const handleTouchMove = (e: TouchEvent) => {
             const currentY = e.touches[0].clientY;
             if (scrollContainer.scrollTop === 0 && currentY > startY) {
-                // This is a pull-to-refresh gesture, prevent it.
                 e.preventDefault();
             }
         };
@@ -237,15 +233,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             setMessages(fetchedMessages);
             setIsLoading(false);
         });
-
-        // Simulación de "escribiendo..."
-        const typingInterval = setInterval(() => {
-            // ... (logica de simulación)
-        }, 3000);
         
         return () => {
             unsubscribe();
-            clearInterval(typingInterval);
         };
     }, [team.id]);
     
@@ -259,7 +249,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 result.push({ type: 'date', id: `date-${messageDate}`, timestamp: message.timestamp, date: messageDate });
                 lastDate = messageDate;
             }
-            if (message.senderId === 'system') {
+            if (message.type === 'system') {
                 result.push({ type: 'system', ...message });
             } else {
                  result.push({ type: 'user', ...message });
@@ -268,32 +258,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         return result;
     }, [messages]);
 
-    const rowVirtualizer = useVirtualizer({
-        count: items.length,
-        getScrollElement: () => parentRef.current,
-        estimateSize: () => 100,
-        overscan: 10,
-    });
+    useLayoutEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [items]);
     
-     useEffect(() => {
-        const totalSize = rowVirtualizer.getTotalSize();
-        const parent = parentRef.current;
-        if (parent && parent.scrollHeight - parent.scrollTop - parent.clientHeight < 400) {
-            rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
-        }
-    }, [items.length, rowVirtualizer]);
-    
-    const handleScroll = () => {
-        if (!parentRef.current) return;
-        const { scrollHeight, scrollTop, clientHeight } = parentRef.current;
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 200;
-        setShowScrollToBottom(!isAtBottom);
-    };
-
-    const scrollToBottom = () => {
-        rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' });
-    };
-
     if (isInfoView) {
         return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={() => {}} />;
     }
@@ -315,34 +283,27 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </button>
             </header>
             
-            <main ref={parentRef} onScroll={handleScroll} className="flex-grow overflow-y-auto relative">
-                 <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+            <main ref={scrollContainerRef} className="flex-grow overflow-y-auto relative">
+                 <div className="p-4">
                     {isLoading && items.length === 0 ? (
                         <div className="absolute inset-0 flex justify-center items-center"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
                     ) : (
-                        rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                            const item = items[virtualItem.index];
-                            const prevItem = items[virtualItem.index - 1];
-                            const nextItem = items[virtualItem.index + 1];
+                        items.map((item, index) => {
+                            const prevItem = items[index - 1];
+                            const nextItem = items[index + 1];
                             
-                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
-                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
+                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && (prevItem as UserMessage).senderId !== item.senderId);
+                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && (nextItem as UserMessage).senderId !== item.senderId);
                             
                             return (
-                                <div
-                                    key={item.id}
-                                    ref={rowVirtualizer.measureElement}
-                                    data-index={virtualItem.index}
-                                    className="absolute top-0 left-0 w-full px-4"
-                                    style={{ transform: `translateY(${virtualItem.start}px)` }}
-                                >
+                                <div key={item.id}>
                                     {item.type === 'date' ? (
                                         <div className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>
                                     ) : item.type === 'system' ? (
                                         <div className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>
                                     ) : (
                                         <ChatMessageBubble 
-                                            message={item}
+                                            message={item as UserMessage}
                                             isCurrentUser={item.senderId === currentUser.id}
                                             onReply={() => {}}
                                             onDelete={() => {}}
@@ -360,12 +321,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             );
                         })
                     )}
+                    <div ref={messagesEndRef} />
                 </div>
-                 {showScrollToBottom && (
-                    <button onClick={scrollToBottom} className="absolute bottom-4 right-6 w-10 h-10 bg-gray-700/80 rounded-full flex items-center justify-center text-white shadow-lg animate-fade-in">
-                        <ChevronDownIcon className="w-6 h-6" />
-                    </button>
-                )}
             </main>
 
             <MessageInput 
