@@ -110,7 +110,10 @@ const ChatMessageBubble: React.FC<{
         );
     }
     
-    const bubbleColor = isCurrentUser ? 'bg-amber-600 text-white' : 'bg-gray-700 text-white';
+    const bubbleColor = isCurrentUser ? 'bg-amber-700 text-white' : 'bg-gray-700 text-white';
+    
+    const isFileOnlyMessage = message.attachment && !message.attachment.mimeType.startsWith('image/') && !message.text;
+
     const bubbleClasses = isCurrentUser
         ? `rounded-l-2xl ${isFirstInGroup ? 'rounded-tr-2xl' : 'rounded-tr-md'} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-md'}`
         : `rounded-r-2xl ${isFirstInGroup ? 'rounded-tl-2xl' : 'rounded-tl-md'} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-md'}`;
@@ -133,7 +136,7 @@ const ChatMessageBubble: React.FC<{
                 </div>
             )}
             <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`max-w-xs md:max-w-md px-4 py-2 relative shadow-none ${bubbleColor} ${bubbleClasses}`}>
+                <div className={`max-w-xs md:max-w-md relative shadow-none ${bubbleColor} ${bubbleClasses} ${isFileOnlyMessage ? 'p-2' : 'px-4 py-2'}`}>
                     {!isCurrentUser && isFirstInGroup && (
                         <p className="text-xs font-bold mb-1 text-amber-300">{message.senderName}</p>
                     )}
@@ -144,13 +147,15 @@ const ChatMessageBubble: React.FC<{
                         </button>
                     )}
                     {message.attachment && (
-                        <div className="my-2">
+                        <div className={isFileOnlyMessage ? '' : 'my-2'}>
                             {message.attachment.mimeType.startsWith('image/') ? (
                                 <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={() => onOpenLightbox(message.attachment.dataUrl)} />
                             ) : (
-                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} className="flex items-center gap-3 p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                    <FileIcon className="w-8 h-8 flex-shrink-0" />
-                                    <div className="truncate">
+                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/20 transition-colors">
+                                    <div className="flex-shrink-0 w-12 h-12 bg-black/20 rounded-full flex items-center justify-center">
+                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                    </div>
+                                    <div className="flex-grow min-w-0">
                                         <p className="font-semibold text-sm truncate">{message.attachment.fileName}</p>
                                         <p className="text-xs opacity-80">Descargar</p>
                                     </div>
@@ -196,6 +201,35 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     // Virtualization
     const parentRef = useRef<HTMLDivElement>(null);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+    useEffect(() => {
+        const scrollContainer = parentRef.current;
+        if (!scrollContainer) return;
+
+        let startY = 0;
+
+        const handleTouchStart = (e: TouchEvent) => {
+            if (scrollContainer.scrollTop === 0) {
+                startY = e.touches[0].clientY;
+            }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            const currentY = e.touches[0].clientY;
+            if (scrollContainer.scrollTop === 0 && currentY > startY) {
+                // This is a pull-to-refresh gesture, prevent it.
+                e.preventDefault();
+            }
+        };
+
+        scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+        scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+        return () => {
+            scrollContainer.removeEventListener('touchstart', handleTouchStart);
+            scrollContainer.removeEventListener('touchmove', handleTouchMove);
+        };
+    }, []);
 
     useEffect(() => {
         setIsLoading(true);
