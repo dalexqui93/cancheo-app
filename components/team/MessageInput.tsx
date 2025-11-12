@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useReducer } from 'react';
-import type { Team, Player, ChatMessage, Notification } from '../../types';
+import type { Team, Player, ChatMessage, Notification, UserMessage } from '../../types';
 import * as db from '../../database';
 import { PaperAirplaneIcon } from '../icons/PaperAirplaneIcon';
 import { FaceSmileIcon } from '../icons/FaceSmileIcon';
 import { XIcon } from '../icons/XIcon';
 import { MicrophoneIcon } from '../icons/MicrophoneIcon';
 import { PaperclipIcon } from '../icons/PaperclipIcon';
+import { ArrowUturnLeftIcon } from '../icons/ArrowUturnLeftIcon';
 
 const EMOJIS = ['👍', '😂', '⚽', '🔥', '👏', '🏆', '🎉', '💪'];
 
@@ -51,7 +52,6 @@ const compressImage = (file: File): Promise<string> => {
 
 interface MessageInputState {
     inputText: string;
-    replyingTo: ChatMessage | null;
     showEmojis: boolean;
     attachment: { fileName: string; mimeType: string; dataUrl: string; } | null;
     isRecording: boolean;
@@ -60,7 +60,6 @@ interface MessageInputState {
 
 type MessageInputAction =
     | { type: 'SET_INPUT_TEXT'; payload: string }
-    | { type: 'SET_REPLYING_TO'; payload: ChatMessage | null }
     | { type: 'TOGGLE_EMOJIS' }
     | { type: 'SET_ATTACHMENT'; payload: MessageInputState['attachment'] }
     | { type: 'SET_IS_RECORDING'; payload: boolean }
@@ -69,7 +68,6 @@ type MessageInputAction =
 
 const initialState: MessageInputState = {
     inputText: '',
-    replyingTo: null,
     showEmojis: false,
     attachment: null,
     isRecording: false,
@@ -79,7 +77,6 @@ const initialState: MessageInputState = {
 const reducer = (state: MessageInputState, action: MessageInputAction): MessageInputState => {
     switch (action.type) {
         case 'SET_INPUT_TEXT': return { ...state, inputText: action.payload };
-        case 'SET_REPLYING_TO': return { ...state, replyingTo: action.payload };
         case 'TOGGLE_EMOJIS': return { ...state, showEmojis: !state.showEmojis };
         case 'SET_ATTACHMENT': return { ...state, attachment: action.payload };
         case 'SET_IS_RECORDING': return { ...state, isRecording: action.payload };
@@ -93,9 +90,11 @@ interface MessageInputProps {
     team: Team;
     currentUser: Player;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
+    replyingTo: UserMessage | null;
+    onCancelReply: () => void;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ team, currentUser, addNotification }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ team, currentUser, addNotification, replyingTo, onCancelReply }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingIntervalRef = useRef<number | null>(null);
@@ -111,11 +110,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ team, currentUser, addNotif
             senderName: currentUser.name,
             senderProfilePicture: currentUser.profilePicture,
             text: state.inputText,
-            replyTo: state.replyingTo ? { messageId: state.replyingTo.id, senderName: state.replyingTo.senderName, text: state.replyingTo.text } : undefined,
+            replyTo: replyingTo ? { messageId: replyingTo.id, senderName: replyingTo.senderName, text: replyingTo.text } : undefined,
             attachment: messageAttachment ? { ...messageAttachment } : undefined,
         };
 
         dispatch({ type: 'RESET' });
+        onCancelReply();
         
         try {
             await db.addChatMessage(team.id, messageData as Omit<ChatMessage, 'id' | 'timestamp'>);
@@ -190,15 +190,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ team, currentUser, addNotif
                         </button>
                     </div>
                 )}
-                {state.replyingTo && (
-                    <div className="p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500 flex items-center justify-between gap-3 overflow-hidden">
+                {replyingTo && (
+                    <div className="p-2 mb-2 bg-gray-700 rounded-lg border-l-4 border-amber-500 flex items-center gap-3 overflow-hidden">
+                        <ArrowUturnLeftIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">
-                                Respondiendo a {(state.replyingTo.senderName as string).split(' ')[0]}
+                                Respondiendo a {replyingTo.senderName.split(' ')[0]}
                             </p>
-                            <p className="text-xs text-gray-400 truncate">{state.replyingTo.text}</p>
+                            <p className="text-xs text-gray-400 truncate">{replyingTo.text}</p>
                         </div>
-                        <button onClick={() => dispatch({ type: 'SET_REPLYING_TO', payload: null })} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-600">
+                        <button onClick={onCancelReply} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-600">
                             <XIcon className="w-4 h-4" />
                         </button>
                     </div>

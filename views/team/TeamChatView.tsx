@@ -87,7 +87,7 @@ const ChatMessageBubble: React.FC<{
 
     if (message.deleted) {
         return (
-             <div className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group ${highlighted ? 'animate-highlight-pulse' : ''}`}>
+             <div className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}>
                  {!isCurrentUser && <div className="w-8 flex-shrink-0"></div>}
                 <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
                     <p className="text-sm italic text-gray-500 flex items-center gap-2">
@@ -195,6 +195,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isInfoView, setIsInfoView] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<UserMessage | null>(null);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const messageRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -205,6 +208,17 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         });
         return () => unsubscribe();
     }, [team.id]);
+
+    const handleScrollToMessage = useCallback((messageId: string) => {
+        const element = messageRefs.current.get(messageId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setHighlightedMessageId(messageId);
+            setTimeout(() => {
+                setHighlightedMessageId(null);
+            }, 1500); // Highlight for 1.5 seconds
+        }
+    }, []);
     
      const items = useMemo((): ChatItem[] => {
         const result: ChatItem[] = [];
@@ -276,21 +290,22 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             }
                             // It's a UserMessage
                             return (
-                                <ChatMessageBubble 
-                                    key={item.id}
-                                    message={item as UserMessage}
-                                    isCurrentUser={(item as UserMessage).senderId === currentUser.id}
-                                    onReply={() => {}}
-                                    onDelete={() => {}}
-                                    onDeleteForEveryone={() => {}}
-                                    onOpenLightbox={() => {}}
-                                    onScrollToMessage={() => {}}
-                                    highlighted={false}
-                                    highlightTerm={null}
-                                    isFirstInGroup={isFirstInGroup}
-                                    isLastInGroup={isLastInGroup}
-                                    teamPlayerCount={team.players.length}
-                                />
+                                <div key={item.id} ref={el => messageRefs.current.set(item.id, el)}>
+                                    <ChatMessageBubble 
+                                        message={item as UserMessage}
+                                        isCurrentUser={(item as UserMessage).senderId === currentUser.id}
+                                        onReply={setReplyingTo}
+                                        onDelete={() => {}}
+                                        onDeleteForEveryone={() => {}}
+                                        onOpenLightbox={() => {}}
+                                        onScrollToMessage={handleScrollToMessage}
+                                        highlighted={highlightedMessageId === item.id}
+                                        highlightTerm={null}
+                                        isFirstInGroup={isFirstInGroup}
+                                        isLastInGroup={isLastInGroup}
+                                        teamPlayerCount={team.players.length}
+                                    />
+                                </div>
                             );
                         })
                     )}
@@ -303,6 +318,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                     team={team}
                     currentUser={currentUser}
                     addNotification={addNotification}
+                    replyingTo={replyingTo as UserMessage | null}
+                    onCancelReply={() => setReplyingTo(null)}
                 />
             </div>
         </div>
