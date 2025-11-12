@@ -181,15 +181,21 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
     useEffect(() => {
         if (selectedTeam) {
             const updatedTeamData = userTeams.find(t => t.id === selectedTeam.id);
-            // Compare stringified objects to prevent re-renders from object reference changes
-            if (updatedTeamData && JSON.stringify(updatedTeamData) !== JSON.stringify(selectedTeam)) {
+            // Case 1: The selected team was deleted from the user's teams. Fall back to the list view.
+            if (!updatedTeamData) {
+                setSelectedTeam(null);
+            } 
+            // Case 2: The data for the selected team has changed. Update the state.
+            else if (JSON.stringify(updatedTeamData) !== JSON.stringify(selectedTeam)) {
                 setSelectedTeam(updatedTeamData);
             }
-        } else if (userTeams.length > 0) {
-            // If no team is selected but teams become available, select the first one.
+        } else if (isCreating && userTeams.length > 0) {
+            // This handles the case where the user goes from having 0 teams to having 1+ team
             setSelectedTeam(userTeams[0]);
+            setIsCreating(false);
         }
-    }, [userTeams, selectedTeam]);
+    }, [userTeams, selectedTeam, isCreating]);
+
 
     const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
         const currentUserAsPlayer = user.playerProfile || {

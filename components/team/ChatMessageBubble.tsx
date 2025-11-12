@@ -43,21 +43,45 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
     onClick, onContextMenu
 }) => {
     
+    const Avatar = () => (
+        <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden">
+            {message.senderProfilePicture ? (
+                <img src={message.senderProfilePicture} alt={message.senderName} className="w-full h-full object-cover" />
+            ) : (
+                <UserIcon className="w-5 h-5 text-gray-400 m-1.5" />
+            )}
+        </div>
+    );
+
     if (message.deleted) {
         return (
              <div 
-                className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group relative ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+                className={`flex items-center gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group relative ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
                 onClick={onClick}
                 onContextMenu={onContextMenu}
             >
-                {isSelected && <div className="absolute inset-0 bg-blue-500/30 rounded-lg pointer-events-none z-10"></div>}
-                 {!isCurrentUser && <div className="w-8 flex-shrink-0"></div>}
+                {isSelectionMode && !isCurrentUser && (
+                    <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
+                            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                        </div>
+                    </div>
+                )}
+
+                {!isCurrentUser && !isSelectionMode && <div className="w-8 flex-shrink-0"></div>}
                 <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
                     <p className="text-sm italic text-gray-500 flex items-center gap-2">
                         <BanIcon className="w-4 h-4 flex-shrink-0" />
                         <span>Este mensaje fue eliminado</span>
                     </p>
                 </div>
+                {isSelectionMode && isCurrentUser && (
+                    <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
+                            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                        </div>
+                    </div>
+                )}
                  {isCurrentUser && showContextMenu && (
                     <div className="relative">
                         <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
@@ -80,28 +104,24 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
         ? `rounded-l-2xl ${isFirstInGroup ? 'rounded-tr-2xl' : 'rounded-tr-md'} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-md'}`
         : `rounded-r-2xl ${isFirstInGroup ? 'rounded-tl-2xl' : 'rounded-tl-md'} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-md'}`;
         
-    const Avatar = () => (
-        <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden">
-            {message.senderProfilePicture ? (
-                <img src={message.senderProfilePicture} alt={message.senderName} className="w-full h-full object-cover" />
-            ) : (
-                <UserIcon className="w-5 h-5 text-gray-400 m-1.5" />
-            )}
-        </div>
-    );
-
     return (
         <div 
-            className={`flex items-end gap-2 group relative ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+            className={`flex ${isSelectionMode ? 'items-center' : 'items-end'} gap-2 group relative ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
             onClick={onClick}
             onContextMenu={onContextMenu}
         >
-            {isSelected && <div className="absolute inset-0 bg-blue-500/30 rounded-lg pointer-events-none z-10"></div>}
             {!isCurrentUser && (
-                <div className="w-8 flex-shrink-0">
-                    {isLastInGroup && <Avatar />}
+                <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center self-end">
+                    {isSelectionMode ? (
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all self-center ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
+                            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                        </div>
+                    ) : (
+                        isLastInGroup ? <Avatar /> : <div/>
+                    )}
                 </div>
             )}
+            
             <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`max-w-xs md:max-w-md relative shadow-none ${bubbleColor} ${bubbleClasses} ${isFileOnlyMessage ? 'p-2' : 'px-4 py-2'}`}>
                     {!isCurrentUser && isFirstInGroup && (
@@ -173,6 +193,14 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                     </div>
                 )}
             </div>
+
+            {isSelectionMode && isCurrentUser && (
+                <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
+                        {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                    </div>
+                </div>
+            )}
         </div>
     );
 });
