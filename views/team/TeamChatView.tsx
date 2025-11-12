@@ -152,7 +152,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-            // FIX: The 'error' object from a catch block is of type 'unknown' and cannot be passed directly to functions expecting a string. It's converted to a string for safe logging.
             console.error('Error al eliminar mensajes:', String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
@@ -237,21 +236,28 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     );
 
     const DeleteActionSheet: React.FC<{
+        isOpen: boolean;
         onCancel: () => void;
         onDeleteForMe: () => void;
         onDeleteForEveryone: () => void;
         showForEveryone: boolean;
-    }> = ({ onCancel, onDeleteForMe, onDeleteForEveryone, showForEveryone }) => (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60 animate-fade-in" onClick={onCancel}>
-            <div className="w-full bg-gray-700 rounded-t-2xl p-4 animate-slide-in-up" onClick={e => e.stopPropagation()}>
-                <div className="w-10 h-1 bg-gray-500 rounded-full mx-auto mb-4"></div>
-                <h3 className="font-bold text-lg mb-4">Eliminar {selectedMessages.size > 1 ? `${selectedMessages.size} mensajes` : 'mensaje'}?</h3>
+    }> = ({ isOpen, onCancel, onDeleteForMe, onDeleteForEveryone, showForEveryone }) => (
+        <div
+            className={`fixed inset-0 z-50 flex items-end bg-black/60 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            onClick={onCancel}
+        >
+            <div
+                className={`w-full bg-slate-800 rounded-t-2xl p-4 transition-transform duration-300 ease-out ${isOpen ? 'transform translate-y-0' : 'transform translate-y-full'}`}
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="w-10 h-1 bg-slate-600 rounded-full mx-auto mb-4"></div>
+                <h3 className="font-bold text-lg mb-4 text-slate-100">Eliminar {selectedMessages.size > 1 ? `${selectedMessages.size} mensajes` : 'mensaje'}?</h3>
                 <div className="space-y-2">
                     {showForEveryone && (
-                        <button onClick={onDeleteForEveryone} className="w-full text-left p-3 text-red-400 font-semibold rounded-lg hover:bg-gray-600">Eliminar para todos</button>
+                        <button onClick={() => onDeleteForEveryone()} className="w-full text-left p-3 text-red-500 font-semibold rounded-lg hover:bg-slate-700 transition-colors">Eliminar para todos</button>
                     )}
-                    <button onClick={onDeleteForMe} className="w-full text-left p-3 rounded-lg hover:bg-gray-600">Eliminar para mí</button>
-                    <button onClick={onCancel} className="w-full text-left p-3 font-semibold rounded-lg hover:bg-gray-600 mt-2">Cancelar</button>
+                    <button onClick={() => onDeleteForMe()} className="w-full text-left p-3 text-slate-200 font-semibold rounded-lg hover:bg-slate-700 transition-colors">Eliminar para mí</button>
+                    <button onClick={() => onCancel()} className="w-full text-left p-3 text-slate-200 font-semibold rounded-lg hover:bg-slate-700 mt-2">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -318,12 +324,13 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 <div ref={messagesEndRef} />
             </main>
 
-            {showDeleteModal && <DeleteActionSheet 
+            <DeleteActionSheet
+                isOpen={showDeleteModal}
                 onCancel={() => setShowDeleteModal(false)}
                 onDeleteForMe={handleConfirmDeleteForMe}
                 onDeleteForEveryone={handleConfirmDeleteForEveryone}
                 showForEveryone={canDeleteForEveryone}
-            />}
+            />
 
             {lightboxImage && <ImageLightbox images={[lightboxImage]} startIndex={0} onClose={() => setLightboxImage(null)} />}
 

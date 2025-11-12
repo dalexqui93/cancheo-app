@@ -107,7 +107,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
         
     return (
         <div 
-            className={`flex ${isSelectionMode ? 'items-center' : 'items-end'} gap-2 group relative ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+            className={`flex items-end gap-2 group relative ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
             onClick={onClick}
             onContextMenu={onContextMenu}
         >
