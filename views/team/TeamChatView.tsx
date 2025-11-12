@@ -289,7 +289,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-            // FIX: Explicitly convert error to string for consistent and safe logging.
             console.error("Error al eliminar mensajes:", String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
@@ -354,7 +353,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     );
 
     const SelectionHeader = () => (
-        <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/10 bg-blue-900/50 backdrop-blur-sm z-10 sticky top-0 animate-scale-in">
+        <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/10 bg-blue-900/50 backdrop-blur-sm z-10 sticky top-0">
              <div className="flex items-center gap-4">
                  <button onClick={handleCancelSelection} className="p-2 rounded-full text-white hover:bg-white/10">
                     <XIcon className="w-6 h-6" />

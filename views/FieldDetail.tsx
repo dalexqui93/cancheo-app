@@ -267,7 +267,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                 });
                 setSummary(JSON.parse(response.text));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
+                // FIX: Explicitly convert error to string for consistent and safe logging.
                 console.error("No se pudo generar el resumen de reseñas:", String(error));
                 setSummary(null);
             } finally {

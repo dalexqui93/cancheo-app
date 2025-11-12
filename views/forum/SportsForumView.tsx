@@ -19,7 +19,7 @@ const moderateContent = async (text: string): Promise<boolean> => {
         });
         return response.text.trim().toLowerCase() === 'true';
     } catch (error) {
-        // Fix: Explicitly convert error to string for consistent and safe logging.
+        // FIX: Explicitly convert error to string for consistent and safe logging.
         console.error("Error en la moderación de contenido:", String(error));
         return false; // Fail safe
     }
