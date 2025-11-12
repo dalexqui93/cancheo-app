@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useReducer, useMemo } from 'react';
-import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage } from '../../types';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo, useReducer } from 'react';
+import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import { UserIcon } from '../../components/icons/UserIcon';
@@ -216,10 +216,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 result.push({ type: 'date', id: `date-${messageDate}`, timestamp: message.timestamp, date: messageDate });
                 lastDate = messageDate;
             }
-            if (message.type === 'system') { // Corrected check
-                result.push(message as ChatItem);
+            if (message.type === 'system') {
+                result.push(message);
             } else {
-                 result.push({ type: 'user', ...(message as UserMessage) });
+                 result.push(message as UserMessage);
             }
         });
         return result;
@@ -259,32 +259,38 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             const prevItem = items[index - 1];
                             const nextItem = items[index + 1];
                             
-                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
-                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
+                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== (item as UserMessage).senderId);
+                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== (item as UserMessage).senderId);
                             
+                            if (item.type === 'date') {
+                                return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
+                            }
+                            if (item.type === 'system') {
+                                return (
+                                    <div key={item.id} className="text-center my-2">
+                                        <span className="bg-black/30 backdrop-blur-sm text-gray-200 text-xs font-semibold py-1 px-3 rounded-full shadow-md">
+                                            {(item as SystemMessage).text}
+                                        </span>
+                                    </div>
+                                );
+                            }
+                            // It's a UserMessage
                             return (
-                                <div key={item.id}>
-                                    {item.type === 'date' ? (
-                                        <div className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>
-                                    ) : item.type === 'system' ? (
-                                        <div className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>
-                                    ) : (
-                                        <ChatMessageBubble 
-                                            message={item}
-                                            isCurrentUser={item.senderId === currentUser.id}
-                                            onReply={() => {}}
-                                            onDelete={() => {}}
-                                            onDeleteForEveryone={() => {}}
-                                            onOpenLightbox={() => {}}
-                                            onScrollToMessage={() => {}}
-                                            highlighted={false}
-                                            highlightTerm={null}
-                                            isFirstInGroup={isFirstInGroup}
-                                            isLastInGroup={isLastInGroup}
-                                            teamPlayerCount={team.players.length}
-                                        />
-                                    )}
-                                </div>
+                                <ChatMessageBubble 
+                                    key={item.id}
+                                    message={item as UserMessage}
+                                    isCurrentUser={(item as UserMessage).senderId === currentUser.id}
+                                    onReply={() => {}}
+                                    onDelete={() => {}}
+                                    onDeleteForEveryone={() => {}}
+                                    onOpenLightbox={() => {}}
+                                    onScrollToMessage={() => {}}
+                                    highlighted={false}
+                                    highlightTerm={null}
+                                    isFirstInGroup={isFirstInGroup}
+                                    isLastInGroup={isLastInGroup}
+                                    teamPlayerCount={team.players.length}
+                                />
                             );
                         })
                     )}

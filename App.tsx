@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage } from './types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage } from './types';
 import { View } from './types';
 import Header from './components/Header';
 import Home from './views/Home';
@@ -49,7 +49,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -252,7 +252,7 @@ const App = () => {
                 parsedData.hourly = parsedData.hourly.map((h: any) => ({...h, time: new Date(h.time)}));
                 setWeatherData(parsedData);
             } else {
-                setWeatherError("No se pudo cargar el pronóstico del tiempo.");
+                setWeatherError("No se pudo cargar el clima.");
             }
         } finally {
             setIsWeatherLoading(false);
@@ -1261,8 +1261,7 @@ const App = () => {
         const newNotification = { ...notificationForRemovedPlayer, id: Date.now(), timestamp: new Date() };
         const updatedNotifications = [newNotification, ...(userToRemove.notifications || [])].slice(0, 50);
 
-// FIX: The system message object must match the 'SystemMessage' type, which requires a 'type' property.
-        const systemMessageData: Omit<ChatMessage, "id" | "timestamp"> = {
+        const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
             type: 'system',
             text: `${userToRemove.name} ha sido expulsado del equipo por el capitán.`,
         };
@@ -1309,8 +1308,7 @@ const App = () => {
         const captain = allUsers.find(u => u.id === team.captainId);
         const updatedCaptainNotifications = [newNotification, ...(captain?.notifications || [])].slice(0, 50);
 
-// FIX: The system message object must match the 'SystemMessage' type, which requires a 'type' property.
-        const systemMessageData: Omit<ChatMessage, "id" | "timestamp"> = {
+        const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
             type: 'system',
             text: `${user.name} ha abandonado el equipo.`,
         };
@@ -1426,8 +1424,7 @@ const App = () => {
         }
 
         // Enviar mensaje al chat del equipo
-// FIX: The system message object must match the 'SystemMessage' type, which requires a 'type' property.
-        const systemMessageData: Omit<ChatMessage, "id" | "timestamp"> = {
+        const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
             type: 'system',
             text: `${invitation.toUserName} se ha unido al equipo. ¡Bienvenido!`,
         };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // FIX: Import UserMessage type to correctly type mockMessages and resolve property access errors.
-import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage, ConfirmedBooking } from '../../types';
+import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage, ConfirmedBooking, SystemMessage } from '../../types';
 import RosterView from './RosterView';
 import TacticsView from './TacticsView';
 import ScheduleView from './ScheduleView';
@@ -254,8 +254,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
             const updatedPlayers = [...team.players, newPlayer];
             await onUpdateTeam(team.id, { players: updatedPlayers });
 
-// FIX: The system message object must match the 'SystemMessage' type, which requires a 'type' property.
-            const systemMessageData: Omit<ChatMessage, "id" | "timestamp"> = {
+            const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
                 type: 'system',
                 text: `${newPlayer.name} ha sido añadido al equipo por el capitán. ¡Bienvenido!`,
             };
