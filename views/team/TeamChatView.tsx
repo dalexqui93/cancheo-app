@@ -152,7 +152,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-            // FIX: Explicitly convert error to string for consistent and safe logging.
+            // FIX: The 'error' object is of type 'unknown' in a catch block and cannot be directly used in a template literal. It must be converted to a string.
             console.error(`Error al eliminar mensajes: ${String(error)}`);
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
@@ -302,6 +302,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                         onScrollToMessage={handleScrollToMessage}
                                         highlighted={highlightedMessageId === item.id}
                                         isSelected={selectedMessages.has(item.id)}
+                                        isSelectionMode={isSelectionMode}
                                         showContextMenu={!isSelectionMode}
                                         isFirstInGroup={isFirstInGroup}
                                         isLastInGroup={isLastInGroup}

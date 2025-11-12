@@ -28,6 +28,7 @@ interface ChatMessageBubbleProps {
     onScrollToMessage: (messageId: string) => void;
     highlighted: boolean;
     isSelected: boolean;
+    isSelectionMode: boolean;
     showContextMenu: boolean;
     isFirstInGroup: boolean;
     isLastInGroup: boolean;
@@ -38,7 +39,7 @@ interface ChatMessageBubbleProps {
 
 const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
     message, isCurrentUser, onReply, onDelete, onDeleteForEveryone, onOpenLightbox, onScrollToMessage,
-    highlighted, isSelected, showContextMenu, isFirstInGroup, isLastInGroup, teamPlayerCount,
+    highlighted, isSelected, isSelectionMode, showContextMenu, isFirstInGroup, isLastInGroup, teamPlayerCount,
     onClick, onContextMenu
 }) => {
     
@@ -107,7 +108,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                         <p className="text-xs font-bold mb-1 text-amber-300">{message.senderName}</p>
                     )}
                     {message.replyTo && (
-                        <button onClick={(e) => { e.stopPropagation(); if(message.replyTo?.messageId) onScrollToMessage(message.replyTo.messageId); }} className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30">
+                        <button onClick={(e) => { if (!isSelectionMode) { e.stopPropagation(); if(message.replyTo?.messageId) onScrollToMessage(message.replyTo.messageId); } }} className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30">
                             <p className="text-xs font-bold">{message.replyTo.senderName.split(' ')[0]}</p>
                             <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
                         </button>
@@ -115,9 +116,9 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                     {message.attachment && (
                         <div className={isFileOnlyMessage ? '' : 'my-2'}>
                             {message.attachment.mimeType.startsWith('image/') ? (
-                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); onOpenLightbox(message.attachment.dataUrl); }} />
+                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={(e) => { if (!isSelectionMode) { e.stopPropagation(); onOpenLightbox(message.attachment.dataUrl); } }} />
                             ) : (
-                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} onClick={e => e.stopPropagation()} className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/20 transition-colors">
+                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} onClick={e => { if (!isSelectionMode) { e.stopPropagation(); } }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/20 transition-colors">
                                     <div className="flex-shrink-0 w-12 h-12 bg-black/20 rounded-full flex items-center justify-center">
                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                     </div>
