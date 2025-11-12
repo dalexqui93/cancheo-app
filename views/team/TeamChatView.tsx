@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo, useReducer } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { XIcon } from '../../components/icons/XIcon';
@@ -17,9 +17,9 @@ import { SearchIcon } from '../../components/icons/SearchIcon';
 import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 import MessageInput from '../../components/team/MessageInput';
-
-// Interfaces y tipos específicos del componente
-// ... (se podrían mover a un archivo de tipos si se vuelven más complejos)
+import ConfirmationModal from '../../components/ConfirmationModal';
+// FIX: Import the missing PinIcon component.
+import { PinIcon } from '../../components/icons/PinIcon';
 
 interface TeamChatViewProps {
     team: Team;
@@ -35,12 +35,6 @@ const BanIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
-const FileIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    </svg>
-);
-
 const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: number; }> = ({ message, teamPlayerCount }) => {
   if (message.id.startsWith('temp-')) {
     return <ClockIcon className="w-4 h-4 text-gray-400" aria-label="Enviando" />;
@@ -52,8 +46,6 @@ const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: numbe
   return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
 };
 
-// ... (El resto de los componentes pequeños como MessageStatusIcon, BanIcon, etc.)
-
 const ChatMessageBubble: React.FC<{ 
     message: UserMessage, 
     isCurrentUser: boolean, 
@@ -63,31 +55,17 @@ const ChatMessageBubble: React.FC<{
     onOpenLightbox: (imageUrl: string) => void,
     onScrollToMessage: (messageId: string) => void,
     highlighted: boolean,
-    highlightTerm: string | null,
+    isSelected: boolean,
+    showContextMenu: boolean,
     isFirstInGroup: boolean,
     isLastInGroup: boolean,
     teamPlayerCount: number,
-}> = React.memo(({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone, onOpenLightbox, onScrollToMessage, highlighted, highlightTerm, isFirstInGroup, isLastInGroup, teamPlayerCount }) => {
-    // ... (Lógica de swipe y renderizado de la burbuja del mensaje)
-    const getHighlightedText = (text: string, highlight: string) => {
-        if (!highlight.trim()) return <span>{text}</span>;
-        const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
-        return (
-            <span>
-                {parts.map((part, i) =>
-                    part.toLowerCase() === highlight.toLowerCase() ? (
-                        <mark key={i} className="bg-amber-400 text-black rounded px-0.5">{part}</mark>
-                    ) : (
-                        part
-                    )
-                )}
-            </span>
-        );
-    };
-
+}> = React.memo(({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone, onOpenLightbox, onScrollToMessage, highlighted, isSelected, showContextMenu, isFirstInGroup, isLastInGroup, teamPlayerCount }) => {
+    
     if (message.deleted) {
         return (
-             <div className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}>
+             <div className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group relative ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}>
+                {isSelected && <div className="absolute inset-0 bg-blue-500/30 rounded-lg pointer-events-none z-10"></div>}
                  {!isCurrentUser && <div className="w-8 flex-shrink-0"></div>}
                 <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
                     <p className="text-sm italic text-gray-500 flex items-center gap-2">
@@ -95,7 +73,7 @@ const ChatMessageBubble: React.FC<{
                         <span>Este mensaje fue eliminado</span>
                     </p>
                 </div>
-                 {isCurrentUser && (
+                 {isCurrentUser && showContextMenu && (
                     <div className="relative">
                         <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                             <DotsVerticalIcon className="w-4 h-4" />
@@ -128,7 +106,8 @@ const ChatMessageBubble: React.FC<{
     );
 
     return (
-        <div className={`flex items-end gap-2 group ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}>
+        <div className={`flex items-end gap-2 group relative ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}>
+            {isSelected && <div className="absolute inset-0 bg-blue-500/30 rounded-lg pointer-events-none z-10"></div>}
             {!isCurrentUser && (
                 <div className="w-8 flex-shrink-0">
                     {isLastInGroup && <Avatar />}
@@ -163,33 +142,31 @@ const ChatMessageBubble: React.FC<{
                         </div>
                     )}
                     {message.text && (
-                        <p className="text-sm break-words">
-                            {highlightTerm ? getHighlightedText(message.text, highlightTerm) : message.text}
-                        </p>
+                        <p className="text-sm break-words">{message.text}</p>
                     )}
                     <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
                         <span>{new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
                     </div>
                 </div>
-                <div className="relative">
-                    <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                        <DotsVerticalIcon className="w-4 h-4" />
-                    </button>
-                    <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
-                        <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
-                        {isCurrentUser ? (
-                            <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
-                        ) : (
+                {showContextMenu && (
+                    <div className="relative">
+                        <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                            <DotsVerticalIcon className="w-4 h-4" />
+                        </button>
+                        <div className="absolute bottom-full right-0 mb-1 w-48 bg-gray-600 rounded-md shadow-lg py-1 z-20 hidden group-focus-within:block border border-gray-500">
+                            <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
+                            {isCurrentUser && (
+                                <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
+                            )}
                             <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
-                        )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
 });
-
 
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -197,8 +174,23 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [isInfoView, setIsInfoView] = useState(false);
     const [replyingTo, setReplyingTo] = useState<UserMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const [deletedForMeIds, setDeletedForMeIds] = useState<Set<string>>(new Set());
+    
+    // State for message selection
+    const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
+    const isSelectionMode = selectedMessages.size > 0;
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
     const messageRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const localStorageKey = `chat-deleted-for-${currentUser.id}-${team.id}`;
+
+    useEffect(() => {
+        const storedIds = localStorage.getItem(localStorageKey);
+        if (storedIds) {
+            setDeletedForMeIds(new Set(JSON.parse(storedIds)));
+        }
+    }, [currentUser.id, team.id, localStorageKey]);
 
     useEffect(() => {
         setIsLoading(true);
@@ -208,6 +200,25 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         });
         return () => unsubscribe();
     }, [team.id]);
+    
+    const handleDeleteForMe = useCallback((messageId: string) => {
+        setDeletedForMeIds(prev => {
+            const newSet = new Set(prev);
+            newSet.add(messageId);
+            localStorage.setItem(localStorageKey, JSON.stringify(Array.from(newSet)));
+            return newSet;
+        });
+    }, [localStorageKey]);
+
+    const handleClearChat = useCallback(() => {
+        setDeletedForMeIds(prev => {
+            const newSet = new Set(prev);
+            messages.forEach(msg => newSet.add(msg.id));
+            localStorage.setItem(localStorageKey, JSON.stringify(Array.from(newSet)));
+            return newSet;
+        });
+        addNotification({type: 'info', title: 'Chat Vaciado', message: 'Los mensajes han sido eliminados solo para ti.'});
+    }, [messages, localStorageKey, addNotification]);
 
     const handleScrollToMessage = useCallback((messageId: string) => {
         const element = messageRefs.current.get(messageId);
@@ -219,12 +230,89 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             }, 1500); // Highlight for 1.5 seconds
         }
     }, []);
+
+    // Selection mode logic
+    const toggleSelection = (messageId: string) => {
+        setSelectedMessages(prev => {
+            const newSelection = new Set(prev);
+            if (newSelection.has(messageId)) {
+                newSelection.delete(messageId);
+            } else {
+                newSelection.add(messageId);
+            }
+            return newSelection;
+        });
+    };
+
+    const handleLongPress = (e: React.MouseEvent, message: ChatItem) => {
+        if (message.type !== 'user') return;
+        e.preventDefault();
+        toggleSelection(message.id);
+    };
+
+    const handleTap = (message: ChatItem) => {
+        if (isSelectionMode && message.type === 'user') {
+            toggleSelection(message.id);
+        }
+    };
     
+    const handleCancelSelection = () => {
+        setSelectedMessages(new Set());
+    };
+
+    const handleReplySelected = () => {
+        const messageId = Array.from(selectedMessages)[0];
+        const messageToReply = messages.find(m => m.id === messageId) as UserMessage;
+        if (messageToReply) {
+            setReplyingTo(messageToReply);
+        }
+        handleCancelSelection();
+    };
+
+    const handlePinSelected = () => {
+        addNotification({type: 'info', title: 'Próximamente', message: 'La función de fijar mensajes estará disponible pronto.'});
+        handleCancelSelection();
+    };
+
+    const handleDeleteSelected = () => {
+        setShowDeleteModal(true);
+    };
+    
+    const handleConfirmDeleteForMe = () => {
+        selectedMessages.forEach(id => handleDeleteForMe(id));
+        setShowDeleteModal(false);
+        handleCancelSelection();
+    };
+
+    const handleConfirmDeleteForEveryone = async () => {
+        try {
+            const deletePromises = Array.from(selectedMessages).map(id => db.deleteChatMessage(team.id, id));
+            await Promise.all(deletePromises);
+            addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
+        } catch (error) {
+// FIX: Explicitly convert 'error' to string for logging, as 'error' is of type 'unknown' in a catch block.
+            console.error("Error al eliminar mensajes:", String(error));
+            addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
+        } finally {
+            setShowDeleteModal(false);
+            handleCancelSelection();
+        }
+    };
+    
+    const canDeleteForEveryone = useMemo(() => {
+        if (!isSelectionMode) return false;
+        return Array.from(selectedMessages).every(id => {
+            const msg = messages.find(m => m.id === id);
+            return msg && msg.type === 'user' && msg.senderId === currentUser.id && !msg.deleted;
+        });
+    }, [selectedMessages, messages, currentUser.id, isSelectionMode]);
+
      const items = useMemo((): ChatItem[] => {
+        const filteredMessages = messages.filter(msg => !deletedForMeIds.has(msg.id));
         const result: ChatItem[] = [];
         let lastDate: string | null = null;
         
-        messages.forEach(message => {
+        filteredMessages.forEach(message => {
             const messageDate = new Date(message.timestamp).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
             if (messageDate !== lastDate) {
                 result.push({ type: 'date', id: `date-${messageDate}`, timestamp: message.timestamp, date: messageDate });
@@ -237,32 +325,79 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             }
         });
         return result;
-    }, [messages]);
+    }, [messages, deletedForMeIds]);
 
     useLayoutEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-    }, [items]);
+        if (!isSelectionMode) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }
+    }, [items, isSelectionMode]);
 
     if (isInfoView) {
-        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={() => {}} />;
+        return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={handleClearChat} />;
     }
+
+    const Header = () => (
+        <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-10 sticky top-0">
+             <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
+                <ChevronLeftIcon className="w-6 h-6" />
+            </button>
+            <button onClick={() => setIsInfoView(true)} className="flex items-center flex-grow min-w-0">
+                <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
+                    {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                </div>
+                <div className="text-left min-w-0">
+                    <h2 className="font-bold text-lg truncate text-white">{team.name}</h2>
+                    <p className="text-xs text-gray-400">{team.players.length} miembros</p>
+                </div>
+            </button>
+        </header>
+    );
+
+    const SelectionHeader = () => (
+        <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/10 bg-blue-900/50 backdrop-blur-sm z-10 sticky top-0 animate-fade-in">
+             <div className="flex items-center gap-4">
+                 <button onClick={handleCancelSelection} className="p-2 rounded-full text-white hover:bg-white/10">
+                    <XIcon className="w-6 h-6" />
+                </button>
+                <span className="font-bold text-lg">{selectedMessages.size}</span>
+             </div>
+             <div className="flex items-center gap-2">
+                {selectedMessages.size === 1 && (
+                    <button onClick={handleReplySelected} className="p-2 rounded-full text-white hover:bg-white/10"><ArrowUturnLeftIcon className="w-6 h-6" /></button>
+                )}
+                <button onClick={handleDeleteSelected} className="p-2 rounded-full text-white hover:bg-white/10"><TrashIcon className="w-6 h-6" /></button>
+                {selectedMessages.size === 1 && (
+                    <button onClick={handlePinSelected} className="p-2 rounded-full text-white hover:bg-white/10"><PinIcon className="w-6 h-6" /></button>
+                )}
+             </div>
+        </header>
+    );
+
+    const DeleteActionSheet: React.FC<{
+        onCancel: () => void;
+        onDeleteForMe: () => void;
+        onDeleteForEveryone: () => void;
+        showForEveryone: boolean;
+    }> = ({ onCancel, onDeleteForMe, onDeleteForEveryone, showForEveryone }) => (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 animate-fade-in" onClick={onCancel}>
+            <div className="w-full bg-gray-700 rounded-t-2xl p-4 animate-slide-in-up" onClick={e => e.stopPropagation()}>
+                <div className="w-10 h-1 bg-gray-500 rounded-full mx-auto mb-4"></div>
+                <h3 className="font-bold text-lg mb-4">Eliminar {selectedMessages.size > 1 ? `${selectedMessages.size} mensajes` : 'mensaje'}?</h3>
+                <div className="space-y-2">
+                    {showForEveryone && (
+                        <button onClick={onDeleteForEveryone} className="w-full text-left p-3 text-red-400 font-semibold rounded-lg hover:bg-gray-600">Eliminar para todos</button>
+                    )}
+                    <button onClick={onDeleteForMe} className="w-full text-left p-3 rounded-lg hover:bg-gray-600">Eliminar para mí</button>
+                    <button onClick={onCancel} className="w-full text-left p-3 font-semibold rounded-lg hover:bg-gray-600 mt-2">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen">
-            <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-10 sticky top-0">
-                 <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
-                    <ChevronLeftIcon className="w-6 h-6" />
-                </button>
-                <button onClick={() => setIsInfoView(true)} className="flex items-center flex-grow min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
-                        {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
-                    </div>
-                    <div className="text-left min-w-0">
-                        <h2 className="font-bold text-lg truncate text-white">{team.name}</h2>
-                        <p className="text-xs text-gray-400">{team.players.length} miembros</p>
-                    </div>
-                </button>
-            </header>
+            {isSelectionMode ? <SelectionHeader /> : <Header />}
             
             <main className="relative p-4 pb-32">
                  <div className="flex flex-col gap-1">
@@ -272,9 +407,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                         items.map((item, index) => {
                             const prevItem = items[index - 1];
                             const nextItem = items[index + 1];
+                            const isUserMessage = item.type === 'user';
                             
-                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== (item as UserMessage).senderId);
-                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== (item as UserMessage).senderId);
+                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (isUserMessage && prevItem.senderId !== (item as UserMessage).senderId);
+                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (isUserMessage && nextItem.senderId !== (item as UserMessage).senderId);
                             
                             if (item.type === 'date') {
                                 return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
@@ -290,17 +426,23 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                             }
                             // It's a UserMessage
                             return (
-                                <div key={item.id} ref={el => messageRefs.current.set(item.id, el)}>
+                                <div 
+                                    key={item.id} 
+                                    ref={el => messageRefs.current.set(item.id, el)}
+                                    onClick={() => handleTap(item)}
+                                    onContextMenu={(e) => handleLongPress(e, item)}
+                                >
                                     <ChatMessageBubble 
                                         message={item as UserMessage}
                                         isCurrentUser={(item as UserMessage).senderId === currentUser.id}
                                         onReply={setReplyingTo}
-                                        onDelete={() => {}}
+                                        onDelete={handleDeleteForMe}
                                         onDeleteForEveryone={() => {}}
                                         onOpenLightbox={() => {}}
                                         onScrollToMessage={handleScrollToMessage}
                                         highlighted={highlightedMessageId === item.id}
-                                        highlightTerm={null}
+                                        isSelected={selectedMessages.has(item.id)}
+                                        showContextMenu={!isSelectionMode}
                                         isFirstInGroup={isFirstInGroup}
                                         isLastInGroup={isLastInGroup}
                                         teamPlayerCount={team.players.length}
@@ -312,6 +454,13 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </div>
                 <div ref={messagesEndRef} />
             </main>
+
+            {showDeleteModal && <DeleteActionSheet 
+                onCancel={() => setShowDeleteModal(false)}
+                onDeleteForMe={handleConfirmDeleteForMe}
+                onDeleteForEveryone={handleConfirmDeleteForEveryone}
+                showForEveryone={canDeleteForEveryone}
+            />}
 
             <div className="fixed bottom-0 left-0 right-0 z-20">
                 <MessageInput 

@@ -89,6 +89,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             const prompt = `Resume esta conversación de un foro de fútbol. Identifica los principales puntos de debate, las opiniones más comunes y cualquier conclusión a la que lleguen los participantes. La conversación es:\n\n${commentsText}`;
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+            // FIX: Access the 'text' property directly instead of calling it as a function.
             setSummary(response.text);
         } catch (error) {
             // FIX: Explicitly convert error to string for logging, as 'error' is of type 'unknown' in a catch block.
