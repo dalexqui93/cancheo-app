@@ -68,6 +68,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
     const SUMMARY_THRESHOLD = 3;
 
+    const visibleComments = post.comments.filter(comment => !comment.isFlagged || comment.authorId === currentUser.id);
+
     const handleCommentSubmit = () => {
         if (commentText.trim()) {
             onAddComment(post.id, commentText);
@@ -90,7 +92,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
             setSummary(response.text);
         } catch (error) {
-            // FIX: Explicitly convert error to string for consistent and safe logging.
             console.error("Error al generar resumen:", String(error));
             setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
         } finally {
@@ -171,7 +172,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                         </button>
                     )}
                     <button onClick={() => setShowComments(!showComments)} className="text-sm font-semibold text-gray-500 dark:text-gray-400 hover:underline">
-                        {post.comments.length} {post.comments.length === 1 ? 'comentario' : 'comentarios'}
+                        {visibleComments.length} {visibleComments.length === 1 ? 'comentario' : 'comentarios'}
                     </button>
                 </div>
             </div>
@@ -213,7 +214,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             {/* Comments Section */}
             {showComments && (
                 <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-slate-50 dark:bg-gray-800/50">
-                    {post.comments.map(comment => (
+                    {visibleComments.map(comment => (
                         <div key={comment.id} className="flex items-start gap-3">
                              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {comment.authorProfilePicture ? <img src={comment.authorProfilePicture} alt={comment.authorName} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-slate-500 dark:text-gray-400"/>}

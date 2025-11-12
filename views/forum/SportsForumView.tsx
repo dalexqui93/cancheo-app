@@ -10,16 +10,33 @@ import * as db from '../../database';
 import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 
 
-const moderateContent = async (text: string): Promise<boolean> => {
+const moderateContent = async (text: string, imageBase64: string | null = null): Promise<boolean> => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+        const parts: any[] = [{
+            text: `Analiza el siguiente contenido (texto y/o imagen) y determina si es inapropiado para un foro deportivo. Categorías de contenido inapropiado a verificar: mensajes ofensivos o de odio, contenido sexual (explícito o sugerente), publicidad no deseada o venta de productos, violencia gráfica. Responde únicamente con 'true' si el contenido es inapropiado, o 'false' si es seguro. Texto: "${text}"`
+        }];
+
+        if (imageBase64) {
+            const base64Data = imageBase64.split(',')[1];
+            if (base64Data) {
+                parts.push({
+                    inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: base64Data,
+                    },
+                });
+            }
+        }
+        
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Analiza el siguiente texto por toxicidad, lenguaje de odio, spam, o contenido extremadamente inapropiado. Responde únicamente con 'true' si es inapropiado, o 'false' si es seguro. Texto: "${text}"`
+            contents: { parts: parts },
         });
+
         return response.text.trim().toLowerCase() === 'true';
     } catch (error) {
-        // FIX: Explicitly convert error to string for consistent and safe logging.
         console.error("Error en la moderación de contenido:", String(error));
         return false; // Fail safe
     }
@@ -52,7 +69,7 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
 
 
     const handleCreatePost = async (content: string, image: string | null, tags: string[]) => {
-        const isFlagged = await moderateContent(content);
+        const isFlagged = await moderateContent(content, image);
         const newPostData = {
             authorId: user.id,
             authorName: user.name,
@@ -109,9 +126,12 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
 
 
     const filteredPosts = useMemo(() => {
-        if (activeFilter === 'Todos') return posts;
-        if (activeFilter === 'Mis Publicaciones') return posts.filter(p => p.authorId === user.id);
-        return posts.filter(p => p.tags?.includes(activeFilter));
+        // Show flagged posts only to their author
+        const visiblePosts = posts.filter(p => !p.isFlagged || p.authorId === user.id);
+
+        if (activeFilter === 'Todos') return visiblePosts;
+        if (activeFilter === 'Mis Publicaciones') return visiblePosts.filter(p => p.authorId === user.id);
+        return visiblePosts.filter(p => p.tags?.includes(activeFilter));
     }, [posts, activeFilter, user.id]);
 
     return (

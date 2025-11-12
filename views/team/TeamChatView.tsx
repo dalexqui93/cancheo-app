@@ -152,6 +152,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
+            // FIX: Explicitly convert `error` to string for consistent and safe logging to fix TypeScript error where `error` is of type `unknown`.
             console.error('Error al eliminar mensajes:', String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
