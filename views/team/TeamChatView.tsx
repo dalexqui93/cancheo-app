@@ -18,7 +18,6 @@ import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 import MessageInput from '../../components/team/MessageInput';
 import ConfirmationModal from '../../components/ConfirmationModal';
-// FIX: Import the missing PinIcon component.
 import { PinIcon } from '../../components/icons/PinIcon';
 
 interface TeamChatViewProps {
@@ -290,7 +289,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-// FIX: Explicitly convert 'error' to string for logging, as 'error' is of type 'unknown' in a catch block.
+            // FIX: The 'error' object is of type 'unknown' and cannot be passed directly to 'console.error'. It must be converted to a string.
             console.error("Error al eliminar mensajes:", String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
