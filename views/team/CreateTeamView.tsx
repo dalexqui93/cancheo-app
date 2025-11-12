@@ -77,7 +77,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
             // The parent component handles success notification and state change
         } catch (error) {
             // The parent component handles error notification
-            console.error("Team creation failed", error);
+            console.error("Team creation failed:", String(error));
         } finally {
             setIsCreating(false);
         }
