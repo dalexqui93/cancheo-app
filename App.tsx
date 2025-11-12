@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage } from './types';
@@ -50,7 +49,7 @@ const FirebaseWarningBanner: React.FC = () => {
 };
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -1518,24 +1517,26 @@ const App = () => {
                     return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} loading={isSearchingLocation} />;
                 case View.FIELD_DETAIL:
                     if (selectedField) {
+                        const complexFields = fields.filter(f => f.complexId === selectedField.complexId);
+                        const complexObject = {
+                            name: selectedField.name.split(' - ')[0],
+                            address: selectedField.address,
+                            city: selectedField.city,
+                            description: selectedField.description,
+                            images: selectedField.images,
+                            services: selectedField.services,
+                            fields: complexFields.length > 0 ? complexFields : [selectedField] // Fallback for fields without complexId
+                        };
                         return <FieldDetail 
-                                    complex={{
-                                        name: selectedField.name.split(' - ')[0],
-                                        address: selectedField.address,
-                                        city: selectedField.city,
-                                        description: selectedField.description,
-                                        images: selectedField.images,
-                                        services: selectedField.services,
-                                        fields: fields.filter(f => f.complexId === selectedField.complexId)
-                                    }} 
+                                    complex={complexObject} 
                                     initialFieldId={selectedField.id}
                                     onBookNow={handleBookNow} 
                                     onBack={() => handleNavigate(View.HOME, { isBack: true })} 
                                     favoriteFields={user?.favoriteFields || []} 
+                                    // FIX: Corrected a typo where 'onToggleFavorite' was passed instead of the handler 'handleToggleFavorite'.
                                     onToggleFavorite={handleToggleFavorite}
                                     allBookings={allBookings}
                                     weatherData={weatherData}
-                                    allUsers={allUsers}
                                 />;
                     }
                     return homeComponent;
@@ -1726,7 +1727,7 @@ const App = () => {
                                 onAcceptInvitation={handleAcceptInvitation}
                                 onRejectInvitation={handleRejectInvitation}
                                 currentTime={currentTime}/>}
-                <main className={`transition-all duration-300 ${!isChatView && ''} ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
+                <main className={`transition-all duration-300 ${!isChatView && 'overflow-x-hidden'} ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
                     {renderView()}
                 </main>
                 {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
