@@ -6,6 +6,7 @@ import { ClockIcon } from '../icons/ClockIcon';
 import { CheckIcon } from '../icons/CheckIcon';
 import { DoubleCheckIcon } from '../icons/DoubleCheckIcon';
 import { BanIcon } from '../icons/BanIcon';
+import { ArrowUturnLeftIcon } from '../icons/ArrowUturnLeftIcon';
 
 const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: number; }> = ({ message, teamPlayerCount }) => {
   if (message.id.startsWith('temp-')) {
@@ -111,7 +112,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
             onContextMenu={onContextMenu}
         >
             {!isCurrentUser && (
-                <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center self-end">
+                <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
                     {isSelectionMode ? (
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all self-center ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
                             {isSelected && <CheckIcon className="w-3 h-3 text-white" />}

@@ -153,7 +153,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
             // FIX: The 'error' object from a catch block is of type 'unknown' and cannot be passed directly to functions expecting a string. It's converted to a string for safe logging.
-            // FIX: The 'error' object from a catch block is of type 'unknown' and cannot be passed directly to functions expecting a string. It's converted to a string for safe logging.
             console.error('Error al eliminar mensajes:', String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
