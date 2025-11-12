@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useReducer, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { XIcon } from '../../components/icons/XIcon';
@@ -14,9 +14,7 @@ import { DoubleCheckIcon } from '../../components/icons/DoubleCheckIcon';
 import { TrashIcon } from '../../components/icons/TrashIcon';
 import ImageLightbox from '../../components/ImageLightbox';
 import { SearchIcon } from '../../components/icons/SearchIcon';
-import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import MessageInput from '../../components/team/MessageInput';
 
 // Interfaces y tipos específicos del componente
@@ -33,12 +31,6 @@ interface TeamChatViewProps {
 const BanIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-    </svg>
-);
-
-const FileIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
     </svg>
 );
 
@@ -193,21 +185,18 @@ const ChatMessageBubble: React.FC<{
 
 
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
-    // ... (toda la lógica del chat, ahora más limpia)
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isInfoView, setIsInfoView] = useState(false);
     
-    // Virtualization
-    const parentRef = useRef<HTMLDivElement>(null);
-    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+    // Prevent pull-to-refresh on mobile
     useEffect(() => {
-        const scrollContainer = parentRef.current;
+        const scrollContainer = scrollContainerRef.current;
         if (!scrollContainer) return;
 
         let startY = 0;
-
         const handleTouchStart = (e: TouchEvent) => {
             if (scrollContainer.scrollTop === 0) {
                 startY = e.touches[0].clientY;
@@ -217,7 +206,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         const handleTouchMove = (e: TouchEvent) => {
             const currentY = e.touches[0].clientY;
             if (scrollContainer.scrollTop === 0 && currentY > startY) {
-                // This is a pull-to-refresh gesture, prevent it.
                 e.preventDefault();
             }
         };
@@ -237,15 +225,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             setMessages(fetchedMessages);
             setIsLoading(false);
         });
-
-        // Simulación de "escribiendo..."
-        const typingInterval = setInterval(() => {
-            // ... (logica de simulación)
-        }, 3000);
         
         return () => {
             unsubscribe();
-            clearInterval(typingInterval);
         };
     }, [team.id]);
     
@@ -259,7 +241,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 result.push({ type: 'date', id: `date-${messageDate}`, timestamp: message.timestamp, date: messageDate });
                 lastDate = messageDate;
             }
-            if (message.senderId === 'system') {
+            if (message.type === 'system') {
                 result.push({ type: 'system', ...message });
             } else {
                  result.push({ type: 'user', ...message });
@@ -268,32 +250,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         return result;
     }, [messages]);
 
-    const rowVirtualizer = useVirtualizer({
-        count: items.length,
-        getScrollElement: () => parentRef.current,
-        estimateSize: () => 100,
-        overscan: 10,
-    });
-    
-     useEffect(() => {
-        const totalSize = rowVirtualizer.getTotalSize();
-        const parent = parentRef.current;
-        if (parent && parent.scrollHeight - parent.scrollTop - parent.clientHeight < 400) {
-            rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+    useLayoutEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
         }
-    }, [items.length, rowVirtualizer]);
+    }, [items]);
     
-    const handleScroll = () => {
-        if (!parentRef.current) return;
-        const { scrollHeight, scrollTop, clientHeight } = parentRef.current;
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 200;
-        setShowScrollToBottom(!isAtBottom);
-    };
-
-    const scrollToBottom = () => {
-        rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end', behavior: 'smooth' });
-    };
-
     if (isInfoView) {
         return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={() => {}} />;
     }
@@ -315,57 +277,44 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 </button>
             </header>
             
-            <main ref={parentRef} onScroll={handleScroll} className="flex-grow overflow-y-auto relative">
-                 <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+            <main ref={scrollContainerRef} className="flex-grow overflow-y-auto">
+                 <div className="p-4">
                     {isLoading && items.length === 0 ? (
-                        <div className="absolute inset-0 flex justify-center items-center"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
+                        <div className="flex justify-center items-center h-full"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
                     ) : (
-                        rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                            const item = items[virtualItem.index];
-                            const prevItem = items[virtualItem.index - 1];
-                            const nextItem = items[virtualItem.index + 1];
+                        items.map((item, index) => {
+                            const prevItem = items[index - 1];
+                            const nextItem = items[index + 1];
                             
                             const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
                             const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
                             
+                            if (item.type === 'date') {
+                                return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
+                            }
+                            if (item.type === 'system') {
+                                return <div key={item.id} className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>;
+                            }
                             return (
-                                <div
+                                <ChatMessageBubble 
                                     key={item.id}
-                                    ref={rowVirtualizer.measureElement}
-                                    data-index={virtualItem.index}
-                                    className="absolute top-0 left-0 w-full px-4"
-                                    style={{ transform: `translateY(${virtualItem.start}px)` }}
-                                >
-                                    {item.type === 'date' ? (
-                                        <div className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>
-                                    ) : item.type === 'system' ? (
-                                        <div className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>
-                                    ) : (
-                                        <ChatMessageBubble 
-                                            message={item}
-                                            isCurrentUser={item.senderId === currentUser.id}
-                                            onReply={() => {}}
-                                            onDelete={() => {}}
-                                            onDeleteForEveryone={() => {}}
-                                            onOpenLightbox={() => {}}
-                                            onScrollToMessage={() => {}}
-                                            highlighted={false}
-                                            highlightTerm={null}
-                                            isFirstInGroup={isFirstInGroup}
-                                            isLastInGroup={isLastInGroup}
-                                            teamPlayerCount={team.players.length}
-                                        />
-                                    )}
-                                </div>
+                                    message={item}
+                                    isCurrentUser={item.senderId === currentUser.id}
+                                    onReply={() => {}}
+                                    onDelete={() => {}}
+                                    onDeleteForEveryone={() => {}}
+                                    onOpenLightbox={() => {}}
+                                    onScrollToMessage={() => {}}
+                                    highlighted={false}
+                                    highlightTerm={null}
+                                    isFirstInGroup={isFirstInGroup}
+                                    isLastInGroup={isLastInGroup}
+                                    teamPlayerCount={team.players.length}
+                                />
                             );
                         })
                     )}
                 </div>
-                 {showScrollToBottom && (
-                    <button onClick={scrollToBottom} className="absolute bottom-4 right-6 w-10 h-10 bg-gray-700/80 rounded-full flex items-center justify-center text-white shadow-lg animate-fade-in">
-                        <ChevronDownIcon className="w-6 h-6" />
-                    </button>
-                )}
             </main>
 
             <MessageInput 
