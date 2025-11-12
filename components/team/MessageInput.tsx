@@ -103,22 +103,24 @@ const MessageInput: React.FC<MessageInputProps> = ({ team, currentUser, addNotif
 
     const handleSendMessage = async (audioAttachment?: { fileName: string; mimeType: string; dataUrl: string; }) => {
         const messageAttachment = audioAttachment || state.attachment;
-        if (state.inputText.trim() === '' && !messageAttachment) return;
-        
-        const messageData: Partial<ChatMessage> = {
+        const trimmedText = state.inputText.trim();
+        if (trimmedText === '' && !messageAttachment) return;
+    
+        const messageData = {
+            type: 'user' as const,
             senderId: currentUser.id,
             senderName: currentUser.name,
-            senderProfilePicture: currentUser.profilePicture,
-            text: state.inputText,
-            replyTo: replyingTo ? { messageId: replyingTo.id, senderName: replyingTo.senderName, text: replyingTo.text } : undefined,
-            attachment: messageAttachment ? { ...messageAttachment } : undefined,
+            text: trimmedText,
+            ...(currentUser.profilePicture && { senderProfilePicture: currentUser.profilePicture }),
+            ...(replyingTo && { replyTo: { messageId: replyingTo.id, senderName: replyingTo.senderName, text: replyingTo.text } }),
+            ...(messageAttachment && { attachment: { ...messageAttachment } }),
         };
 
         dispatch({ type: 'RESET' });
         onCancelReply();
         
         try {
-            await db.addChatMessage(team.id, messageData as Omit<ChatMessage, 'id' | 'timestamp'>);
+            await db.addChatMessage(team.id, messageData);
         } catch (error) {
             console.error("Error al enviar el mensaje:", String(error));
             addNotification({ type: 'error', title: 'Error de envío', message: 'No se pudo enviar tu mensaje.' });
