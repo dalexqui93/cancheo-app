@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useReducer, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
 import { XIcon } from '../../components/icons/XIcon';
@@ -15,8 +14,12 @@ import { DoubleCheckIcon } from '../../components/icons/DoubleCheckIcon';
 import { TrashIcon } from '../../components/icons/TrashIcon';
 import ImageLightbox from '../../components/ImageLightbox';
 import { SearchIcon } from '../../components/icons/SearchIcon';
+import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
 import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 import MessageInput from '../../components/team/MessageInput';
+
+// Interfaces y tipos específicos del componente
+// ... (se podrían mover a un archivo de tipos si se vuelven más complejos)
 
 interface TeamChatViewProps {
     team: Team;
@@ -32,6 +35,12 @@ const BanIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
+const FileIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+);
+
 const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: number; }> = ({ message, teamPlayerCount }) => {
   if (message.id.startsWith('temp-')) {
     return <ClockIcon className="w-4 h-4 text-gray-400" aria-label="Enviando" />;
@@ -42,6 +51,8 @@ const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: numbe
   }
   return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
 };
+
+// ... (El resto de los componentes pequeños como MessageStatusIcon, BanIcon, etc.)
 
 const ChatMessageBubble: React.FC<{ 
     message: UserMessage, 
@@ -57,7 +68,7 @@ const ChatMessageBubble: React.FC<{
     isLastInGroup: boolean,
     teamPlayerCount: number,
 }> = React.memo(({ message, isCurrentUser, onReply, onDelete, onDeleteForEveryone, onOpenLightbox, onScrollToMessage, highlighted, highlightTerm, isFirstInGroup, isLastInGroup, teamPlayerCount }) => {
-    
+    // ... (Lógica de swipe y renderizado de la burbuja del mensaje)
     const getHighlightedText = (text: string, highlight: string) => {
         if (!highlight.trim()) return <span>{text}</span>;
         const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
@@ -179,17 +190,12 @@ const ChatMessageBubble: React.FC<{
     );
 });
 
+
 const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, onUpdateTeam, addNotification }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isInfoView, setIsInfoView] = useState(false);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
-
-    useLayoutEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-    }, [messages]);
+    const parentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setIsLoading(true);
@@ -197,10 +203,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             setMessages(fetchedMessages);
             setIsLoading(false);
         });
-        
-        return () => {
-            unsubscribe();
-        };
+        return () => unsubscribe();
     }, [team.id]);
     
      const items = useMemo((): ChatItem[] => {
@@ -213,14 +216,20 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 result.push({ type: 'date', id: `date-${messageDate}`, timestamp: message.timestamp, date: messageDate });
                 lastDate = messageDate;
             }
-            if (message.type === 'system') {
-                result.push(message);
+            if (message.type === 'system') { // Corrected check
+                result.push(message as ChatItem);
             } else {
-                 result.push(message as UserMessage);
+                 result.push({ type: 'user', ...(message as UserMessage) });
             }
         });
         return result;
     }, [messages]);
+
+    useLayoutEffect(() => {
+        if (parentRef.current) {
+            parentRef.current.scrollTop = parentRef.current.scrollHeight;
+        }
+    }, [items]);
 
     if (isInfoView) {
         return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={() => {}} />;
@@ -244,31 +253,30 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             </header>
             
             <main
-                ref={chatContainerRef}
-                className="flex-grow overflow-y-auto"
+                ref={parentRef}
+                className="flex-grow overflow-y-auto relative p-4"
                 style={{ overscrollBehaviorY: 'contain' }}
             >
-                {isLoading && items.length === 0 ? (
-                    <div className="flex justify-center items-center h-full"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
-                ) : (
-                    <div className="p-4 space-y-2">
-                        {items.map((item, index) => {
-                             const prevItem = items[index - 1];
-                             const nextItem = items[index + 1];
+                 <div className="flex flex-col gap-1">
+                    {isLoading && items.length === 0 ? (
+                        <div className="absolute inset-0 flex justify-center items-center"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
+                    ) : (
+                        items.map((item, index) => {
+                            const prevItem = items[index - 1];
+                            const nextItem = items[index + 1];
                             
-                             const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
-                             const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
+                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (item.type === 'user' && prevItem.senderId !== item.senderId);
+                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (item.type === 'user' && nextItem.senderId !== item.senderId);
                             
-                            switch (item.type) {
-                                case 'date':
-                                    return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
-                                case 'system':
-                                    return <div key={item.id} className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>;
-                                case 'user':
-                                    return (
+                            return (
+                                <div key={item.id}>
+                                    {item.type === 'date' ? (
+                                        <div className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>
+                                    ) : item.type === 'system' ? (
+                                        <div className="text-center my-2"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.text}</span></div>
+                                    ) : (
                                         <ChatMessageBubble 
-                                            key={item.id}
-                                            message={item as UserMessage}
+                                            message={item}
                                             isCurrentUser={item.senderId === currentUser.id}
                                             onReply={() => {}}
                                             onDelete={() => {}}
@@ -281,13 +289,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                             isLastInGroup={isLastInGroup}
                                             teamPlayerCount={team.players.length}
                                         />
-                                    );
-                                default:
-                                    return null;
-                            }
-                        })}
-                    </div>
-                )}
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </main>
 
             <MessageInput 

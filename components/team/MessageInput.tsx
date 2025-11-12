@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useReducer } from 'react';
-import type { Team, Player, ChatMessage, Notification, UserMessage } from '../../types';
+import type { Team, Player, ChatMessage, Notification } from '../../types';
 import * as db from '../../database';
 import { PaperAirplaneIcon } from '../icons/PaperAirplaneIcon';
 import { FaceSmileIcon } from '../icons/FaceSmileIcon';
@@ -106,35 +106,19 @@ const MessageInput: React.FC<MessageInputProps> = ({ team, currentUser, addNotif
         const messageAttachment = audioAttachment || state.attachment;
         if (state.inputText.trim() === '' && !messageAttachment) return;
         
-        // Base message data with required fields
-        const messageData: Omit<UserMessage, 'id' | 'timestamp'> = {
-            type: 'user',
+        const messageData: Partial<ChatMessage> = {
             senderId: currentUser.id,
             senderName: currentUser.name,
+            senderProfilePicture: currentUser.profilePicture,
             text: state.inputText,
+            replyTo: state.replyingTo ? { messageId: state.replyingTo.id, senderName: state.replyingTo.senderName, text: state.replyingTo.text } : undefined,
+            attachment: messageAttachment ? { ...messageAttachment } : undefined,
         };
-
-        // Conditionally add optional fields to avoid sending 'undefined' to Firestore
-        if (currentUser.profilePicture) {
-            messageData.senderProfilePicture = currentUser.profilePicture;
-        }
-
-        if (state.replyingTo) {
-            messageData.replyTo = { 
-                messageId: state.replyingTo.id, 
-                senderName: state.replyingTo.senderName, 
-                text: state.replyingTo.text 
-            };
-        }
-
-        if (messageAttachment) {
-            messageData.attachment = { ...messageAttachment };
-        }
 
         dispatch({ type: 'RESET' });
         
         try {
-            await db.addChatMessage(team.id, messageData);
+            await db.addChatMessage(team.id, messageData as Omit<ChatMessage, 'id' | 'timestamp'>);
         } catch (error) {
             console.error("Error al enviar el mensaje:", String(error));
             addNotification({ type: 'error', title: 'Error de envío', message: 'No se pudo enviar tu mensaje.' });
