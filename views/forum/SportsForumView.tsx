@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Notification, ForumPost, ForumComment, SportsEmoji, ForumReaction } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -11,7 +12,7 @@ import * as db from '../../database';
 import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 
 
-const moderateContent = async (text: string, imageBase64: string | null = null): Promise<boolean> => {
+const moderateContent = async (text: string, imagesBase64: string[] | null = null): Promise<boolean> => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -19,15 +20,17 @@ const moderateContent = async (text: string, imageBase64: string | null = null):
             text: `Analiza el siguiente contenido (texto y/o imagen) y determina si es inapropiado para un foro deportivo. Categorías de contenido inapropiado a verificar: mensajes ofensivos o de odio, contenido sexual (explícito o sugerente), publicidad no deseada o venta de productos, violencia gráfica. Responde únicamente con 'true' si el contenido es inapropiado, o 'false' si es seguro. Texto: "${text}"`
         }];
 
-        if (imageBase64) {
-            const base64Data = imageBase64.split(',')[1];
-            if (base64Data) {
-                parts.push({
-                    inlineData: {
-                        mimeType: 'image/jpeg',
-                        data: base64Data,
-                    },
-                });
+        if (imagesBase64) {
+            for (const imageBase64 of imagesBase64) {
+                const base64Data = imageBase64.split(',')[1];
+                if (base64Data) {
+                    parts.push({
+                        inlineData: {
+                            mimeType: 'image/jpeg',
+                            data: base64Data,
+                        },
+                    });
+                }
             }
         }
         
@@ -70,14 +73,14 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
     }, []);
 
 
-    const handleCreatePost = async (content: string, image: string | null, tags: string[]) => {
-        const isFlagged = await moderateContent(content, image);
+    const handleCreatePost = async (content: string, images: string[], tags: string[]) => {
+        const isFlagged = await moderateContent(content, images);
         const newPostData = {
             authorId: user.id,
             authorName: user.name,
             authorProfilePicture: user.profilePicture,
             content,
-            imageUrl: image,
+            imageUrls: images,
             tags: tags.length > 0 ? tags : ['General'],
             isFlagged,
             comments: [],
@@ -99,7 +102,7 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
     const handleUpdatePost = (updatedPost: ForumPost) => {
         db.updatePost(updatedPost.id, {
             content: updatedPost.content,
-            imageUrl: updatedPost.imageUrl,
+            imageUrls: updatedPost.imageUrls,
             tags: updatedPost.tags,
         });
         setEditingPost(null);

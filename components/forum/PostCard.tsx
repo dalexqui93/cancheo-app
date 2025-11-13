@@ -9,6 +9,7 @@ import { XIcon } from '../icons/XIcon';
 import { SparklesIcon } from '../icons/SparklesIcon';
 import { SpinnerIcon } from '../icons/SpinnerIcon';
 import { ExclamationTriangleIcon } from '../icons/ExclamationTriangleIcon';
+import ImageLightbox from '../ImageLightbox';
 
 interface PostCardProps {
     post: ForumPost;
@@ -66,7 +67,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
     const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
     const [summary, setSummary] = useState('');
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxStartIndex, setLightboxStartIndex] = useState(0);
     const SUMMARY_THRESHOLD = 3;
+
+    const visibleComments = post.comments.filter(comment => !comment.isFlagged || comment.authorId === currentUser.id);
 
     const handleCommentSubmit = () => {
         if (commentText.trim()) {
@@ -90,7 +95,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
             setSummary(response.text);
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
+            // FIX: Explicitly convert 'unknown' error to string for safe logging.
             console.error("Error al generar resumen:", String(error));
             setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
         } finally {
@@ -101,6 +106,65 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
     const sortedReactions = [...post.reactions].sort((a,b) => b.userIds.length - a.userIds.length);
     const totalReactions = post.reactions.reduce((sum, r) => sum + r.userIds.length, 0);
     const currentUserReaction = post.reactions.find(r => r.userIds.includes(currentUser.id));
+
+    const openLightbox = (index: number) => {
+        setLightboxStartIndex(index);
+        setLightboxOpen(true);
+    };
+
+    const renderImageGrid = () => {
+        if (!post.imageUrls || post.imageUrls.length === 0) return null;
+        
+        const images = post.imageUrls;
+        const count = images.length;
+
+        const ImageComponent: React.FC<{src: string, index: number, className?: string}> = ({ src, index, className }) => (
+            <div className={`relative overflow-hidden ${className} cursor-pointer`} onClick={() => openLightbox(index)}>
+                <img src={src} alt={`Attachment ${index + 1}`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"/>
+            </div>
+        );
+
+        if (count === 1) {
+            return (
+                <div className="mt-3 rounded-lg overflow-hidden aspect-video relative group">
+                    <ImageComponent src={images[0]} index={0} />
+                </div>
+            );
+        }
+        if (count === 2) {
+            return (
+                <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg overflow-hidden aspect-video">
+                    <ImageComponent src={images[0]} index={0} className="group"/>
+                    <ImageComponent src={images[1]} index={1} className="group"/>
+                </div>
+            );
+        }
+        if (count === 3) {
+            return (
+                <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-video">
+                    <ImageComponent src={images[0]} index={0} className="row-span-2 group"/>
+                    <ImageComponent src={images[1]} index={1} className="group"/>
+                    <ImageComponent src={images[2]} index={2} className="group"/>
+                </div>
+            );
+        }
+        // 4 or more
+        return (
+            <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-video">
+                <ImageComponent src={images[0]} index={0} className="group"/>
+                <ImageComponent src={images[1]} index={1} className="group"/>
+                <ImageComponent src={images[2]} index={2} className="group"/>
+                <div className="relative group" onClick={() => openLightbox(3)}>
+                    <ImageComponent src={images[3]} index={3} />
+                    {count > 4 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold cursor-pointer">
+                            +{count - 4}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <>
@@ -140,7 +204,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                     </div>
                 )}
                 <p className="my-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{post.content}</p>
-                {post.imageUrl && <img src={post.imageUrl} alt="Contenido de la publicación" className="mt-3 rounded-lg w-full object-cover max-h-96" />}
+                {renderImageGrid()}
                 <div className="flex flex-wrap gap-2 mt-3">
                     {post.tags?.map(tag => (
                         <span key={tag} className="text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 py-1 px-2.5 rounded-full">#{tag}</span>
@@ -171,7 +235,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                         </button>
                     )}
                     <button onClick={() => setShowComments(!showComments)} className="text-sm font-semibold text-gray-500 dark:text-gray-400 hover:underline">
-                        {post.comments.length} {post.comments.length === 1 ? 'comentario' : 'comentarios'}
+                        {visibleComments.length} {visibleComments.length === 1 ? 'comentario' : 'comentarios'}
                     </button>
                 </div>
             </div>
@@ -213,7 +277,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             {/* Comments Section */}
             {showComments && (
                 <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-slate-50 dark:bg-gray-800/50">
-                    {post.comments.map(comment => (
+                    {visibleComments.map(comment => (
                         <div key={comment.id} className="flex items-start gap-3">
                              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {comment.authorProfilePicture ? <img src={comment.authorProfilePicture} alt={comment.authorName} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-slate-500 dark:text-gray-400"/>}
@@ -260,6 +324,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             isLoading={isSummaryLoading}
             summary={summary}
         />
+        {lightboxOpen && post.imageUrls && (
+            <ImageLightbox
+                images={post.imageUrls}
+                startIndex={lightboxStartIndex}
+                onClose={() => setLightboxOpen(false)}
+            />
+        )}
         </>
     );
 };
