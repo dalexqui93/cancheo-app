@@ -3,27 +3,25 @@ import type { User } from '../../types';
 import { UserIcon } from '../icons/UserIcon';
 import { ImageIcon } from '../icons/ImageIcon';
 import { TagIcon } from '../icons/TagIcon';
-import { XIcon } from '../icons/XIcon';
 
 interface CreatePostProps {
     user: User;
-    onPost: (content: string, images: string[], tags: string[]) => void;
+    onPost: (content: string, image: string | null, tags: string[]) => void;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
     const [content, setContent] = useState('');
-    const [images, setImages] = useState<string[]>([]);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedTag, setSelectedTag] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
-    const MAX_IMAGES = 4;
 
     const handleSubmit = () => {
         if (content.trim() && selectedTag) {
             const tagsArray = [selectedTag];
-            onPost(content, images, tagsArray);
+            onPost(content, imagePreview, tagsArray);
             setContent('');
-            setImages([]);
+            setImagePreview(null);
             setSelectedTag('');
         }
     };
@@ -33,57 +31,42 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files;
-        if (!files) return;
-
-        const newImages = [...images];
-
-        for (let i = 0; i < files.length; i++) {
-            if (newImages.length >= MAX_IMAGES) {
-                alert(`Solo puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
-                break;
-            }
-            const file = files[i];
-
+        const file = event.target.files?.[0];
+        if (file) {
             if (file.size > 15 * 1024 * 1024) { // 15MB limit
-                alert(`La imagen "${file.name}" es demasiado grande. Por favor, elige una de menos de 15MB.`);
-                continue;
+                alert("La imagen es demasiado grande. Por favor, elige una de menos de 15MB.");
+                event.target.value = '';
+                return;
             }
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1280;
-                    let width = img.width;
-                    let height = img.height;
-        
-                    if (width > MAX_WIDTH) {
-                        height = height * (MAX_WIDTH / width);
-                        width = MAX_WIDTH;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                        setImages(prev => [...prev, dataUrl]);
-                    }
-                };
-                img.src = e.target?.result as string;
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1280;
+                let width = img.width;
+                let height = img.height;
+    
+                if (width > MAX_WIDTH) {
+                    height = height * (MAX_WIDTH / width);
+                    width = MAX_WIDTH;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    setImagePreview(dataUrl);
+                }
+                URL.revokeObjectURL(objectUrl);
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                alert("No se pudo cargar el formato de imagen. Intenta con JPG o PNG.");
+            };
+            img.src = objectUrl;
         }
-
-        // Clear the input value to allow re-selecting the same file
-        event.target.value = '';
-    };
-
-    const removeImage = (index: number) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -104,16 +87,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                         className="w-full bg-slate-50 dark:bg-gray-700/50 rounded-lg p-3 border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-transparent transition"
                         rows={content.split('\n').length > 1 ? 4 : 2}
                     />
-                    {images.length > 0 && (
-                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {images.map((img, index) => (
-                                <div key={index} className="relative aspect-square">
-                                    <img src={img} alt={`Preview ${index}`} className="rounded-lg w-full h-full object-cover" />
-                                    <button onClick={() => removeImage(index)} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-black/70">
-                                        <XIcon className="h-3 w-3" />
-                                    </button>
-                                </div>
-                            ))}
+                    {imagePreview && (
+                        <div className="mt-4 relative">
+                            <img src={imagePreview} alt="Vista previa" className="rounded-lg max-h-60 object-cover" />
+                            <button onClick={() => setImagePreview(null)} className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
                         </div>
                     )}
                     
@@ -147,7 +126,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                     {/* Action Bar */}
                     <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2">
-                            <button onClick={handleAddImage} disabled={images.length >= MAX_IMAGES} title="Añadir imagen" className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button onClick={handleAddImage} title="Añadir imagen" className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                 <ImageIcon className="w-5 h-5" />
                             </button>
                             <input
@@ -156,7 +135,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                                 onChange={handleFileChange}
                                 accept="image/png, image/jpeg, image/webp"
                                 className="hidden"
-                                multiple
                             />
                         </div>
                         <button

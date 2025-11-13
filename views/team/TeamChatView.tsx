@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -84,8 +83,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             localStorage.removeItem(localStorageKey);
             addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
         } catch (error) {
-            // FIX: Changed '+' to ',' to avoid string concatenation with an 'unknown' type.
-            console.error("Error al vaciar el chat:", String(error));
+            // FIX: Explicitly convert 'unknown' error to string for safe logging.
+            console.error("Error al vaciar el chat: " + String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
         }
     }, [team.id, localStorageKey, addNotification]);
@@ -160,8 +159,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-            // FIX: Changed '+' to ',' to avoid string concatenation with an 'unknown' type.
-            console.error('Error al eliminar mensajes:', String(error));
+            // FIX: Explicitly convert 'unknown' error to string for safe logging.
+            console.error('Error al eliminar mensajes: ' + String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
             setShowDeleteModal(false);

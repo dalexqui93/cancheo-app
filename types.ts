@@ -337,7 +337,7 @@ export interface ForumPost {
     authorProfilePicture?: string;
     timestamp: Date;
     content: string;
-    imageUrls?: string[];
+    imageUrl?: string;
     tags: string[];
     reactions: ForumReaction[];
     comments: ForumComment[];
