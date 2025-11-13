@@ -90,6 +90,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
     const bubbleColor = isCurrentUser ? 'bg-amber-700 text-white' : 'bg-gray-700 text-white';
     
     const isFileOnlyMessage = message.attachment && !message.attachment.mimeType.startsWith('image/') && !message.text;
+    const isImageAttachment = message.attachment && message.attachment.mimeType.startsWith('image/');
 
     const bubbleClasses = isCurrentUser
         ? `rounded-l-2xl ${isFirstInGroup ? 'rounded-tr-2xl' : 'rounded-tr-md'} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-md'}`
@@ -114,9 +115,9 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
             )}
             
             <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`max-w-xs md:max-w-md relative shadow-none ${bubbleColor} ${bubbleClasses} ${isFileOnlyMessage ? 'p-2' : 'px-4 py-2'}`}>
+                <div className={`max-w-xs md:max-w-md relative shadow-none ${bubbleColor} ${bubbleClasses} ${isImageAttachment ? 'p-1' : (isFileOnlyMessage ? 'p-2' : 'px-4 py-2')}`}>
                     {!isCurrentUser && isFirstInGroup && (
-                        <p className="text-xs font-bold mb-1 text-amber-300">{message.senderName}</p>
+                        <p className="text-xs font-bold mb-1 text-amber-300 px-3 pt-1">{message.senderName}</p>
                     )}
                     {message.replyTo && (
                         <button onClick={(e) => {
@@ -126,15 +127,15 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                             }
                             e.stopPropagation();
                             if (message.replyTo?.messageId) onScrollToMessage(message.replyTo.messageId);
-                        }} className="w-full text-left mb-2 p-2 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30">
+                        }} className="w-full text-left mb-2 p-2 mx-2 mt-1 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30">
                             <p className="text-xs font-bold">{message.replyTo.senderName.split(' ')[0]}</p>
                             <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
                         </button>
                     )}
                     {message.attachment && (
-                        <div className={isFileOnlyMessage ? '' : 'my-2'}>
-                            {message.attachment.mimeType.startsWith('image/') ? (
-                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-64 h-auto cursor-pointer" onClick={(e) => {
+                        <div className={isFileOnlyMessage ? '' : (message.text ? 'mt-1 mb-2 mx-1' : '')}>
+                            {isImageAttachment ? (
+                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-xs max-h-80 w-auto h-auto object-cover cursor-pointer" onClick={(e) => {
                                     if (isSelectionMode) {
                                         e.preventDefault();
                                         return;
@@ -162,9 +163,9 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                         </div>
                     )}
                     {message.text && (
-                        <p className="text-sm break-words">{message.text}</p>
+                        <p className="text-sm break-words px-3 pb-1">{message.text}</p>
                     )}
-                    <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1">
+                    <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1 px-3 pb-1">
                         <span>{new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
                     </div>

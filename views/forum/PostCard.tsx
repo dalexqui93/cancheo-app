@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { ForumPost, User, SportsEmoji, Notification, ForumComment } from '../../types';
 import { UserIcon } from '../../components/icons/UserIcon';
@@ -93,7 +94,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
             setSummary(response.text);
         } catch (error) {
-            // FIX: Explicitly convert 'unknown' error to string for safe logging.
+            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error("Error al generar resumen:", String(error));
             setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
         } finally {
