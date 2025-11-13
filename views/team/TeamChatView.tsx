@@ -84,7 +84,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
         } catch (error) {
             // FIX: Explicitly convert 'unknown' error to string for safe logging.
-            console.error("Error al vaciar el chat: " + String(error));
+            console.error("Error al vaciar el chat:", String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
         }
     }, [team.id, localStorageKey, addNotification]);
@@ -160,7 +160,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
             // FIX: Explicitly convert 'unknown' error to string for safe logging.
-            console.error('Error al eliminar mensajes: ' + String(error));
+            console.error('Error al eliminar mensajes:', String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
             setShowDeleteModal(false);
