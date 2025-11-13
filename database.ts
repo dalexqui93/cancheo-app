@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation } from './types';
 
@@ -34,7 +33,6 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error('Error al inicializar Firebase. Revisa tus credenciales en database.ts:', String(e));
     }
 } else {
@@ -245,7 +243,6 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error("Error al poblar la base de datos:", String(error));
     }
 };
@@ -276,7 +273,6 @@ const getCollection = async (collectionName) => {
         const snapshot = await db.collection(collectionName).get();
         return snapshot.docs.map(docToData);
     } catch (error) {
-        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error(`Error obteniendo la colección ${collectionName}:`, String(error));
         return [];
     }

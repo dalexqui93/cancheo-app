@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -303,7 +302,7 @@ const ComplexEditorModal: React.FC<{
             }
         } catch (error) {
             addNotification({type: 'error', title: 'Error de Red', message: 'No se pudo conectar al servicio de geolocalización.'});
-            // FIX: Explicitly convert 'unknown' error to string for safe logging.
+            // FIX: Explicitly convert error to string for consistent and safe logging.
             console.error("Error al buscar coordenadas:", String(error));
         } finally {
             setIsLocating(false);

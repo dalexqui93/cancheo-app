@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -350,7 +349,6 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             onSearchResults(results);
     
         } catch (error) {
-            // FIX: Explicitly convert 'unknown' error to string for safe logging.
             console.error("Búsqueda con IA fallida:", String(error));
             onSearch(searchTerm);
         } finally {
