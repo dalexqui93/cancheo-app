@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { UploadIcon } from '../../components/icons/UploadIcon';
 import { ShieldIcon } from '../../components/icons/ShieldIcon';
@@ -77,6 +78,7 @@ const CreateTeamView: React.FC<CreateTeamViewProps> = ({ user, onBack, onCreate,
             // The parent component handles success notification and state change
         } catch (error) {
             // The parent component handles error notification
+            // FIX: Explicitly convert 'unknown' error to string for safe logging.
             console.error("Team creation failed:", String(error));
         } finally {
             setIsCreating(false);
