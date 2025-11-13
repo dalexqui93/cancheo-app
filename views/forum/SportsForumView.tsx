@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Notification, ForumPost, ForumComment, SportsEmoji, ForumReaction } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -37,6 +38,7 @@ const moderateContent = async (text: string, imageBase64: string | null = null):
 
         return response.text.trim().toLowerCase() === 'true';
     } catch (error) {
+        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error("Error en la moderación de contenido:", String(error));
         return false; // Fail safe
     }

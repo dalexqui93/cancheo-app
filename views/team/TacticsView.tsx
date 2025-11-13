@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Team, Formation, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -39,7 +40,7 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
                 const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
                 setAnalysis(response.text);
             } catch (e) {
-                // FIX: Explicitly convert error to string for consistent and safe logging, and add context.
+                // FIX: Explicitly convert 'unknown' error to string for safe logging.
                 console.error("Error getting AI analysis:", String(e));
                 setAnalysis('Hubo un error al obtener el análisis. Por favor, inténtalo de nuevo más tarde.');
             } finally {

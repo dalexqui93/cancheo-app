@@ -83,16 +83,6 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                         </div>
                     </div>
                 )}
-                 {isCurrentUser && showContextMenu && (
-                    <div className="relative">
-                        <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                            <DotsVerticalIcon className="w-4 h-4" />
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-1 w-40 bg-gray-600 rounded-md shadow-lg py-1 z-10 hidden group-focus-within:block border border-gray-500">
-                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
-                        </div>
-                    </div>
-                )}
             </div>
         );
     }
@@ -180,18 +170,16 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
                     </div>
                 </div>
                 {showContextMenu && (
-                    <div className="relative">
-                        <button className="p-2 text-gray-400 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                            <DotsVerticalIcon className="w-4 h-4" />
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-1 w-48 bg-gray-600 rounded-md shadow-lg py-1 z-20 hidden group-focus-within:block border border-gray-500">
-                            <button onClick={() => { onReply(message); (document.activeElement as HTMLElement)?.blur(); }} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Responder</button>
-                            {isCurrentUser && (
-                                <button onClick={() => onDeleteForEveryone(message.id)} className="w-full text-left block px-4 py-2 text-sm text-red-400 hover:bg-gray-500">Eliminar para todos</button>
-                            )}
-                            <button onClick={() => onDelete(message.id)} className="w-full text-left block px-4 py-2 text-sm text-gray-200 hover:bg-gray-500">Eliminar para mí</button>
-                        </div>
-                    </div>
+                     <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onReply(message);
+                        }}
+                        className="p-1.5 text-gray-400 rounded-full hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Responder"
+                    >
+                        <ArrowUturnLeftIcon className={`w-5 h-5 ${isCurrentUser ? 'transform -scale-x-100' : ''}`} />
+                    </button>
                 )}
             </div>
 
