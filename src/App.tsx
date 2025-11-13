@@ -450,7 +450,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: The 'unknown' type of the error object from a catch block is not assignable to string parameters. Explicitly convert to string.
+                // FIX: In a catch block, 'error' is of type 'unknown'. Explicitly convert it to a string for safe logging.
                 console.error('Error marking notifications as read:', String(error));
                 setNotifications(originalNotifications); // Revert on error
             }
@@ -581,7 +581,7 @@ const App = () => {
 
     // Loyalty Program Check - now triggers on completed bookings
     useEffect(() => {
-        if (!user || loading) return;
+        if (!user || loading || rewardInfo || ratingInfo) return;
 
         const checkLoyaltyForCompletedGames = async () => {
             const completedBookings = bookings.filter(b =>
@@ -640,7 +640,7 @@ const App = () => {
         };
 
         checkLoyaltyForCompletedGames();
-    }, [user, allBookings, loading, addPersistentNotification]);
+    }, [user, allBookings, bookings, loading, addPersistentNotification, rewardInfo, ratingInfo]);
 
     // Check for remembered user on app load
     useEffect(() => {
@@ -1340,10 +1340,12 @@ const App = () => {
         }
     };
 
-    const handleRewardAnimationEnd = useCallback((field: SoccerField) => {
+    const handleRewardAnimationEnd = useCallback(() => {
+        if (rewardInfo) {
+            setRatingInfo({ field: rewardInfo.field });
+        }
         setRewardInfo(null);
-        setRatingInfo({ field });
-    }, []);
+    }, [rewardInfo]);
 
     const handleRatingSubmit = async (fieldId: string, rating: number, comment: string) => {
         if (!user) return;
@@ -1733,7 +1735,7 @@ const App = () => {
                 {rewardInfo && (
                     <RewardAnimation 
                         field={rewardInfo.field}
-                        onAnimationEnd={() => handleRewardAnimationEnd(rewardInfo.field)}
+                        onAnimationEnd={() => handleRewardAnimationEnd()}
                     />
                 )}
                 {ratingInfo && (

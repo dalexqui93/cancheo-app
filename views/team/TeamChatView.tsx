@@ -72,15 +72,21 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         });
     }, [localStorageKey]);
 
-    const handleClearChat = useCallback(() => {
-        setDeletedForMeIds(prev => {
-            const newSet = new Set(prev);
-            messages.forEach(msg => newSet.add(msg.id));
-            localStorage.setItem(localStorageKey, JSON.stringify(Array.from(newSet)));
-            return newSet;
-        });
-        addNotification({type: 'info', title: 'Chat Vaciado', message: 'Los mensajes han sido eliminados solo para ti.'});
-    }, [messages, localStorageKey, addNotification]);
+    const handleClearChat = useCallback(async () => {
+        try {
+            await db.clearTeamChat(team.id);
+            // The listener will eventually clear the messages.
+            // For immediate feedback, we can clear it locally.
+            setMessages([]);
+            setDeletedForMeIds(new Set());
+            localStorage.removeItem(localStorageKey);
+            addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
+        } catch (error) {
+            // FIX: Explicitly convert the 'unknown' error type to a string before logging to prevent a TypeScript error.
+            console.error("Error al vaciar el chat:", String(error));
+            addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
+        }
+    }, [team.id, localStorageKey, addNotification]);
 
     const handleScrollToMessage = useCallback((messageId: string) => {
         const element = messageRefs.current.get(messageId);
@@ -152,7 +158,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-            // FIX: Explicitly convert `error` to string for consistent and safe logging to fix TypeScript error where `error` is of type `unknown`.
+            // FIX: Explicitly convert the 'unknown' error type to a string to satisfy TypeScript type checking.
             console.error('Error al eliminar mensajes:', String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {

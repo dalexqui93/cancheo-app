@@ -33,7 +33,6 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // FIX: Explicitly convert error to string for consistent and safe logging.
         console.error('Error al inicializar Firebase. Revisa tus credenciales en database.ts:', String(e));
     }
 } else {
@@ -244,7 +243,6 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // FIX: Explicitly convert error to string for consistent and safe logging.
         console.error("Error al poblar la base de datos:", String(error));
     }
 };
@@ -275,7 +273,6 @@ const getCollection = async (collectionName) => {
         const snapshot = await db.collection(collectionName).get();
         return snapshot.docs.map(docToData);
     } catch (error) {
-        // FIX: Explicitly convert error to string for consistent and safe logging.
         console.error(`Error obteniendo la colección ${collectionName}:`, String(error));
         return [];
     }
@@ -899,6 +896,36 @@ export const deleteChatMessage = async (teamId: string, messageId: string): Prom
             delete demoData.chats[teamId][msgIndex].replyTo;
             delete demoData.chats[teamId][msgIndex].attachment;
         }
+    }
+    return Promise.resolve();
+};
+
+export const clearTeamChat = async (teamId: string): Promise<void> => {
+    if (isFirebaseConfigured) {
+        const chatCollectionRef = db.collection('teams').doc(teamId).collection('chat');
+        const snapshot = await chatCollectionRef.limit(500).get();
+
+        if (snapshot.size === 0) {
+            return; // All documents have been deleted
+        }
+        
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+
+        // Recursively call the function if there might be more documents
+        if (snapshot.size > 0) {
+            await clearTeamChat(teamId);
+        }
+
+        return;
+    }
+    // Handle demo mode
+    if (demoData.chats && demoData.chats[teamId]) {
+        demoData.chats[teamId] = [];
     }
     return Promise.resolve();
 };

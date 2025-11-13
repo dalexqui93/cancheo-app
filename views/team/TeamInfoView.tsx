@@ -144,10 +144,12 @@ const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, 
                     </div>
 
                     <div className="bg-gray-800/60 rounded-xl divide-y divide-white/10">
-                         <button onClick={() => setIsClearChatModalOpen(true)} className="w-full p-4 flex items-center gap-3 text-red-500 font-semibold hover:bg-red-500/10 transition-colors">
-                             <TrashIcon className="w-5 h-5"/>
-                             <span>Vaciar chat (solo para ti)</span>
-                         </button>
+                         {isCaptain && (
+                            <button onClick={() => setIsClearChatModalOpen(true)} className="w-full p-4 flex items-center gap-3 text-red-500 font-semibold hover:bg-red-500/10 transition-colors">
+                                <TrashIcon className="w-5 h-5"/>
+                                <span>Vaciar Historial del Chat</span>
+                            </button>
+                         )}
                          <button onClick={() => setIsLeaveModalOpen(true)} className="w-full p-4 flex items-center gap-3 text-red-500 font-semibold hover:bg-red-500/10 transition-colors">
                              <LogoutIcon className="w-5 h-5"/>
                              <span>Salir del equipo</span>
@@ -180,9 +182,9 @@ const TeamInfoView: React.FC<TeamInfoViewProps> = ({ team, currentUser, onBack, 
                 isOpen={isClearChatModalOpen}
                 onClose={() => setIsClearChatModalOpen(false)}
                 onConfirm={handleClearChatConfirm}
-                title="¿Vaciar chat?"
-                message="Esto eliminará todos los mensajes de este chat solo para ti. Los demás miembros seguirán viéndolos."
-                confirmButtonText="Sí, vaciar"
+                title="¿Vaciar Historial del Chat?"
+                message="Esta acción eliminará permanentemente TODOS los mensajes, imágenes y audios para TODOS los miembros del equipo. Esta acción no se puede deshacer."
+                confirmButtonText="Sí, eliminar todo"
             />
         </div>
     );
