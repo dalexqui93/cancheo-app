@@ -53,7 +53,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
             return;
         }
 
-        // FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
         files.forEach((file: File) => {
             if (file.size > 15 * 1024 * 1024) { // 15MB limit
                 alert("La imagen es demasiado grande. Por favor, elige una de menos de 15MB.");
