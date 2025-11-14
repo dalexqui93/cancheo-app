@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage } from '../types';
@@ -42,11 +48,25 @@ const FirebaseWarningBanner: React.FC = () => {
     return (
         <div className="bg-yellow-400 text-yellow-900 text-center p-2 font-semibold text-sm sticky top-0 z-[101]">
             <div className="container mx-auto">
-                Atención: Firebase no está configurado. La aplicación se ejecuta en modo de demostración. Edita <strong>firebase.ts</strong>.
+                Atención: Firebase no está configurado. La aplicación se ejecuta en modo de demostración. Edita <strong>database.ts</strong>.
             </div>
         </div>
     );
 };
+
+const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
+    if (isOnline) {
+        return null;
+    }
+
+    return (
+        <div className="bg-gray-700 text-white text-center p-2 font-semibold text-sm sticky top-0 z-[101] animate-fade-in">
+            <div className="container mx-auto">
+                Estás desconectado. La aplicación se está ejecutando en modo offline.
+            </div>
+        </div>
+    );
+}
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
 const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
@@ -85,11 +105,38 @@ const App = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
 
     // Weather State
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
     const [weatherError, setWeatherError] = useState<string | null>(null);
+
+    // FIX: Define memoized values for owner fields and bookings to be used in the OwnerDashboard.
+    const ownerFields = useMemo(() => {
+        if (!user || !user.isOwner) return [];
+        return fields.filter(field => field.ownerId === user.id);
+    }, [user, fields]);
+
+    const ownerBookings = useMemo(() => {
+        if (!user || !user.isOwner) return [];
+        const ownerFieldIds = new Set(fields.filter(field => field.ownerId === user.id).map(f => f.id));
+        return allBookings.filter(booking => booking.field && ownerFieldIds.has(booking.field.id));
+    }, [user, fields, allBookings]);
+
+    // Online status listener
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     // Centralized time management
     useEffect(() => {
@@ -355,7 +402,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
+                // Fix: Explicitly convert 'unknown' error to string for safe logging.
                 console.error('Error saving notification to database:', String(error));
             }
         }
@@ -423,7 +470,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
+                // Fix: Explicitly convert 'unknown' error to string for safe logging.
                 console.error('Error deleting notification from database:', String(error));
                 // Revert state on failure
                 setNotifications(originalNotifications);
@@ -1468,21 +1515,6 @@ const App = () => {
     };
 
 
-    const ownerFields = useMemo(() => {
-        if (user?.isOwner) {
-            return fields.filter(f => f.ownerId === user.id);
-        }
-        return [];
-    }, [user, fields]);
-    const ownerFieldIds = useMemo(() => new Set(ownerFields.map(f => f.id)), [ownerFields]);
-
-    const ownerBookings = useMemo(() => {
-        if (user?.isOwner) {
-            return allBookings.filter(b => ownerFieldIds.has(b.field.id));
-        }
-        return [];
-    }, [user, allBookings, ownerFieldIds]);
-    
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
@@ -1707,13 +1739,14 @@ const App = () => {
     
     const showHeader = !isChatView && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
     const showBottomNav = !isChatView && user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
-
+    
     return (
         <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
             {showDarkSocialBg && <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/80 z-0"></div>}
             
             <div className="relative z-10">
                 <FirebaseWarningBanner />
+                <OfflineBanner isOnline={isOnline} />
                 {showHeader && <Header 
                                 user={user} 
                                 onNavigate={handleNavigate} 
