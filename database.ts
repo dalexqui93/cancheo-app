@@ -166,7 +166,8 @@ const postsToSeed: ForumPost[] = [
         id: 'post1', authorId: 'player-2', authorName: 'Ana García', authorProfilePicture: 'https://i.pravatar.cc/150?u=anagarcia',
         timestamp: new Date(new Date().getTime() - 1000 * 60 * 5),
         content: '¡Qué partidazo el de anoche! El gol de último minuto fue increíble. ¿Creen que el equipo mantendrá este nivel en la final?',
-        imageUrl: 'https://picsum.photos/seed/partido1/1200/800', tags: ['Fútbol', 'Debate'],
+        imageUrls: ['https://picsum.photos/seed/partido1/1200/800'],
+        tags: ['Fútbol', 'Debate'],
         reactions: [ { emoji: '🔥', userIds: ['player-1', 'player-3'] }, { emoji: '⚽', userIds: ['player-4'] } ],
         comments: [
             { id: 'c1', authorId: 'player-3', authorName: 'Luis Fernandez', authorProfilePicture: 'https://i.pravatar.cc/150?u=luisfernandez', timestamp: new Date(new Date().getTime() - 1000 * 60 * 3), content: 'Totalmente de acuerdo, la defensa estuvo impecable.', reactions: [{ emoji: '👍', userIds: ['player-2'] }] },
@@ -720,8 +721,8 @@ export const listenToPosts = (callback) => {
 
 export const addPost = async (postData) => {
     if (isFirebaseConfigured) {
-        const { content, imageUrl, tags, authorId, authorName, authorProfilePicture, isFlagged } = postData;
-        const dataToSave = { content, imageUrl: imageUrl || null, tags, authorId, authorName, authorProfilePicture: authorProfilePicture || null, isFlagged: isFlagged || false, createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: null, commentCount: 0, reactionCounts: {} };
+        const { content, imageUrls, tags, authorId, authorName, authorProfilePicture, isFlagged } = postData;
+        const dataToSave = { content, imageUrls: imageUrls || [], tags, authorId, authorName, authorProfilePicture: authorProfilePicture || null, isFlagged: isFlagged || false, createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: null, commentCount: 0, reactionCounts: {} };
         const docRef = await db.collection('posts').add(dataToSave);
         return { id: docRef.id, ...postData, timestamp: new Date() };
     }

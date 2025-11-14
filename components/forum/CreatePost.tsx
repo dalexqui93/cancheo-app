@@ -3,39 +3,51 @@ import type { User } from '../../types';
 import { UserIcon } from '../icons/UserIcon';
 import { ImageIcon } from '../icons/ImageIcon';
 import { TagIcon } from '../icons/TagIcon';
+import { XIcon } from '../icons/XIcon';
 
 interface CreatePostProps {
     user: User;
-    onPost: (content: string, image: string | null, tags: string[]) => void;
+    onPost: (content: string, images: string[], tags: string[]) => void;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
     const [content, setContent] = useState('');
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [selectedTag, setSelectedTag] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
+    const MAX_IMAGES = 5;
 
     const handleSubmit = () => {
         if (content.trim() && selectedTag) {
             const tagsArray = [selectedTag];
-            onPost(content, imagePreview, tagsArray);
+            onPost(content, imagePreviews, tagsArray);
             setContent('');
-            setImagePreview(null);
+            setImagePreviews([]);
             setSelectedTag('');
         }
     };
     
     const handleAddImage = () => {
+        if (imagePreviews.length >= MAX_IMAGES) return;
         fileInputRef.current?.click();
     };
 
+    const handleRemoveImage = (index: number) => {
+        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
+        const files = Array.from(event.target.files || []);
+        if (imagePreviews.length + files.length > MAX_IMAGES) {
+            alert(`Puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
+            return;
+        }
+
+        // FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
+        files.forEach((file: File) => {
             if (file.size > 15 * 1024 * 1024) { // 15MB limit
                 alert("La imagen es demasiado grande. Por favor, elige una de menos de 15MB.");
-                event.target.value = '';
                 return;
             }
             const objectUrl = URL.createObjectURL(file);
@@ -57,7 +69,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                 if (ctx) {
                     ctx.drawImage(img, 0, 0, width, height);
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                    setImagePreview(dataUrl);
+                    setImagePreviews(prev => [...prev, dataUrl]);
                 }
                 URL.revokeObjectURL(objectUrl);
             };
@@ -66,7 +78,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                 alert("No se pudo cargar el formato de imagen. Intenta con JPG o PNG.");
             };
             img.src = objectUrl;
-        }
+        });
+        // Reset file input value to allow re-selection of the same file
+        event.target.value = '';
     };
 
     return (
@@ -87,12 +101,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                         className="w-full bg-slate-50 dark:bg-gray-700/50 rounded-lg p-3 border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-transparent transition"
                         rows={content.split('\n').length > 1 ? 4 : 2}
                     />
-                    {imagePreview && (
-                        <div className="mt-4 relative">
-                            <img src={imagePreview} alt="Vista previa" className="rounded-lg max-h-60 object-cover" />
-                            <button onClick={() => setImagePreview(null)} className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
+                    {imagePreviews.length > 0 && (
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                            {imagePreviews.map((preview, index) => (
+                                <div key={index} className="relative aspect-square">
+                                    <img src={preview} alt={`Vista previa ${index + 1}`} className="rounded-lg w-full h-full object-cover" />
+                                    <button onClick={() => handleRemoveImage(index)} className="absolute top-1 right-1 bg-black/60 text-white p-0.5 rounded-full hover:bg-black/80">
+                                        <XIcon className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     )}
                     
@@ -126,7 +144,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                     {/* Action Bar */}
                     <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2">
-                            <button onClick={handleAddImage} title="Añadir imagen" className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button onClick={handleAddImage} title="Añadir imagen" disabled={imagePreviews.length >= MAX_IMAGES} className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 <ImageIcon className="w-5 h-5" />
                             </button>
                             <input
@@ -135,6 +153,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                                 onChange={handleFileChange}
                                 accept="image/png, image/jpeg, image/webp"
                                 className="hidden"
+                                multiple
                             />
                         </div>
                         <button

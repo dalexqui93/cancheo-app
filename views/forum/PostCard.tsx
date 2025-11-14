@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import type { ForumPost, User, SportsEmoji, Notification, ForumComment } from '../../types';
 import { UserIcon } from '../../components/icons/UserIcon';
@@ -11,6 +9,7 @@ import { XIcon } from '../../components/icons/XIcon';
 import { SparklesIcon } from '../../components/icons/SparklesIcon';
 import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 import { ExclamationTriangleIcon } from '../../components/icons/ExclamationTriangleIcon';
+import ImageLightbox from '../../components/ImageLightbox';
 
 interface PostCardProps {
     post: ForumPost;
@@ -69,6 +68,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
     const [summary, setSummary] = useState('');
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
     const SUMMARY_THRESHOLD = 3;
+    const [lightboxState, setLightboxState] = useState<{ open: boolean, startIndex: number }>({ open: false, startIndex: 0 });
 
     const visibleComments = post.comments.filter(comment => !comment.isFlagged || comment.authorId === currentUser.id);
 
@@ -100,6 +100,85 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
         } finally {
             setIsSummaryLoading(false);
         }
+    };
+
+    const openLightbox = (index: number) => {
+        setLightboxState({ open: true, startIndex: index });
+    };
+
+    const renderImageGallery = () => {
+        if (!post.imageUrls || post.imageUrls.length === 0) {
+            return null;
+        }
+
+        const images = post.imageUrls;
+        const count = images.length;
+
+        const imageBaseClasses = "w-full h-full object-cover cursor-pointer";
+
+        if (count === 1) {
+            return (
+                <div className="mt-3 rounded-lg overflow-hidden" onClick={() => openLightbox(0)}>
+                    <img src={images[0]} className="w-full h-auto object-cover max-h-[500px] cursor-pointer" alt="Contenido de la publicación 1"/>
+                </div>
+            );
+        }
+
+        if (count === 2) {
+            return (
+                <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg overflow-hidden">
+                    <div className="aspect-video" onClick={() => openLightbox(0)}>
+                        <img src={images[0]} className={imageBaseClasses} alt="Contenido de la publicación 1"/>
+                    </div>
+                    <div className="aspect-video" onClick={() => openLightbox(1)}>
+                        <img src={images[1]} className={imageBaseClasses} alt="Contenido de la publicación 2"/>
+                    </div>
+                </div>
+            );
+        }
+
+        if (count === 3) {
+            return (
+                <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-[4/3]">
+                    <div className="row-span-2" onClick={() => openLightbox(0)}>
+                        <img src={images[0]} className={imageBaseClasses} alt="Contenido de la publicación 1"/>
+                    </div>
+                    <div onClick={() => openLightbox(1)}>
+                        <img src={images[1]} className={imageBaseClasses} alt="Contenido de la publicación 2"/>
+                    </div>
+                    <div onClick={() => openLightbox(2)}>
+                        <img src={images[2]} className={imageBaseClasses} alt="Contenido de la publicación 3"/>
+                    </div>
+                </div>
+            );
+        }
+
+        if (count === 4) {
+            return (
+                <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-video">
+                    {images.slice(0, 4).map((url, index) => (
+                        <div key={index} onClick={() => openLightbox(index)}>
+                            <img src={url} className={imageBaseClasses} alt={`Contenido de la publicación ${index + 1}`}/>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // 5 or more images
+        return (
+            <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-video">
+                <div onClick={() => openLightbox(0)}><img src={images[0]} className={imageBaseClasses} alt="Contenido 1"/></div>
+                <div onClick={() => openLightbox(1)}><img src={images[1]} className={imageBaseClasses} alt="Contenido 2"/></div>
+                <div onClick={() => openLightbox(2)}><img src={images[2]} className={imageBaseClasses} alt="Contenido 3"/></div>
+                <div className="relative" onClick={() => openLightbox(3)}>
+                    <img src={images[3]} className={imageBaseClasses} alt="Contenido 4"/>
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer">
+                        <span className="text-white text-3xl font-bold">+{count - 4}</span>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const sortedReactions = [...post.reactions].sort((a,b) => b.userIds.length - a.userIds.length);
@@ -144,7 +223,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                     </div>
                 )}
                 <p className="my-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{post.content}</p>
-                {post.imageUrl && <img src={post.imageUrl} alt="Contenido de la publicación" className="mt-3 rounded-lg w-full object-cover max-h-96" />}
+                
+                {renderImageGallery()}
+                
                 <div className="flex flex-wrap gap-2 mt-3">
                     {post.tags?.map(tag => (
                         <span key={tag} className="text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 py-1 px-2.5 rounded-full">#{tag}</span>
@@ -258,6 +339,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
                 </div>
             )}
         </div>
+        {lightboxState.open && post.imageUrls && (
+            <ImageLightbox
+                images={post.imageUrls}
+                startIndex={lightboxState.startIndex}
+                onClose={() => setLightboxState({ open: false, startIndex: 0 })}
+            />
+        )}
         <SummaryModal 
             isOpen={isSummaryModalOpen}
             onClose={() => setIsSummaryModalOpen(false)}

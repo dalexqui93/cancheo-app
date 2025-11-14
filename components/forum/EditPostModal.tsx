@@ -11,32 +11,45 @@ interface EditPostModalProps {
 
 const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) => {
     const [content, setContent] = useState(post.content);
-    const [image, setImage] = useState<string | null>(post.imageUrl || null);
+    const [images, setImages] = useState<string[]>(post.imageUrls || []);
     const [selectedTag, setSelectedTag] = useState<string>(post.tags?.[0] || 'Fútbol');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
+    const MAX_IMAGES = 5;
 
     const handleSave = () => {
         const updatedPost: ForumPost = {
             ...post,
             content,
-            imageUrl: image || undefined,
+            imageUrls: images,
             tags: [selectedTag],
         };
         onSave(updatedPost);
     };
 
     const handleAddImage = () => {
+        if (images.length >= MAX_IMAGES) return;
         fileInputRef.current?.click();
+    };
+    
+    const handleRemoveImage = (index: number) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => setImage(e.target?.result as string);
-            reader.readAsDataURL(file);
+        const files = Array.from(event.target.files || []);
+        if (images.length + files.length > MAX_IMAGES) {
+            alert(`Puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
+            return;
         }
+
+        // FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
+        files.forEach((file: File) => {
+            const reader = new FileReader();
+            reader.onload = e => setImages(prev => [...prev, e.target?.result as string]);
+            reader.readAsDataURL(file);
+        });
+        event.target.value = '';
     };
 
     return (
@@ -53,10 +66,16 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
                         className="w-full bg-slate-50 dark:bg-gray-700/50 rounded-lg p-3 border-transparent focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-transparent transition"
                         rows={5}
                     />
-                    {image && (
-                        <div className="relative">
-                            <img src={image} alt="Vista previa" className="rounded-lg max-h-60 object-cover" />
-                            <button onClick={() => setImage(null)} className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70"><XIcon className="w-4 h-4" /></button>
+                    {images.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                            {images.map((img, index) => (
+                                <div key={index} className="relative aspect-square">
+                                    <img src={img} alt={`Vista previa ${index + 1}`} className="rounded-lg w-full h-full object-cover" />
+                                    <button onClick={() => handleRemoveImage(index)} className="absolute top-1 right-1 bg-black/60 text-white p-0.5 rounded-full hover:bg-black/80">
+                                        <XIcon className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     )}
                     <div>
@@ -79,10 +98,10 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
                     </div>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700 flex justify-between items-center">
-                    <button onClick={handleAddImage} title="Añadir/Cambiar imagen" className="p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <button onClick={handleAddImage} title="Añadir/Cambiar imagen" disabled={images.length >= MAX_IMAGES} className="p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
                        <ImageIcon className="w-6 h-6" />
                     </button>
-                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple />
                     <div className="flex gap-3">
                         <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Cancelar</button>
                         <button onClick={handleSave} className="py-2 px-5 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm">Guardar Cambios</button>

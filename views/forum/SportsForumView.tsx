@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Notification, ForumPost, ForumComment, SportsEmoji, ForumReaction } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -71,14 +72,14 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
     }, []);
 
 
-    const handleCreatePost = async (content: string, image: string | null, tags: string[]) => {
-        const isFlagged = await moderateContent(content, image);
+    const handleCreatePost = async (content: string, images: string[], tags: string[]) => {
+        const isFlagged = await moderateContent(content, images.length > 0 ? images[0] : null);
         const newPostData = {
             authorId: user.id,
             authorName: user.name,
             authorProfilePicture: user.profilePicture,
             content,
-            imageUrl: image,
+            imageUrls: images,
             tags: tags.length > 0 ? tags : ['General'],
             isFlagged,
             comments: [],
@@ -100,7 +101,7 @@ const SportsForumView: React.FC<SportsForumViewProps> = ({ user, addNotification
     const handleUpdatePost = (updatedPost: ForumPost) => {
         db.updatePost(updatedPost.id, {
             content: updatedPost.content,
-            imageUrl: updatedPost.imageUrl,
+            imageUrls: updatedPost.imageUrls,
             tags: updatedPost.tags,
         });
         setEditingPost(null);
