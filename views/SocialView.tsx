@@ -39,7 +39,7 @@ import { LocationIcon } from '../components/icons/LocationIcon';
 // NOTE: Team data is now fetched from database.ts, but other social mocks remain here for now.
 
 const mockSchedule: TeamEvent[] = [
-    { id: 'ev1', type: 'match', date: new Date(new Date().setDate(new Date().getDate() + 3)), title: 'vs. Atlético Panas', location: 'Gol Center Envigado' },
+    { id: 'ev1', type: 'match', date: new Date(new Date().setDate(new Date().getDate() + 3)), title: 'vs. Atlético Panas', location: 'Gol Center Envigado', description: 'Partido de vuelta. Llevar uniforme rojo.' },
     { id: 'ev2', type: 'training', date: new Date(new Date().setDate(new Date().getDate() + 5)), title: 'Entrenamiento Táctico', location: 'Cancha El Templo' },
     { id: 'ev3', type: 'event', date: new Date(new Date().setDate(new Date().getDate() + 10)), title: 'Asado de Equipo', location: 'Club Campestre' },
 ];
@@ -180,6 +180,7 @@ const UpcomingMatchWidget: React.FC = () => {
             <p className="font-bold text-lg">{nextMatch.title}</p>
             <p className="text-sm text-white/70">{nextMatch.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
             <p className="text-xs text-white/50">@{nextMatch.location}</p>
+            {nextMatch.description && <p className="text-xs text-white/70 mt-1 italic">"{nextMatch.description}"</p>}
         </HubWidget>
     );
 };

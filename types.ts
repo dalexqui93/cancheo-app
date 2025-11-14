@@ -279,6 +279,7 @@ export interface TeamEvent {
     date: Date;
     title: string;
     location: string;
+    description?: string;
 }
 export interface Team {
     id: string;

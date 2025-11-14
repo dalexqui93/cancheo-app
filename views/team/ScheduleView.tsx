@@ -28,10 +28,11 @@ const EventModal: React.FC<{
     const [type, setType] = useState<'match' | 'training' | 'event'>('training');
     const [date, setDate] = useState(getLocalISOStringForInput(new Date()));
     const [location, setLocation] = useState('');
+    const [description, setDescription] = useState('');
 
     const handleSave = () => {
         if (!title || !location) return;
-        onSave({ title, type, date: new Date(date), location });
+        onSave({ title, type, date: new Date(date), location, description });
         onClose();
     };
 
@@ -62,6 +63,10 @@ const EventModal: React.FC<{
                      <div>
                         <label className="font-semibold block mb-1">Ubicación</label>
                         <input type="text" value={location} onChange={e => setLocation(e.target.value)} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600"/>
+                    </div>
+                    <div>
+                        <label className="font-semibold block mb-1">Descripción (Opcional)</label>
+                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-2 border rounded-md bg-gray-700 border-gray-600" rows={2}></textarea>
                     </div>
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
@@ -95,6 +100,9 @@ const EventCard: React.FC<{ event: TeamEvent }> = ({ event }) => {
                             {event.date.toLocaleDateString('es-CO', {weekday: 'long'})}, {event.date.toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})}
                         </p>
                         <p className="text-sm text-gray-400">@{event.location}</p>
+                        {event.description && (
+                            <p className="text-sm text-gray-300 mt-2 pt-2 border-t border-white/10">{event.description}</p>
+                        )}
                     </div>
                 </div>
             </div>

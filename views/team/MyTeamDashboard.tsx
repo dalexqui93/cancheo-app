@@ -120,6 +120,7 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
                         <p className="font-bold text-lg">{nextMatch.title}</p>
                         <p className="text-sm text-white/70">{nextMatch.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
                         <p className="text-xs text-white/50">@{nextMatch.location}</p>
+                        {nextMatch.description && <p className="text-xs text-white/70 mt-1 italic">"{nextMatch.description}"</p>}
                     </div>
                 ) : <p className="text-sm text-white/60">No hay partidos programados.</p>}
             </Widget>
