@@ -15,7 +15,7 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
     const [selectedTag, setSelectedTag] = useState<string>(post.tags?.[0] || 'Fútbol');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
-    const MAX_IMAGES = 5;
+    const MAX_IMAGES = 4;
 
     const handleSave = () => {
         const updatedPost: ForumPost = {
@@ -67,7 +67,7 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
                         rows={5}
                     />
                     {images.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                             {images.map((img, index) => (
                                 <div key={index} className="relative aspect-square">
                                     <img src={img} alt={`Vista previa ${index + 1}`} className="rounded-lg w-full h-full object-cover" />
@@ -98,9 +98,12 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
                     </div>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700 flex justify-between items-center">
-                    <button onClick={handleAddImage} title="Añadir/Cambiar imagen" disabled={images.length >= MAX_IMAGES} className="p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                       <ImageIcon className="w-6 h-6" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleAddImage} title="Añadir/Cambiar imagen" disabled={images.length >= MAX_IMAGES} className="p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                           <ImageIcon className="w-6 h-6" />
+                        </button>
+                        <span className="text-xs text-gray-400">({images.length}/{MAX_IMAGES})</span>
+                    </div>
                      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple />
                     <div className="flex gap-3">
                         <button onClick={onClose} className="py-2 px-5 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Cancelar</button>

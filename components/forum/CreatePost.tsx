@@ -4,10 +4,11 @@ import { UserIcon } from '../icons/UserIcon';
 import { ImageIcon } from '../icons/ImageIcon';
 import { TagIcon } from '../icons/TagIcon';
 import { XIcon } from '../icons/XIcon';
+import { SpinnerIcon } from '../icons/SpinnerIcon';
 
 interface CreatePostProps {
     user: User;
-    onPost: (content: string, images: string[], tags: string[]) => void;
+    onPost: (content: string, images: string[], tags: string[]) => Promise<void>;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
@@ -16,15 +17,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
     const [selectedTag, setSelectedTag] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
-    const MAX_IMAGES = 5;
+    const MAX_IMAGES = 4;
+    const [isPosting, setIsPosting] = useState(false);
 
-    const handleSubmit = () => {
-        if (content.trim() && selectedTag) {
-            const tagsArray = [selectedTag];
-            onPost(content, imagePreviews, tagsArray);
-            setContent('');
-            setImagePreviews([]);
-            setSelectedTag('');
+    const handleSubmit = async () => {
+        if (content.trim() && selectedTag && !isPosting) {
+            setIsPosting(true);
+            try {
+                const tagsArray = [selectedTag];
+                await onPost(content, imagePreviews, tagsArray);
+                setContent('');
+                setImagePreviews([]);
+                setSelectedTag('');
+            } catch (error) {
+                console.error("Failed to create post:", error);
+            } finally {
+                setIsPosting(false);
+            }
         }
     };
     
@@ -102,7 +111,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                         rows={content.split('\n').length > 1 ? 4 : 2}
                     />
                     {imagePreviews.length > 0 && (
-                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                             {imagePreviews.map((preview, index) => (
                                 <div key={index} className="relative aspect-square">
                                     <img src={preview} alt={`Vista previa ${index + 1}`} className="rounded-lg w-full h-full object-cover" />
@@ -144,9 +153,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                     {/* Action Bar */}
                     <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2">
-                            <button onClick={handleAddImage} title="Añadir imagen" disabled={imagePreviews.length >= MAX_IMAGES} className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button onClick={handleAddImage} title="Añadir imagen" disabled={imagePreviews.length >= MAX_IMAGES || isPosting} className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 <ImageIcon className="w-5 h-5" />
                             </button>
+                             <span className="text-xs text-gray-400">({imagePreviews.length}/{MAX_IMAGES})</span>
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -158,10 +168,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                         </div>
                         <button
                             onClick={handleSubmit}
-                            disabled={!content.trim() || !selectedTag}
-                            className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-6 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            disabled={!content.trim() || !selectedTag || isPosting}
+                            className="bg-[var(--color-primary-600)] text-white font-bold py-2 px-6 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center w-28 h-9"
                         >
-                            Publicar
+                            {isPosting ? <SpinnerIcon className="w-5 h-5" /> : 'Publicar'}
                         </button>
                     </div>
                 </div>

@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -88,6 +90,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
         } catch (error) {
             // FIX: Explicitly convert 'unknown' error to string for safe logging.
+            // FIX: The error variable is of type 'unknown' and cannot be directly passed to console.error. It must be converted to a string.
             console.error("Error al vaciar el chat:", String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
         }
