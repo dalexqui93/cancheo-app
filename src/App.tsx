@@ -155,46 +155,61 @@ const App = () => {
         }
     }, []);
     
+    // Load initial static data
     useEffect(() => {
-        const loadData = async () => {
+        const loadInitialStaticData = async () => {
             setLoading(true);
 
             if (isFirebaseConfigured) {
                 await db.seedDatabase();
             }
 
-            const [fieldsData, usersData, applicationsData, announcementsData] = await Promise.all([
+            const [fieldsData, applicationsData, announcementsData] = await Promise.all([
                 db.getFields(),
-                db.getUsers(),
                 db.getOwnerApplications(),
                 db.getAnnouncements(),
             ]);
 
             setFields(fieldsData);
-            setAllUsers(usersData);
             setOwnerApplications(applicationsData);
             setAnnouncements(announcementsData);
             setLoading(false);
         };
-        loadData();
+        loadInitialStaticData();
     }, []);
 
-    // Real-time data listeners
+    // Real-time data listeners for collections
     useEffect(() => {
+        let unsubscribeUsers = () => {};
+        let unsubscribeBookings = () => {};
+        let unsubscribeTeams = () => {};
+
         if (isFirebaseConfigured) {
-            const unsubscribeBookings = db.listenToAllBookings(setAllBookings);
-            const unsubscribeTeams = db.listenToAllTeams(setAllTeams);
-            
-            return () => {
-                unsubscribeBookings();
-                unsubscribeTeams();
-            };
+            unsubscribeUsers = db.listenToAllUsers(setAllUsers);
+            unsubscribeBookings = db.listenToAllBookings(setAllBookings);
+            unsubscribeTeams = db.listenToAllTeams(setAllTeams);
         } else {
-            // Fallback for demo mode
+            db.getUsers().then(setAllUsers);
             db.getAllBookings().then(setAllBookings);
             db.getTeams().then(setAllTeams);
         }
+
+        return () => {
+            unsubscribeUsers();
+            unsubscribeBookings();
+            unsubscribeTeams();
+        };
     }, []);
+
+    // Keep logged-in user object in sync with the allUsers list
+    useEffect(() => {
+        if (user) {
+            const latestUserData = allUsers.find(u => u.id === user.id);
+            if (latestUserData && JSON.stringify(latestUserData) !== JSON.stringify(user)) {
+                setUser(latestUserData);
+            }
+        }
+    }, [allUsers, user]);
 
     // Invitation listeners
     useEffect(() => {

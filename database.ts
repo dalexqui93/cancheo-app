@@ -59,11 +59,13 @@ const playersToSeed: Player[] = [
     },
     { 
         id: 'player-2', name: 'Ana García', profilePicture: 'https://i.pravatar.cc/150?u=anagarcia', number: 4, position: 'Defensa', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 1, assists: 2, yellowCards: 5, redCards: 0 },
-        age: 26, height: 170, weight: 65, dominantFoot: 'Derecho', bio: 'Defensa central sólida y con buen juego aéreo.', strength: 90, speed: 75, stamina: 85, specialSkills: ['Defensa Férrea', 'Marcaje', 'Cabeceo'], xp: 720, isAvailableToday: true
+        age: 26, height: 170, weight: 65, dominantFoot: 'Derecho', bio: 'Defensa central sólida y con buen juego aéreo.', strength: 90, speed: 75, stamina: 85, specialSkills: ['Defensa Férrea', 'Marcaje', 'Cabeceo'], xp: 720, isAvailableToday: true,
+        lastKnownLocation: { latitude: 4.65, longitude: -74.08, timestamp: new Date() }
     },
     { 
         id: 'player-3', name: 'Luis Fernandez', profilePicture: 'https://i.pravatar.cc/150?u=luisfernandez', number: 10, position: 'Medio', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 6, assists: 9, yellowCards: 1, redCards: 0 },
-        age: 30, height: 175, weight: 72, dominantFoot: 'Ambidiestro', bio: 'Mediocampista creativo con gran visión de juego.', strength: 78, speed: 82, stamina: 90, specialSkills: ['Visión de Juego', 'Pase Preciso', 'Regate Rápido'], xp: 810, isAvailableToday: true
+        age: 30, height: 175, weight: 72, dominantFoot: 'Ambidiestro', bio: 'Mediocampista creativo con gran visión de juego.', strength: 78, speed: 82, stamina: 90, specialSkills: ['Visión de Juego', 'Pase Preciso', 'Regate Rápido'], xp: 810, isAvailableToday: true,
+        lastKnownLocation: { latitude: 6.25, longitude: -75.56, timestamp: new Date() }
     },
     { 
         id: 'player-4', name: 'Marta Gomez', profilePicture: 'https://i.pravatar.cc/150?u=martagomez', number: 1, position: 'Portero', level: 'Competitivo', stats: { matchesPlayed: 15, goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
@@ -363,6 +365,17 @@ export const listenToAllTeams = (callback) => {
     }
     return () => {};
 }
+
+export const listenToAllUsers = (callback: (users: User[]) => void): (() => void) => {
+    if (isFirebaseConfigured) {
+        return db.collection('users').onSnapshot(snapshot => {
+            callback(snapshot.docs.map(docToData));
+        });
+    }
+    // For demo mode, no real-time listener is possible. Just return initial data.
+    callback(demoData.users);
+    return () => {}; // Return a dummy unsubscribe function
+};
 
 export const getFields = async () => {
     if (isFirebaseConfigured) return getCollection('fields');
