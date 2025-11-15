@@ -11,6 +11,7 @@ import { timeSince } from '../utils/timeSince';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
 import { ChatBubbleBottomCenterTextIcon } from '../components/icons/ChatBubbleBottomCenterTextIcon';
+import * as db from '../database';
 
 const levelToRating = (level: Player['level']): number => {
     if (typeof level === 'number') return level;
@@ -159,7 +160,24 @@ const AvailableTodayView: React.FC<AvailableTodayViewProps> = ({ user, allUsers,
         return players.map(p => ({ player: p, distance: null }));
     }, [allUsers, user.id, weatherData]);
 
-    const handleInvite = (player: Player) => {
+    const handleInvite = async (player: Player) => {
+        const targetUser = allUsers.find(u => u.id === player.id);
+        if (targetUser) {
+            const newNotification: Notification = {
+                id: Date.now(),
+                type: 'info',
+                title: '¡Te han invitado a jugar!',
+                message: `${user.name} vio que estás disponible y quiere organizar un partido.`,
+                timestamp: new Date(),
+                read: false,
+            };
+            const updatedNotifications = [newNotification, ...(targetUser.notifications || [])].slice(0, 50);
+            try {
+                await db.updateUser(targetUser.id, { notifications: updatedNotifications });
+            } catch (error) {
+                console.error("Failed to send notification:", String(error));
+            }
+        }
         addNotification({type: 'success', title: 'Invitación Enviada', message: `Has invitado a ${player.name} a jugar.`});
     };
 
@@ -168,8 +186,27 @@ const AvailableTodayView: React.FC<AvailableTodayViewProps> = ({ user, allUsers,
         setIsInviteModalOpen(true);
     };
 
-    const handleSendSpecificInvite = (booking: ConfirmedBooking) => {
+    const handleSendSpecificInvite = async (booking: ConfirmedBooking) => {
         if (!playerToInvite) return;
+        
+        const targetUser = allUsers.find(u => u.id === playerToInvite.id);
+        if (targetUser) {
+            const newNotification: Notification = {
+                id: Date.now(),
+                type: 'success',
+                title: '¡Invitación a un partido!',
+                message: `${user.name} te ha invitado a su partido en ${booking.field.name} a las ${booking.time}.`,
+                timestamp: new Date(),
+                read: false,
+            };
+            const updatedNotifications = [newNotification, ...(targetUser.notifications || [])].slice(0, 50);
+            try {
+                await db.updateUser(targetUser.id, { notifications: updatedNotifications });
+            } catch (error) {
+                console.error("Failed to send notification:", String(error));
+            }
+        }
+
         addNotification({type: 'success', title: 'Invitación a Partido Enviada', message: `Invitaste a ${playerToInvite.name} a tu partido en ${booking.field.name}.`});
         setIsInviteModalOpen(false);
         setPlayerToInvite(null);
