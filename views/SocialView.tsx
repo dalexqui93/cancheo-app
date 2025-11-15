@@ -33,6 +33,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import { calculateDistance } from '../utils/geolocation';
 import { LocationIcon } from '../components/icons/LocationIcon';
+import AvailableTodayView from './AvailableTodayView';
 
 
 // --- MOCK DATA ---
@@ -84,6 +85,7 @@ interface SocialViewProps {
     onRemovePlayerFromTeam: (teamId: string, playerId: string) => void;
     onLeaveTeam: (teamId: string) => void;
     weatherData: WeatherData | null;
+    onSetAvailability: (isAvailable: boolean) => Promise<void>;
 }
 
 const PlayerProfileOnboarding: React.FC<{ onNavigate: (view: View) => void }> = ({ onNavigate }) => {
@@ -222,10 +224,11 @@ const HubNavigation: React.FC<{ onNavigate: (section: SocialSection) => void }> 
         { section: 'tournaments' as SocialSection, icon: <TrophyIcon className="w-7 h-7" />, label: 'Torneos' },
         { section: 'challenge' as SocialSection, icon: <SwordsIcon className="w-7 h-7" />, label: 'Retar' },
         { section: 'find-players' as SocialSection, icon: <UserPlusIcon className="w-7 h-7" />, label: 'Fichajes' },
+        { section: 'available-today' as SocialSection, icon: <PlayerKickingBallIcon className="w-7 h-7" />, label: 'Disponibles Hoy' },
     ];
     return (
         <div className="mt-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 {navItems.map(item => (
                     <button key={item.section} onClick={() => onNavigate(item.section)} className="text-center p-3 rounded-lg hover:bg-white/10 transition-colors">
                         <div className="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center text-amber-400 mb-1">
@@ -573,7 +576,7 @@ const FindPlayersView: React.FC<{
     );
 };
 
-const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, allBookings, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam, weatherData }) => {
+const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, allBookings, addNotification, onNavigate, setIsPremiumModalOpen, section, setSection, onUpdateUserTeams, onUpdateTeam, sentInvitations, onSendInvitation, onCancelInvitation, onRemovePlayerFromTeam, onLeaveTeam, weatherData, onSetAvailability }) => {
     const [tournaments, setTournaments] = useState<Tournament[]>(getMockTournaments(allTeams));
     const [viewingPlayerProfile, setViewingPlayerProfile] = useState<Player | null>(null);
     const [activeChatTeam, setActiveChatTeam] = useState<Team | null>(null);
@@ -653,12 +656,33 @@ const SocialView: React.FC<SocialViewProps> = ({ user, allTeams, allUsers, allBo
                 )}</div>;
             case 'sports-forum':
                 return <SportsForumView user={user} addNotification={addNotification} onBack={() => setSection('hub')} />;
+            case 'available-today':
+                if (viewingPlayerProfile) {
+                    return (
+                        <div className="p-4 sm:p-6 pb-[6.5rem]">
+                            <PlayerProfileDetailView 
+                                player={viewingPlayerProfile} 
+                                onBack={() => setViewingPlayerProfile(null)} 
+                            />
+                        </div>
+                    );
+                }
+                return <AvailableTodayView
+                    user={user}
+                    allUsers={allUsers}
+                    weatherData={weatherData}
+                    allBookings={allBookings}
+                    onBack={() => setSection('hub')}
+                    onSetAvailability={onSetAvailability}
+                    addNotification={addNotification}
+                    onViewProfile={setViewingPlayerProfile}
+                />;
             default:
                 return <PlayerHub user={user} onSectionNavigate={setSection} onNavigateToCreator={() => onNavigate(View.PLAYER_PROFILE_CREATOR)} />
         }
     };
     
-    const socialSectionsWithDarkBg = ['hub', 'my-team'];
+    const socialSectionsWithDarkBg = ['hub', 'my-team', 'available-today'];
     const hasDarkBg = socialSectionsWithDarkBg.includes(section);
     const showExitButton = section !== 'chat';
 

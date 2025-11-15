@@ -2,7 +2,7 @@
 export type Theme = 'system' | 'light' | 'dark';
 export type AccentColor = 'green' | 'blue' | 'orange' | 'purple';
 export type Tab = 'explore' | 'bookings' | 'community' | 'profile';
-export type SocialSection = 'hub' | 'my-team' | 'sports-forum' | 'tournaments' | 'challenge' | 'find-players' | 'chat';
+export type SocialSection = 'hub' | 'my-team' | 'sports-forum' | 'tournaments' | 'challenge' | 'find-players' | 'chat' | 'available-today';
 
 export enum View {
     HOME = 'HOME',
@@ -97,6 +97,12 @@ export interface Player {
     specialSkills?: string[];
     xp?: number;
     achievements?: string[];
+    isAvailableToday?: boolean;
+    lastKnownLocation?: {
+        latitude: number;
+        longitude: number;
+        timestamp: Date;
+    } | null;
 }
 
 export type OwnerStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction';

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage } from '../types';
@@ -69,7 +62,7 @@ const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
 }
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -1514,8 +1507,62 @@ const App = () => {
         showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
     };
 
+    const handleSetAvailability = async (isAvailable: boolean) => {
+        if (!user || !user.playerProfile) return;
+    
+        let locationUpdate: { latitude: number; longitude: number; timestamp: Date } | null = null;
+        if (isAvailable) {
+            try {
+                const position = await getCurrentPosition({ timeout: 10000 });
+                locationUpdate = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    timestamp: new Date(),
+                };
+            } catch (error) {
+                console.error("No se pudo obtener la ubicación:", String(error));
+                showToast({
+                    type: 'error',
+                    title: 'Error de Ubicación',
+                    message: 'No se pudo obtener tu ubicación. Activa los permisos e inténtalo de nuevo.'
+                });
+                // Devolvemos una promesa rechazada para que el componente hijo pueda manejar el fallo
+                return Promise.reject(error);
+            }
+        }
+    
+        const updatedPlayerProfile = {
+            ...user.playerProfile,
+            isAvailableToday: isAvailable,
+            lastKnownLocation: isAvailable ? locationUpdate : null,
+        };
+    
+        try {
+            await db.updateUser(user.id, { playerProfile: updatedPlayerProfile });
+    
+            const updatedUser = { ...user, playerProfile: updatedPlayerProfile };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+    
+            showToast({
+                type: 'success',
+                title: 'Disponibilidad Actualizada',
+                message: isAvailable ? 'Ahora eres visible para otros jugadores.' : 'Ya no estás visible como disponible.'
+            });
+            // Devolvemos una promesa resuelta para indicar éxito
+            return Promise.resolve();
+        } catch (error) {
+            console.error("Error al actualizar disponibilidad:", String(error));
+            showToast({
+                type: 'error',
+                title: 'Error',
+                message: 'No se pudo actualizar tu disponibilidad.'
+            });
+            // Devolvemos una promesa rechazada
+            return Promise.reject(error);
+        }
+    };
 
-    const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
 
     const renderView = () => {
         const homeComponent = <Home 
@@ -1707,6 +1754,7 @@ const App = () => {
                                     onRemovePlayerFromTeam={handleRemovePlayerFromTeam}
                                     onLeaveTeam={handleLeaveTeam}
                                     weatherData={weatherData}
+                                    onSetAvailability={handleSetAvailability}
                                 />;
                     }
                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
@@ -1732,8 +1780,11 @@ const App = () => {
         );
     };
     
+    // FIX: Removed duplicated function and constant declarations.
+    const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
+    
     const isSocialView = view === View.SOCIAL;
-    const socialSectionsWithDarkBg = ['hub', 'my-team'];
+    const socialSectionsWithDarkBg = ['hub', 'my-team', 'available-today'];
     const showDarkSocialBg = isSocialView && socialSectionsWithDarkBg.includes(socialSection);
     const isChatView = isSocialView && socialSection === 'chat';
     
