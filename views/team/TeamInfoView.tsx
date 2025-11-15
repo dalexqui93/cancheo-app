@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { Team, Player } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';

@@ -1507,7 +1507,7 @@ const App = () => {
         showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
     };
 
-    const handleSetAvailability = async (isAvailable: boolean) => {
+    const handleSetAvailability = async (isAvailable: boolean, note?: string) => {
         if (!user || !user.playerProfile) return;
     
         let locationUpdate: { latitude: number; longitude: number; timestamp: Date } | null = null;
@@ -1526,7 +1526,6 @@ const App = () => {
                     title: 'Error de Ubicación',
                     message: 'No se pudo obtener tu ubicación. Activa los permisos e inténtalo de nuevo.'
                 });
-                // Devolvemos una promesa rechazada para que el componente hijo pueda manejar el fallo
                 return Promise.reject(error);
             }
         }
@@ -1535,6 +1534,7 @@ const App = () => {
             ...user.playerProfile,
             isAvailableToday: isAvailable,
             lastKnownLocation: isAvailable ? locationUpdate : null,
+            availabilityNote: note || '',
         };
     
         try {
@@ -1549,7 +1549,6 @@ const App = () => {
                 title: 'Disponibilidad Actualizada',
                 message: isAvailable ? 'Ahora eres visible para otros jugadores.' : 'Ya no estás visible como disponible.'
             });
-            // Devolvemos una promesa resuelta para indicar éxito
             return Promise.resolve();
         } catch (error) {
             console.error("Error al actualizar disponibilidad:", String(error));
@@ -1558,7 +1557,6 @@ const App = () => {
                 title: 'Error',
                 message: 'No se pudo actualizar tu disponibilidad.'
             });
-            // Devolvemos una promesa rechazada
             return Promise.reject(error);
         }
     };

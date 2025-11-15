@@ -30,7 +30,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                 setImagePreviews([]);
                 setSelectedTag('');
             } catch (error) {
-                console.error("Failed to create post:", error);
+                // FIX: Explicitly convert 'unknown' error to string for safe logging.
+                console.error("Failed to create post:", String(error));
             } finally {
                 setIsPosting(false);
             }

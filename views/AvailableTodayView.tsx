@@ -10,6 +10,7 @@ import { XIcon } from '../components/icons/XIcon';
 import { timeSince } from '../utils/timeSince';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
+import { ChatBubbleBottomCenterTextIcon } from '../components/icons/ChatBubbleBottomCenterTextIcon';
 
 const levelToRating = (level: Player['level']): number => {
     if (typeof level === 'number') return level;
@@ -27,7 +28,7 @@ interface AvailableTodayViewProps {
     weatherData: WeatherData | null;
     allBookings: ConfirmedBooking[];
     onBack: () => void;
-    onSetAvailability: (isAvailable: boolean) => Promise<void>;
+    onSetAvailability: (isAvailable: boolean, note?: string) => Promise<void>;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onViewProfile: (player: Player) => void;
 }
@@ -104,6 +105,12 @@ const PlayerAvailableCard: React.FC<{
                 )}
             </div>
         </div>
+        {player.availabilityNote && (
+            <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2 text-sm text-gray-300 italic">
+                <ChatBubbleBottomCenterTextIcon className="w-5 h-5 flex-shrink-0 mt-0.5 text-gray-400" />
+                <p>"{player.availabilityNote}"</p>
+            </div>
+        )}
         <div className="mt-4 pt-4 border-t border-white/20 flex-grow flex items-end gap-3">
             <button onClick={() => onInvite(player)} className="w-full py-2 px-4 rounded-lg font-semibold bg-white/10 hover:bg-white/20 text-sm">Invitar a Jugar</button>
             <button onClick={() => onInviteToMatch(player)} className="w-full py-2 px-4 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm text-sm">Invitar a Partido</button>
@@ -115,14 +122,23 @@ const AvailableTodayView: React.FC<AvailableTodayViewProps> = ({ user, allUsers,
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [playerToInvite, setPlayerToInvite] = useState<Player | null>(null);
+    const [availabilityNote, setAvailabilityNote] = useState(user.playerProfile?.availabilityNote || '');
+
+    const handleSaveNote = () => {
+        if (!user.playerProfile?.isAvailableToday) return;
+        onSetAvailability(true, availabilityNote);
+    };
 
     const handleAvailabilityChange = (isAvailable: boolean) => {
         setIsLoadingAvailability(true);
-        onSetAvailability(isAvailable)
-            .catch(() => {
-                // Si la promesa se rechaza (p. ej. error de ubicación), no hacemos nada.
-                // El estado del toggle se gestionará en el componente.
+        const noteToSend = isAvailable ? availabilityNote : '';
+        onSetAvailability(isAvailable, noteToSend)
+            .then(() => {
+                if (!isAvailable) {
+                    setAvailabilityNote('');
+                }
             })
+            .catch(() => {})
             .finally(() => {
                 setIsLoadingAvailability(false);
             });
@@ -162,34 +178,54 @@ const AvailableTodayView: React.FC<AvailableTodayViewProps> = ({ user, allUsers,
     return (
         <div className="p-4 sm:p-6 pb-[6.5rem]">
             <button onClick={onBack} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
-                <ChevronLeftIcon className="h-5 h-5" />
+                <ChevronLeftIcon className="h-5 w-5" />
                 Volver a DaviPlay
             </button>
             <h1 className="text-3xl font-bold tracking-tight text-white mt-6">Disponibles Hoy</h1>
             <p className="mt-2 text-base text-gray-400">Actívate para que otros te inviten o busca jugadores listos para un partido.</p>
 
-            <div className="my-6 bg-black/20 backdrop-blur-md border border-amber-500/50 rounded-xl p-4 flex items-center justify-between shadow-lg">
-                <div className="flex-grow">
-                    <h3 className="font-bold text-lg">¿Listo para jugar hoy?</h3>
-                    <p className="text-xs text-gray-300">Activa tu disponibilidad para aparecer en esta lista.</p>
+            <div className="my-6 bg-black/20 backdrop-blur-md border border-amber-500/50 rounded-xl p-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                    <div className="flex-grow">
+                        <h3 className="font-bold text-lg">¿Listo para jugar hoy?</h3>
+                        <p className="text-xs text-gray-300">Activa tu disponibilidad para aparecer en esta lista.</p>
+                    </div>
+                     <div className="flex items-center gap-3">
+                        {isLoadingAvailability && <SpinnerIcon className="w-6 h-6 text-amber-400"/>}
+                        <button
+                            type="button"
+                            className={`${
+                                user.playerProfile?.isAvailableToday ? 'bg-green-500' : 'bg-gray-600'
+                            } relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900`}
+                            role="switch"
+                            aria-checked={user.playerProfile?.isAvailableToday}
+                            onClick={() => handleAvailabilityChange(!user.playerProfile?.isAvailableToday)}
+                            disabled={isLoadingAvailability}
+                        >
+                            <span className={`${
+                                user.playerProfile?.isAvailableToday ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}/>
+                        </button>
+                    </div>
                 </div>
-                 <div className="flex items-center gap-3">
-                    {isLoadingAvailability && <SpinnerIcon className="w-6 h-6 text-amber-400"/>}
-                    <button
-                        type="button"
-                        className={`${
-                            user.playerProfile?.isAvailableToday ? 'bg-green-500' : 'bg-gray-600'
-                        } relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900`}
-                        role="switch"
-                        aria-checked={user.playerProfile?.isAvailableToday}
-                        onClick={() => handleAvailabilityChange(!user.playerProfile?.isAvailableToday)}
-                        disabled={isLoadingAvailability}
-                    >
-                        <span className={`${
-                            user.playerProfile?.isAvailableToday ? 'translate-x-5' : 'translate-x-0'
-                        } pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}/>
-                    </button>
-                </div>
+                {user.playerProfile?.isAvailableToday && (
+                    <div className="mt-4 pt-4 border-t border-white/20 animate-fade-in">
+                        <label htmlFor="availability-note" className="block text-sm font-semibold text-gray-300 mb-2">
+                            Añade una nota pública (opcional):
+                        </label>
+                        <textarea
+                            id="availability-note"
+                            value={availabilityNote}
+                            onChange={e => setAvailabilityNote(e.target.value)}
+                            onBlur={handleSaveNote}
+                            placeholder="Ej: Busco un partido de 7v7, soy delantero."
+                            maxLength={140}
+                            rows={2}
+                            className="w-full bg-black/30 rounded-md p-2 border-0 ring-1 ring-white/20 focus:ring-amber-500 text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1 text-right">{availabilityNote.length}/140</p>
+                    </div>
+                )}
             </div>
             
             <h2 className="text-2xl font-bold tracking-tight text-white mt-8 mb-4">Jugadores Disponibles</h2>

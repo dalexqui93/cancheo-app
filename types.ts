@@ -103,6 +103,7 @@ export interface Player {
         longitude: number;
         timestamp: Date;
     } | null;
+    availabilityNote?: string;
 }
 
 export type OwnerStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction';
