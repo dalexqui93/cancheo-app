@@ -153,32 +153,27 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             );
         }
 
-        if (count === 4) {
+        if (count >= 4) {
             return (
                 <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-video">
-                    {images.slice(0, 4).map((url, index) => (
+                    {images.slice(0, 3).map((url, index) => (
                         <div key={index} onClick={() => openLightbox(index)}>
                             <img src={url} className={imageBaseClasses} alt={`Contenido de la publicación ${index + 1}`}/>
                         </div>
                     ))}
+                    <div className="relative" onClick={() => openLightbox(3)}>
+                        <img src={images[3]} className={imageBaseClasses} alt="Contenido 4"/>
+                        {count > 4 && (
+                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer">
+                                <span className="text-white text-3xl font-bold">+{count - 4}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             );
         }
 
-        // 5 or more images
-        return (
-            <div className="mt-3 grid grid-cols-2 grid-rows-2 gap-1 rounded-lg overflow-hidden aspect-video">
-                <div onClick={() => openLightbox(0)}><img src={images[0]} className={imageBaseClasses} alt="Contenido 1"/></div>
-                <div onClick={() => openLightbox(1)}><img src={images[1]} className={imageBaseClasses} alt="Contenido 2"/></div>
-                <div onClick={() => openLightbox(2)}><img src={images[2]} className={imageBaseClasses} alt="Contenido 3"/></div>
-                <div className="relative" onClick={() => openLightbox(3)}>
-                    <img src={images[3]} className={imageBaseClasses} alt="Contenido 4"/>
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer">
-                        <span className="text-white text-3xl font-bold">+{count - 4}</span>
-                    </div>
-                </div>
-            </div>
-        );
+        return null;
     };
 
     const sortedReactions = [...post.reactions].sort((a,b) => b.userIds.length - a.userIds.length);

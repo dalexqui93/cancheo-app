@@ -88,8 +88,10 @@ const PlayerAvailableCard: React.FC<{
             <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
                 {player.profilePicture ? <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-gray-400"/>}
             </div>
-            <div className="flex-grow">
-                <p className="font-bold text-lg text-white">{player.name}</p>
+            <div className="flex-grow min-w-0">
+                <button onClick={() => onViewProfile(player)} className="font-bold text-lg text-white text-left hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-amber-500 rounded-sm">
+                    {player.name}
+                </button>
                 <p className="text-sm text-gray-400">{player.position}</p>
                 <div className="mt-1 flex items-center gap-2">
                     <StarRating rating={levelToRating(player.level)} />
