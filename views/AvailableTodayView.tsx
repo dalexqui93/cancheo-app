@@ -163,15 +163,14 @@ const AvailableTodayView: React.FC<AvailableTodayViewProps> = ({ user, allUsers,
     const handleInvite = async (player: Player) => {
         const targetUser = allUsers.find(u => u.id === player.id);
         if (targetUser) {
-            const newNotification: Notification = {
-                id: Date.now(),
+            const newNotification: Omit<Notification, 'id' | 'timestamp'> = {
                 type: 'info',
                 title: '¡Te han invitado a jugar!',
                 message: `${user.name} vio que estás disponible y quiere organizar un partido.`,
-                timestamp: new Date(),
                 read: false,
             };
-            const updatedNotifications = [newNotification, ...(targetUser.notifications || [])].slice(0, 50);
+            const fullNotification = { ...newNotification, id: Date.now(), timestamp: new Date() };
+            const updatedNotifications = [fullNotification, ...(targetUser.notifications || [])].slice(0, 50);
             try {
                 await db.updateUser(targetUser.id, { notifications: updatedNotifications });
             } catch (error) {
@@ -191,19 +190,26 @@ const AvailableTodayView: React.FC<AvailableTodayViewProps> = ({ user, allUsers,
         
         const targetUser = allUsers.find(u => u.id === playerToInvite.id);
         if (targetUser) {
-            const newNotification: Notification = {
-                id: Date.now(),
-                type: 'success',
-                title: '¡Invitación a un partido!',
-                message: `${user.name} te ha invitado a su partido en ${booking.field.name} a las ${booking.time}.`,
-                timestamp: new Date(),
+            const newNotification: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'match_invite',
+                title: `Invitación a partido de ${user.name}`,
+                message: `${user.name} te ha invitado a su partido.`,
                 read: false,
+                payload: {
+                    fromUserId: user.id,
+                    fromUserName: user.name,
+                    bookingId: booking.id,
+                    fieldName: booking.field.name,
+                    matchTime: booking.time,
+                    matchDate: booking.date,
+                }
             };
-            const updatedNotifications = [newNotification, ...(targetUser.notifications || [])].slice(0, 50);
+            const fullNotification = { ...newNotification, id: Date.now(), timestamp: new Date() };
+            const updatedNotifications = [fullNotification, ...(targetUser.notifications || [])].slice(0, 50);
             try {
                 await db.updateUser(targetUser.id, { notifications: updatedNotifications });
             } catch (error) {
-                console.error("Failed to send notification:", String(error));
+                console.error("Failed to send match invitation notification:", String(error));
             }
         }
 

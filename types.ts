@@ -135,11 +135,19 @@ export interface User {
 
 export interface Notification {
     id: number;
-    type: 'success' | 'info' | 'error';
+    type: 'success' | 'info' | 'error' | 'match_invite';
     title: string;
     message: string;
     timestamp: Date;
     read?: boolean;
+    payload?: {
+        fromUserId: string;
+        fromUserName: string;
+        bookingId: string;
+        fieldName: string;
+        matchTime: string;
+        matchDate: Date;
+    };
 }
 
 export interface BookingDetails {

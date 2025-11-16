@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -89,7 +85,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         } catch (error) {
             // FIX: Explicitly convert 'unknown' error to string for safe logging.
             // Combine console.error arguments into a single string to fix type error.
-            console.error('Error al vaciar el chat: ' + String(error));
+            // FIX: Changed string concatenation to a template literal to resolve the TypeScript error and ensure consistency.
+            console.error(`Error al vaciar el chat: ${String(error)}`);
             addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
         }
     }, [team.id, localStorageKey, addNotification]);

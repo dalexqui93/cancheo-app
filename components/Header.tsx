@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { User, Notification, Invitation } from '../types';
 import { View } from '../types';
 import { UserIcon } from './icons/UserIcon';
@@ -13,6 +13,7 @@ import { DashboardIcon } from './icons/DashboardIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { ShieldIcon } from './icons/ShieldIcon';
 import ConfirmationModal from './ConfirmationModal';
+import { SoccerBallIcon } from './icons/SoccerBallIcon';
 
 
 interface HeaderProps {
@@ -26,6 +27,8 @@ interface HeaderProps {
     onClearAll: () => void;
     onAcceptInvitation: (invitation: Invitation) => void;
     onRejectInvitation: (invitation: Invitation) => void;
+    onAcceptMatchInvite: (notification: Notification) => void;
+    onRejectMatchInvite: (notification: Notification) => void;
     currentTime: Date;
 }
 
@@ -36,6 +39,7 @@ const NotificationIcon: React.FC<{ notification: Notification }> = ({ notificati
     if (title.toLowerCase().includes('anuncio')) return <MegaphoneIcon className="h-6 w-6 text-blue-500" />;
     if (type === 'success') return <CheckCircleIcon className="h-6 w-6 text-green-500" />;
     if (type === 'error') return <InformationCircleIcon className="h-6 w-6 text-red-500" />;
+    if (type === 'match_invite') return <SoccerBallIcon className="h-6 w-6 text-green-500" />;
 
     return <InformationCircleIcon className="h-6 w-6 text-gray-500" />;
 };
@@ -74,23 +78,62 @@ const InvitationCard: React.FC<{
     );
 };
 
+const MatchInvitationCard: React.FC<{
+    notification: Notification;
+    onAccept: (notification: Notification) => void;
+    onReject: (notification: Notification) => void;
+}> = ({ notification, onAccept, onReject }) => {
+    if (!notification.payload) return null;
 
-const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, invitations, onDismiss, onMarkAllAsRead, onClearAll, onAcceptInvitation, onRejectInvitation, currentTime }) => {
+    const { fromUserName, fieldName, matchTime, matchDate } = notification.payload;
+    const formattedDate = new Date(matchDate).toLocaleDateString('es-CO', { weekday: 'short', month: 'long', day: 'numeric' });
+
+    return (
+        <div className="p-4">
+            <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                    <SoccerBallIcon className="w-6 h-6 text-gray-400" />
+                </div>
+                <div className="flex-grow">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="font-bold text-gray-900 dark:text-gray-100">{fromUserName}</span> te invitó a su partido en <span className="font-bold text-gray-900 dark:text-gray-100">{fieldName}</span>.
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{formattedDate} a las {matchTime}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{timeSince(new Date(notification.timestamp))}</p>
+                </div>
+            </div>
+            <div className="mt-3 flex gap-3">
+                <button onClick={() => onAccept(notification)} className="w-full bg-green-600 text-white font-semibold py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    Aceptar
+                </button>
+                <button onClick={() => onReject(notification)} className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm">
+                    Rechazar
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, invitations, onDismiss, onMarkAllAsRead, onClearAll, onAcceptInvitation, onRejectInvitation, onAcceptMatchInvite, onRejectMatchInvite, currentTime }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
     const notificationsRef = useRef<HTMLDivElement>(null);
 
+    const matchInvites = useMemo(() => notifications.filter(n => n.type === 'match_invite'), [notifications]);
+    const regularNotifications = useMemo(() => notifications.filter(n => n.type !== 'match_invite'), [notifications]);
+
     // Mark as read when opening the dropdown after a delay
     useEffect(() => {
-        if (isNotificationsOpen && notifications.some(n => !n.read)) {
+        if (isNotificationsOpen && regularNotifications.some(n => !n.read)) {
             const timeoutId = setTimeout(() => {
                 onMarkAllAsRead();
             }, 2000); 
             return () => clearTimeout(timeoutId);
         }
-    }, [isNotificationsOpen, onMarkAllAsRead, notifications]);
+    }, [isNotificationsOpen, onMarkAllAsRead, regularNotifications]);
     
      // Close dropdowns when clicking outside
     useEffect(() => {
@@ -107,7 +150,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.read).length + invitations.length;
+    const unreadCount = regularNotifications.filter(n => !n.read).length + invitations.length + matchInvites.length;
 
     const MenuItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
         <button onClick={onClick} className="w-full flex items-center gap-3 p-2 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
@@ -169,13 +212,26 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                     <div className="absolute right-[-3.5rem] sm:right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in flex flex-col" style={{maxHeight: '80vh', transformOrigin: 'top right'}}>
                                         <div className="p-4 border-b border-black/10 dark:border-white/10 flex justify-between items-center flex-shrink-0">
                                             <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">Notificaciones</h3>
-                                            {notifications.filter(n => !n.read).length > 0 && (
+                                            {regularNotifications.filter(n => !n.read).length > 0 && (
                                                 <button onClick={onMarkAllAsRead} className="text-sm font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline whitespace-nowrap">
                                                     Marcar leídas
                                                 </button>
                                             )}
                                         </div>
                                         <div className="flex-grow overflow-y-auto">
+                                            {matchInvites.length > 0 && (
+                                                <>
+                                                    <div className="px-4 pt-4 pb-2">
+                                                        <h4 className="font-bold text-gray-800 dark:text-gray-200">Invitaciones a Partidos</h4>
+                                                    </div>
+                                                    <div className="divide-y divide-black/10 dark:divide-white/10">
+                                                        {matchInvites.map(notif => (
+                                                            <MatchInvitationCard key={notif.id} notification={notif} onAccept={onAcceptMatchInvite} onReject={onRejectMatchInvite} />
+                                                        ))}
+                                                    </div>
+                                                    {(invitations.length > 0 || regularNotifications.length > 0) && <div className="p-2 border-b border-black/10 dark:border-white/10"></div>}
+                                                </>
+                                            )}
                                             {invitations.length > 0 && (
                                                 <>
                                                     <div className="px-4 pt-4 pb-2">
@@ -186,11 +242,11 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                                             <InvitationCard key={inv.id} invitation={inv} onAccept={onAcceptInvitation} onReject={onRejectInvitation} />
                                                         ))}
                                                     </div>
-                                                    <div className="p-2 border-b border-black/10 dark:border-white/10"></div>
+                                                    {regularNotifications.length > 0 && <div className="p-2 border-b border-black/10 dark:border-white/10"></div>}
                                                 </>
                                             )}
-                                            {notifications.length > 0 ? (
-                                                notifications.map(notif => (
+                                            {regularNotifications.length > 0 ? (
+                                                regularNotifications.map(notif => (
                                                     <div key={notif.id} className="group p-4 flex items-start gap-4 hover:bg-black/5 dark:hover:bg-white/5 relative">
                                                         {!notif.read && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 bg-blue-500 rounded-full"></div>}
                                                         <div className="flex-shrink-0 mt-1 pl-2">
@@ -211,7 +267,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                                     </div>
                                                 ))
                                             ) : (
-                                                invitations.length === 0 && (
+                                                (invitations.length === 0 && matchInvites.length === 0) && (
                                                     <div className="text-center py-16 px-4 flex flex-col items-center">
                                                         <BellIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 opacity-50 mb-4"/>
                                                         <h4 className="font-bold text-gray-800 dark:text-gray-200">Todo está al día</h4>
@@ -220,10 +276,10 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                                 )
                                             )}
                                         </div>
-                                        {notifications.length > 0 && (
+                                        {regularNotifications.length > 0 && (
                                             <div className="p-2 border-t border-black/10 dark:border-white/10 flex-shrink-0">
                                                 <button onClick={() => setIsClearAllModalOpen(true)} className="w-full text-center text-sm font-semibold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 py-2 rounded-md transition-colors">
-                                                    Limpiar todo
+                                                    Limpiar notificaciones
                                                 </button>
                                             </div>
                                         )}
@@ -295,7 +351,7 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                         setIsClearAllModalOpen(false);
                     }}
                     title="¿Limpiar todas las notificaciones?"
-                    message="Esta acción no se puede deshacer y eliminará permanentemente todas tus notificaciones."
+                    message="Esta acción no se puede deshacer y eliminará permanentemente todas tus notificaciones informativas, pero conservará las invitaciones."
                     confirmButtonText="Sí, limpiar todo"
                 />
             )}
