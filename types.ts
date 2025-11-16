@@ -181,7 +181,6 @@ export interface ConfirmedBooking {
     loyaltyApplied?: boolean;
     scoreA?: number;
     scoreB?: number;
-    acceptedInvitees?: string[];
 }
 
 export interface Announcement {

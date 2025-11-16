@@ -504,24 +504,11 @@ export const addBooking = async (bookingData) => {
 
 export const updateBooking = async (bookingId, updates) => {
     if (isFirebaseConfigured) {
-        const updateData = { ...updates };
-        if (updates.acceptedInvitees) {
-            updateData.acceptedInvitees = firebase.firestore.FieldValue.arrayUnion(...updates.acceptedInvitees.filter(Boolean));
-        }
-        return db.collection('bookings').doc(bookingId).update(updateData);
+        return db.collection('bookings').doc(bookingId).update(updates);
     }
     const bookingIndex = demoData.bookings.findIndex(b => b.id === bookingId);
     if (bookingIndex > -1) {
-        const currentBooking = demoData.bookings[bookingIndex];
-        // Special handling for array updates
-        if (updates.acceptedInvitees) {
-            const currentInvitees = currentBooking.acceptedInvitees || [];
-            // Use a Set to ensure uniqueness, simulating arrayUnion
-            const newInvitees = [...new Set([...currentInvitees, ...updates.acceptedInvitees])];
-            currentBooking.acceptedInvitees = newInvitees;
-            delete updates.acceptedInvitees;
-        }
-        demoData.bookings[bookingIndex] = { ...currentBooking, ...updates };
+        demoData.bookings[bookingIndex] = { ...demoData.bookings[bookingIndex], ...updates };
     }
     return Promise.resolve();
 };
