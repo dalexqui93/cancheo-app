@@ -1522,6 +1522,77 @@ const App = () => {
         showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
     };
 
+    const sendNotificationToUser = async (targetUserId: string, notifData: Omit<Notification, 'id' | 'timestamp'>) => {
+        const targetUser = allUsers.find(u => u.id === targetUserId);
+        if (!targetUser) return;
+
+        const newNotification = { ...notifData, id: Date.now(), timestamp: new Date(), read: false };
+        const updatedNotifications = [newNotification, ...(targetUser.notifications || [])].slice(0, 50);
+
+        try {
+            await db.updateUser(targetUserId, { notifications: updatedNotifications });
+            if (!isFirebaseConfigured) {
+                setAllUsers(prevUsers => prevUsers.map(u => 
+                    u.id === targetUserId ? { ...u, notifications: updatedNotifications } : u
+                ));
+            }
+        } catch (error) {
+            console.error(`Error sending notification to user ${targetUserId}:`, String(error));
+        }
+    };
+    
+    const handleAcceptMatchInvite = async (notification: Notification) => {
+        if (!user || !notification.payload) return;
+
+        const updatedNotifications = notifications.filter(n => n.id !== notification.id);
+        setNotifications(updatedNotifications);
+        try {
+            await db.updateUser(user.id, { notifications: updatedNotifications });
+        } catch (error) {
+            console.error("Error removing match invite notification:", String(error));
+        }
+
+        const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
+            type: 'success',
+            title: 'Invitación Aceptada',
+            message: `${user.name} ha aceptado tu invitación al partido en ${notification.payload.fieldName}.`,
+            read: false,
+        };
+        await sendNotificationToUser(notification.payload.fromUserId, notificationForInviter);
+
+        showToast({
+            type: 'success',
+            title: 'Invitación Aceptada',
+            message: `Confirmaste tu asistencia al partido.`,
+        });
+    };
+
+    const handleRejectMatchInvite = async (notification: Notification) => {
+        if (!user || !notification.payload) return;
+
+        const updatedNotifications = notifications.filter(n => n.id !== notification.id);
+        setNotifications(updatedNotifications);
+        try {
+            await db.updateUser(user.id, { notifications: updatedNotifications });
+        } catch (error) {
+            console.error("Error removing match invite notification:", String(error));
+        }
+
+        const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
+            type: 'info',
+            title: 'Invitación Rechazada',
+            message: `${user.name} ha rechazado tu invitación al partido en ${notification.payload.fieldName}.`,
+            read: false,
+        };
+        await sendNotificationToUser(notification.payload.fromUserId, notificationForInviter);
+
+        showToast({
+            type: 'info',
+            title: 'Invitación Rechazada',
+            message: `Has rechazado la invitación al partido.`,
+        });
+    };
+    
     const handleSetAvailability = async (isAvailable: boolean, note?: string) => {
         if (!user || !user.playerProfile) return;
     
@@ -1822,6 +1893,8 @@ const App = () => {
                                 onClearAll={handleClearNotifications} 
                                 onAcceptInvitation={handleAcceptInvitation}
                                 onRejectInvitation={handleRejectInvitation}
+                                onAcceptMatchInvite={handleAcceptMatchInvite}
+                                onRejectMatchInvite={handleRejectMatchInvite}
                                 currentTime={currentTime}/>}
                 <main className={`transition-all duration-300 ${!isChatView && 'overflow-x-hidden'} ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
                     {renderView()}
