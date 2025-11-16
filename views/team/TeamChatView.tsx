@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -163,8 +164,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
             // FIX: Explicitly convert 'unknown' error to string for safe logging.
-            // Combine console.error arguments into a single string to fix type error.
-            console.error(`Error al eliminar mensajes: ${String(error)}`);
+            // Using two arguments for console.error for consistency.
+            console.error("Error al eliminar mensajes:", String(error));
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
             setShowDeleteModal(false);

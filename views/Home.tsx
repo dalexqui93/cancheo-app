@@ -15,6 +15,8 @@ import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { GoogleGenAI, Type } from '@google/genai';
 import { calculateDistance } from '../utils/geolocation';
 import ScrollOnOverflow from '../components/ScrollOnOverflow';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { ClockIcon } from '../components/icons/ClockIcon';
 
 
 interface HomeProps {
@@ -36,6 +38,7 @@ interface HomeProps {
     allBookings: ConfirmedBooking[];
     allTeams: Team[];
     currentTime: Date;
+    acceptedExternalMatches: ConfirmedBooking[];
 }
 
 const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
@@ -277,7 +280,53 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
     );
 };
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime }) => {
+const InvitedMatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; }> = ({ match, onSelectField }) => {
+    return (
+        <div 
+            className="flex-shrink-0 w-80 rounded-2xl shadow-lg overflow-hidden border border-gray-700 relative text-gray-800 dark:text-white bg-white dark:bg-gray-800"
+        >
+            <img src={match.field.images[1] || match.field.images[0]} alt={match.field.name} className="absolute inset-0 w-full h-full object-cover opacity-10 dark:opacity-20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-gray-800 via-transparent to-transparent"></div>
+
+            <div className="p-4 relative z-10 flex flex-col h-full">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="flex-grow min-w-0">
+                        <p className="font-bold text-lg">{match.teamName}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">vs {match.rivalName}</p>
+                    </div>
+                    <div className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                        Invitado
+                    </div>
+                </div>
+
+                <div className="space-y-2 my-4">
+                    <div className="flex items-center gap-2 text-sm">
+                        <LocationIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <span className="font-semibold">{match.field.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                        <CalendarIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <span className="font-semibold">{new Date(match.date).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                        <ClockIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <span className="font-semibold">{match.time}</span>
+                    </div>
+                </div>
+                
+                <button 
+                    onClick={() => onSelectField(match.field)}
+                    className="w-full text-center bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] transition-colors text-white font-semibold py-2 px-4 rounded-lg text-sm mt-auto"
+                >
+                    Ver Detalles del Partido
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime, acceptedExternalMatches }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAiSearching, setIsAiSearching] = useState(false);
 
@@ -544,6 +593,20 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                     </div>
                 )}
             </section>
+
+            {/* Accepted Invitations */}
+            {user && acceptedExternalMatches.length > 0 && (
+                <section>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                        Mis Invitaciones Aceptadas
+                    </h2>
+                    <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+                        {acceptedExternalMatches.map(match => (
+                            <InvitedMatchCard key={`invited-${match.id}`} match={match} onSelectField={onSelectField} />
+                        ))}
+                    </div>
+                </section>
+            )}
             
             {/* Announcements */}
             {announcements && announcements.length > 0 && (

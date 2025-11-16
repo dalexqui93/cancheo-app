@@ -99,6 +99,7 @@ const App = () => {
     const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [acceptedExternalMatches, setAcceptedExternalMatches] = useState<ConfirmedBooking[]>([]);
 
     // Weather State
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -330,12 +331,25 @@ const App = () => {
             if (user) {
                 const userBookings = allBookings.filter(b => b.userId === user.id);
                 setBookings(userBookings);
+
+                const userTeamNames = (user.teamIds || [])
+                    .map(id => allTeams.find(t => t.id === id)?.name)
+                    .filter(Boolean);
+
+                const externalMatches = allBookings.filter(b =>
+                    b.acceptedInvitees?.includes(user.id) &&
+                    b.teamName &&
+                    !userTeamNames.includes(b.teamName)
+                );
+                setAcceptedExternalMatches(externalMatches);
+
             } else {
                 setBookings([]); // Clear bookings on logout
+                setAcceptedExternalMatches([]);
             }
         };
         loadUserData();
-    }, [user, allBookings]);
+    }, [user, allBookings, allTeams]);
 
 
     // Manage theme changes
@@ -1543,7 +1557,16 @@ const App = () => {
     
     const handleAcceptMatchInvite = async (notification: Notification) => {
         if (!user || !notification.payload) return;
-
+    
+        const { bookingId } = notification.payload;
+        const booking = allBookings.find(b => b.id === bookingId);
+    
+        if (booking) {
+            const updatedInvitees = [...(booking.acceptedInvitees || []), user.id];
+            await db.updateBooking(bookingId, { acceptedInvitees: updatedInvitees });
+        }
+    
+        // El resto de la lógica permanece igual
         const updatedNotifications = notifications.filter(n => n.id !== notification.id);
         setNotifications(updatedNotifications);
         try {
@@ -1551,7 +1574,7 @@ const App = () => {
         } catch (error) {
             console.error("Error removing match invite notification:", String(error));
         }
-
+    
         const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
             type: 'success',
             title: 'Invitación Aceptada',
@@ -1559,7 +1582,7 @@ const App = () => {
             read: false,
         };
         await sendNotificationToUser(notification.payload.fromUserId, notificationForInviter);
-
+    
         showToast({
             type: 'success',
             title: 'Invitación Aceptada',
@@ -1671,6 +1694,7 @@ const App = () => {
             allBookings={allBookings}
             allTeams={allTeams}
             currentTime={currentTime}
+            acceptedExternalMatches={acceptedExternalMatches}
         />;
         
         const viewElement = (() => {
