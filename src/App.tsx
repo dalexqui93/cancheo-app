@@ -1,209 +1,1547 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+// FIX: Corrected type imports by fixing the types.ts file.
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage, AcceptedMatchInvite } from '../types';
 import { View } from '../types';
-import type { User, Notification, SoccerField, ConfirmedBooking, Team, WeatherData, SocialSection, Invitation, AcceptedMatchInvite, OwnerApplication, Theme, AccentColor, Announcement } from '../types';
-import * as db from '../database';
-import { getCurrentPosition } from '../utils/geolocation';
-
-// Views
+import Header from '../components/Header';
 import Home from '../views/Home';
-import Login from '../views/Login';
-import Register from '../views/Register';
-import ProfileView from '../views/ProfileView';
 import SearchResults from '../views/SearchResults';
 import FieldDetail from '../views/FieldDetail';
 import Booking from '../views/Booking';
 import BookingConfirmation from '../views/BookingConfirmation';
-import BookingsView from '../views/BookingsView';
-import SocialView from '../views/SocialView';
+import Login from '../views/Login';
+import Register from '../views/Register';
 import OwnerDashboard from '../views/AdminDashboard';
-import SuperAdminDashboardView from '../views/SuperAdminDashboard';
-import OwnerRegisterView from '../views/OwnerRegisterView';
-import OwnerPendingVerificationView from '../views/OwnerPendingVerificationView';
-import HelpView from '../views/HelpView';
-import ForgotPasswordView from '../views/ForgotPassword';
+import ProfileView from '../views/ProfileView';
+import BookingsView from '../views/BookingsView';
+import BookingDetailView from '../views/BookingDetailView';
+import NotificationContainer from '../components/NotificationContainer';
+import BottomNav from '../components/BottomNav';
 import AppearanceSettings from '../views/AppearanceSettings';
+import HelpView from '../views/HelpView';
+import SocialView from '../views/SocialView';
 import PaymentMethodsView from '../views/PaymentMethodsView';
 import PlayerProfileCreatorView from '../views/player_profile/PlayerProfileCreatorView';
-
-// Components
-import Header from '../components/Header';
-import BottomNav from '../components/BottomNav';
-import NotificationContainer from '../components/NotificationContainer';
 import PremiumLockModal from '../components/PremiumLockModal';
+import ForgotPasswordView from '../views/ForgotPassword';
 import RewardAnimation from '../components/RewardAnimation';
 import RatingModal from '../components/RatingModal';
+import OwnerRegisterView from '../views/OwnerRegisterView';
+import OwnerPendingVerificationView from '../views/OwnerPendingVerificationView';
+import SuperAdminDashboard from '../views/SuperAdminDashboard';
+// Fix: Corrected import path from './firebase' to './database' to resolve module not found error.
+import * as db from '../database';
+import { isFirebaseConfigured } from '../database';
+import { getCurrentPosition, calculateDistance } from '../utils/geolocation';
 
-const App: React.FC = () => {
-    const [user, setUser] = useState<User | null>(null);
-    const [currentView, setCurrentView] = useState<View>(View.HOME);
+const FirebaseWarningBanner: React.FC = () => {
+    if (isFirebaseConfigured) {
+        return null;
+    }
+
+    return (
+        <div className="bg-yellow-400 text-yellow-900 text-center p-2 font-semibold text-sm sticky top-0 z-[101]">
+            <div className="container mx-auto">
+                Atención: Firebase no está configurado. La aplicación se ejecuta en modo de demostración. Edita <strong>database.ts</strong>.
+            </div>
+        </div>
+    );
+};
+
+const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
+    if (isOnline) {
+        return null;
+    }
+
+    return (
+        <div className="bg-gray-700 text-white text-center p-2 font-semibold text-sm sticky top-0 z-[101] animate-fade-in">
+            <div className="container mx-auto">
+                Estás desconectado. La aplicación se está ejecutando en modo offline.
+            </div>
+        </div>
+    );
+}
+
+// Sonido de notificación en formato Base64 para ser auto-contenido
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+
+const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
+    const [allBookings, setAllBookings] = useState<ConfirmedBooking[]>([]);
     const [allTeams, setAllTeams] = useState<Team[]>([]);
+    const [view, setView] = useState<View>(View.HOME);
+    const [activeTab, setActiveTab] = useState<Tab>('explore');
+    const [user, setUser] = useState<User | null>(null);
+    const [selectedField, setSelectedField] = useState<SoccerField | null>(null);
+    const [searchResults, setSearchResults] = useState<SoccerField[]>([]);
+    const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+    const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [toasts, setToasts] = useState<Notification[]>([]);
     const [bookings, setBookings] = useState<ConfirmedBooking[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [invitations, setInvitations] = useState<Invitation[]>([]);
-    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-    const [isWeatherLoading, setIsWeatherLoading] = useState(false);
-    const [theme, setTheme] = useState<Theme>('system');
-    const [accentColor, setAccentColor] = useState<AccentColor>('green');
-    
-    // UI State
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
-    const [rewardField, setRewardField] = useState<SoccerField | null>(null);
-    const [fieldToRate, setFieldToRate] = useState<SoccerField | null>(null);
-    
-    // Specific View State
-    const [selectedField, setSelectedField] = useState<SoccerField | null>(null);
-    const [bookingDetails, setBookingDetails] = useState<{ field: SoccerField; time: string; date: Date } | null>(null);
-    const [lastConfirmedBooking, setLastConfirmedBooking] = useState<ConfirmedBooking | null>(null);
+    const [selectedBooking, setSelectedBooking] = useState<ConfirmedBooking | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+    const [accentColor, setAccentColor] = useState<AccentColor>(() => (localStorage.getItem('accentColor') as AccentColor) || 'green');
+    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState<boolean>(false);
+    const [animationClass, setAnimationClass] = useState<string>('animate-fade-in');
+    const [viewKey, setViewKey] = useState<number>(0);
+    const [rewardInfo, setRewardInfo] = useState<{ field: SoccerField } | null>(null);
+    const [ratingInfo, setRatingInfo] = useState<{ field: SoccerField } | null>(null);
+    const [isBookingLoading, setIsBookingLoading] = useState<boolean>(false);
+    const [isRegisterLoading, setIsRegisterLoading] = useState<boolean>(false);
+    const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState<boolean>(false);
+    const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
     const [socialSection, setSocialSection] = useState<SocialSection>('hub');
-    const [searchResults, setSearchResults] = useState<SoccerField[]>([]);
-    const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
-    
-    // --- Data Fetching ---
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
+    const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+    // Weather State
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
+    const [weatherError, setWeatherError] = useState<string | null>(null);
+
+    // FIX: Define memoized values for owner fields and bookings to be used in the OwnerDashboard.
+    const ownerFields = useMemo(() => {
+        if (!user || !user.isOwner) return [];
+        return fields.filter(field => field.ownerId === user.id);
+    }, [user, fields]);
+
+    const ownerBookings = useMemo(() => {
+        if (!user || !user.isOwner) return [];
+        const ownerFieldIds = new Set(fields.filter(field => field.ownerId === user.id).map(f => f.id));
+        return allBookings.filter(booking => booking.field && ownerFieldIds.has(booking.field.id));
+    }, [user, fields, allBookings]);
+
+    // Online status listener
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            try {
-                const [fetchedFields, fetchedUsers, fetchedTeams, fetchedBookings, fetchedAnnouncements, fetchedOwnerApps] = await Promise.all([
-                    db.getFields(),
-                    db.getUsers(),
-                    db.getTeams(),
-                    db.getAllBookings(),
-                    db.getAnnouncements(),
-                    db.getOwnerApplications()
-                ]);
-                
-                setFields(fetchedFields);
-                setAllUsers(fetchedUsers);
-                setAllTeams(fetchedTeams);
-                setBookings(fetchedBookings);
-                setAnnouncements(fetchedAnnouncements);
-                setOwnerApplications(fetchedOwnerApps);
-                
-                // Mock User Session (Simulated persistence)
-                const savedUserEmail = localStorage.getItem('userEmail');
-                if (savedUserEmail) {
-                    const foundUser = fetchedUsers.find((u: User) => u.email === savedUserEmail);
-                    if (foundUser) {
-                        setUser(foundUser);
-                        setNotifications(foundUser.notifications || []);
-                    }
-                }
-                
-                // Initial Weather Fetch
-                handleRefreshWeather();
-                
-            } catch (error) {
-                console.error("Error loading initial data:", error);
-                showToast({ type: 'error', title: 'Error de conexión', message: 'No se pudieron cargar los datos iniciales.' });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        loadData();
-        
-        // Listeners
-        const unsubscribeBookings = db.listenToAllBookings((updatedBookings: ConfirmedBooking[]) => {
-             setBookings(updatedBookings);
-        });
-        
-        const unsubscribeTeams = db.listenToAllTeams((updatedTeams: Team[]) => {
-            setAllTeams(updatedTeams);
-        });
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
 
         return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    // Centralized time management
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+
+    // Solicitar permiso para notificaciones al cargar la app
+    useEffect(() => {
+        if ('Notification' in window) {
+            if (window.Notification.permission === 'default') {
+                window.Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Permiso para notificaciones concedido.');
+                    } else {
+                        console.log('Permiso para notificaciones denegado.');
+                    }
+                });
+            }
+        }
+    }, []);
+    
+    // Load initial static data
+    useEffect(() => {
+        const loadInitialStaticData = async () => {
+            setLoading(true);
+
+            if (isFirebaseConfigured) {
+                await db.seedDatabase();
+            }
+
+            const [fieldsData, applicationsData, announcementsData] = await Promise.all([
+                db.getFields(),
+                db.getOwnerApplications(),
+                db.getAnnouncements(),
+            ]);
+
+            setFields(fieldsData);
+            setOwnerApplications(applicationsData);
+            setAnnouncements(announcementsData);
+            setLoading(false);
+        };
+        loadInitialStaticData();
+    }, []);
+
+    // Real-time data listeners for collections
+    useEffect(() => {
+        let unsubscribeUsers = () => {};
+        let unsubscribeBookings = () => {};
+        let unsubscribeTeams = () => {};
+
+        if (isFirebaseConfigured) {
+            unsubscribeUsers = db.listenToAllUsers(setAllUsers);
+            unsubscribeBookings = db.listenToAllBookings(setAllBookings);
+            unsubscribeTeams = db.listenToAllTeams(setAllTeams);
+        } else {
+            db.getUsers().then(setAllUsers);
+            db.getAllBookings().then(setAllBookings);
+            db.getTeams().then(setAllTeams);
+        }
+
+        return () => {
+            unsubscribeUsers();
             unsubscribeBookings();
             unsubscribeTeams();
         };
     }, []);
 
+    // Keep logged-in user object in sync with the allUsers list
     useEffect(() => {
         if (user) {
-            const unsubscribeInvites = db.listenToInvitationsForUser(user.id, (invites: Invitation[]) => {
-                setInvitations(invites);
-            });
-            return () => unsubscribeInvites();
+            const latestUserData = allUsers.find(u => u.id === user.id);
+            if (latestUserData && JSON.stringify(latestUserData) !== JSON.stringify(user)) {
+                setUser(latestUserData);
+            }
         }
-    }, [user?.id]);
+    }, [allUsers, user]);
 
-    // --- Helper Functions ---
-    const showToast = (notification: Omit<Notification, 'id' | 'timestamp'>) => {
-        const newNotification = {
-            ...notification,
-            id: Date.now(),
-            timestamp: new Date(),
+    // Invitation listeners
+    useEffect(() => {
+        if (user && db.isFirebaseConfigured) {
+            const unsubscribe = db.listenToInvitationsForUser(user.id, setReceivedInvitations);
+            return () => unsubscribe();
+        } else if (user) {
+            db.getInvitationsForUser(user.id).then(setReceivedInvitations);
+        } else {
+            setReceivedInvitations([]);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (user && allTeams.length > 0) {
+            const captainedTeamIds = allTeams.filter(t => t.captainId === user.id).map(t => t.id);
+            if (captainedTeamIds.length > 0 && db.isFirebaseConfigured) {
+                const unsubscribe = db.listenToInvitationsByTeams(captainedTeamIds, setSentInvitations);
+                return () => unsubscribe();
+            } else if (captainedTeamIds.length > 0) {
+                db.getInvitationsByTeams(captainedTeamIds).then(setSentInvitations);
+            } else {
+                setSentInvitations([]);
+            }
+        } else {
+            setSentInvitations([]);
+        }
+    }, [user, allTeams]);
+
+
+    const fetchWeather = useCallback(async () => {
+        setIsWeatherLoading(true);
+        setWeatherError(null);
+
+        const processWeatherData = (data: any): Omit<WeatherData, 'locationName'> => {
+            const now = new Date();
+            const currentHourIndex = data.hourly.time.findIndex((t: string) => new Date(t) >= now);
+            
+            const hourlyData = data.hourly.time.map((t: string, i: number) => ({
+                time: new Date(t),
+                temperature: data.hourly.temperature_2m[i],
+                apparentTemperature: data.hourly.apparent_temperature[i],
+                precipitationProbability: data.hourly.precipitation_probability[i],
+                windSpeed: data.hourly.windspeed_10m[i],
+                weatherCode: data.hourly.weathercode[i],
+            }));
+
+            return {
+                latitude: data.latitude,
+                longitude: data.longitude,
+                timezone: data.timezone,
+                lastUpdated: new Date(),
+                current: hourlyData[currentHourIndex] || hourlyData[0],
+                hourly: hourlyData,
+            };
         };
-        setNotifications(prev => [...prev, newNotification]);
+
+        try {
+            const position = await getCurrentPosition({ timeout: 10000, maximumAge: 3600000 });
+            const { latitude, longitude } = position.coords;
+
+            // Fetch location name
+            let locationName: string | undefined;
+            try {
+                const geoResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+                if (geoResponse.ok) {
+                    const geoData = await geoResponse.json();
+                    locationName = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.state;
+                }
+            } catch (geoError) {
+                console.warn('No se pudo obtener el nombre de la ubicación para el clima:', geoError);
+            }
+
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&timezone=auto`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('La respuesta de la red no fue correcta');
+            const data = await response.json();
+            const processedData = processWeatherData(data);
+
+            const finalWeatherData: WeatherData = {
+                ...processedData,
+                locationName,
+            };
+
+            setWeatherData(finalWeatherData);
+            localStorage.setItem('weatherCache', JSON.stringify(finalWeatherData));
+        } catch (error) {
+            console.warn('Error al obtener el clima, usando fallback/cache:', error);
+            const cachedData = localStorage.getItem('weatherCache');
+            if (cachedData) {
+                const parsedData = JSON.parse(cachedData);
+                // Asegúrate de que las cadenas de fecha se conviertan de nuevo en objetos Date
+                parsedData.lastUpdated = new Date(parsedData.lastUpdated);
+                parsedData.current.time = new Date(parsedData.current.time);
+                parsedData.hourly = parsedData.hourly.map((h: any) => ({...h, time: new Date(h.time)}));
+                setWeatherData(parsedData);
+            } else {
+                setWeatherError("No se pudo cargar el clima.");
+            }
+        } finally {
+            setIsWeatherLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchWeather();
+        // Configurar un intervalo para actualizar el clima cada 30 minutos
+        const weatherInterval = setInterval(fetchWeather, 30 * 60 * 1000);
+
+        return () => {
+            clearInterval(weatherInterval);
+        };
+    }, [fetchWeather]);
+
+    // Load user-specific data when user logs in or allBookings change
+    useEffect(() => {
+        const loadUserData = async () => {
+            if (user) {
+                const userBookings = allBookings.filter(b => b.userId === user.id);
+                setBookings(userBookings);
+            } else {
+                setBookings([]); // Clear bookings on logout
+            }
+        };
+        loadUserData();
+    }, [user, allBookings]);
+
+
+    // Manage theme changes
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const isDark =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        root.classList.toggle('dark', isDark);
+        localStorage.setItem('theme', theme);
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => {
+            if (theme === 'system') {
+                root.classList.toggle('dark', mediaQuery.matches);
+            }
+        };
+
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [theme]);
+
+    // Manage accent color changes
+    useEffect(() => {
+        const root = window.document.documentElement;
+        // Remove old theme classes if any
+        ['theme-green', 'theme-blue', 'theme-orange', 'theme-purple'].forEach(cls => root.classList.remove(cls));
+        // Add the new one
+        root.classList.add(`theme-${accentColor}`);
+        localStorage.setItem('accentColor', accentColor);
+    }, [accentColor]);
+
+
+    const playNotificationSound = useCallback(() => {
+        try {
+            const audio = new Audio(notificationSound);
+            audio.play();
+        } catch (error) {
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error('Error al reproducir sonido de notificación:', String(error));
+        }
+    }, []);
+
+    const addPersistentNotification = useCallback(async (notif: Omit<Notification, 'id' | 'timestamp'>) => {
+        // Mostrar notificación nativa si la app está en segundo plano
+        if ('Notification' in window && window.Notification.permission === 'granted' && document.hidden) {
+            new window.Notification(notif.title, {
+                body: notif.message,
+                icon: 'https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q'
+            });
+            playNotificationSound();
+        }
+
+        const newNotification: Notification = { 
+            ...notif, 
+            id: Date.now(), 
+            timestamp: new Date(),
+            read: false, 
+        };
         
-        // If logged in, update user notifications in DB
-        if (user) {
-             const updatedNotifications = [...(user.notifications || []), newNotification];
-             // Optimistic update
-             setUser({...user, notifications: updatedNotifications});
-             db.updateUser(user.id, { notifications: updatedNotifications }).catch(err => console.error(err));
+        setNotifications(prev => [newNotification, ...prev]);
+    
+        if (user && isFirebaseConfigured) {
+            try {
+                const updatedNotifications = [newNotification, ...(user.notifications || [])];
+                const notificationsToSave = updatedNotifications.slice(0, 50);
+
+                await db.updateUser(user.id, { notifications: notificationsToSave });
+                
+                const updatedUser = { ...user, notifications: notificationsToSave };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // Fix: Explicitly convert 'unknown' error to string for safe logging.
+                console.error('Error saving notification to database:', String(error));
+            }
+        }
+    }, [user, playNotificationSound]);
+
+    const showToast = useCallback((notif: Omit<Notification, 'id' | 'timestamp'>) => {
+        const newToast: Notification = {
+            ...notif,
+            id: Date.now(),
+            timestamp: new Date()
+        };
+        setToasts(prev => [newToast, ...prev]);
+    }, []);
+    
+    // Simulate push notifications for favorite fields
+    useEffect(() => {
+        if (!user) return;
+        const notificationSimulator = setInterval(() => {
+            if (user.isOwner || !user.favoriteFields.length || !fields.length) return;
+
+            const shouldTrigger = Math.random() < 0.1; // 10% chance every 20 seconds
+            if (!shouldTrigger) return;
+            
+            const randomFavComplexId = user.favoriteFields[Math.floor(Math.random() * user.favoriteFields.length)];
+            const field = fields.find(f => (f.complexId || f.id) === randomFavComplexId);
+            if (!field) return;
+
+            const notificationType = Math.random(); // 0 to 1
+
+            if (notificationType < 0.33 && user.notificationPreferences?.importantNews) {
+                addPersistentNotification({
+                    type: 'info',
+                    title: 'Anuncio Importante',
+                    message: `${field.name.split(' - ')[0]} anuncia un torneo de verano. ¡Inscripciones abiertas!`
+                });
+            } else if (notificationType < 0.66 && user.notificationPreferences?.specialDiscounts) {
+                addPersistentNotification({
+                    type: 'info',
+                    title: '¡Oferta Especial!',
+                    message: `¡${field.name.split(' - ')[0]} tiene un 15% de descuento en reservas nocturnas esta semana!`
+                });
+            } else if (user.notificationPreferences?.newAvailability) {
+                addPersistentNotification({
+                    type: 'info',
+                    title: '¡Nueva Disponibilidad!',
+                    message: `Se ha abierto un nuevo horario a las 20:00 en ${field.name.split(' - ')[0]} para mañana.`
+                });
+            }
+
+        }, 20000); // Check every 20 seconds
+
+        return () => clearInterval(notificationSimulator);
+    }, [user, fields, addPersistentNotification]);
+
+    const dismissNotification = useCallback(async (id: number) => {
+        const originalNotifications = notifications;
+        const updatedNotifications = originalNotifications.filter(n => n.id !== id);
+        setNotifications(updatedNotifications);
+    
+        if (user && isFirebaseConfigured) {
+            try {
+                await db.updateUser(user.id, { notifications: updatedNotifications });
+                
+                const updatedUser = { ...user, notifications: updatedNotifications };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // Fix: Explicitly convert 'unknown' error to string for safe logging.
+                console.error('Error deleting notification from database:', String(error));
+                // Revert state on failure
+                setNotifications(originalNotifications);
+                showToast({
+                    type: 'error',
+                    title: 'Error de Sincronización',
+                    message: 'No se pudo eliminar la notificación. Inténtalo de nuevo.'
+                });
+            }
+        }
+    }, [user, notifications, showToast]);
+
+    const handleMarkAllNotificationsAsRead = async () => {
+        if (!user || !notifications.some(n => !n.read)) return;
+    
+        const originalNotifications = notifications;
+        const updatedNotifications = originalNotifications.map(n => ({ ...n, read: true }));
+        setNotifications(updatedNotifications);
+    
+        if (isFirebaseConfigured) {
+            try {
+                await db.updateUser(user.id, { notifications: updatedNotifications });
+                const updatedUser = { ...user, notifications: updatedNotifications };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            } catch (error) {
+                // FIX: In a catch block, 'error' is of type 'unknown'. Explicitly convert it to a string for safe logging.
+                console.error('Error marking notifications as read:', String(error));
+                setNotifications(originalNotifications); // Revert on error
+            }
         }
     };
-
-    const sendNotificationToUser = async (userId: string, notification: Omit<Notification, 'id' | 'timestamp'>) => {
-        const targetUser = allUsers.find(u => u.id === userId);
-        if (targetUser) {
-            const fullNotification = { ...notification, id: Date.now(), timestamp: new Date() };
-            const updatedNotifications = [...(targetUser.notifications || []), fullNotification];
+    
+    const handleClearNotifications = async () => {
+        if (!user || notifications.length === 0) return;
+    
+        const originalNotifications = notifications;
+        setNotifications([]);
+    
+        if (isFirebaseConfigured) {
             try {
-                await db.updateUser(userId, { notifications: updatedNotifications });
-                // Update local state if sending to self (unlikely but possible)
-                if (user && userId === user.id) {
-                     setUser({ ...user, notifications: updatedNotifications });
-                     setNotifications(updatedNotifications);
-                }
+                await db.updateUser(user.id, { notifications: [] });
+                const updatedUser = { ...user, notifications: [] };
+                setUser(updatedUser);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                console.error("Error sending notification:", error);
+                // Fix: Explicitly convert error to string for consistent and safe logging.
+                console.error('Error clearing notifications:', String(error));
+                setNotifications(originalNotifications); // Revert on error
             }
         }
     };
 
-    // --- Handlers ---
-    const handleLogin = (email: string) => {
-        const foundUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (foundUser) {
-            setUser(foundUser);
-            setNotifications(foundUser.notifications || []);
-            localStorage.setItem('userEmail', email);
-            setCurrentView(View.HOME);
-            showToast({ type: 'success', title: '¡Bienvenido!', message: `Hola de nuevo, ${foundUser.name}` });
+    const dismissToast = (id: number) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    };
+    
+    // Reminder notification checker
+    useEffect(() => {
+        const checkBookingReminders = async () => {
+            if (!bookings.length) return;
+    
+            const now = new Date();
+            const bookingsToUpdate: ConfirmedBooking[] = [];
+    
+            for (const booking of bookings) {
+                if (booking.status !== 'confirmed') continue;
+    
+                const bookingDate = new Date(booking.date);
+                const [hours, minutes] = booking.time.split(':').map(Number);
+                bookingDate.setHours(hours, minutes, 0, 0);
+    
+                if (bookingDate < now) continue;
+    
+                const hoursUntil = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+                let reminderSent = false;
+                const updatedBooking = { ...booking };
+                if (!updatedBooking.remindersSent) {
+                    updatedBooking.remindersSent = { twentyFourHour: false, oneHour: false };
+                }
+    
+                if (hoursUntil > 1 && hoursUntil <= 24 && !updatedBooking.remindersSent.twentyFourHour) {
+                    addPersistentNotification({ type: 'info', title: 'Recordatorio de Reserva', message: `Tu partido en ${booking.field.name} es mañana a las ${booking.time}.` });
+                    updatedBooking.remindersSent.twentyFourHour = true;
+                    reminderSent = true;
+                }
+    
+                if (hoursUntil > 0 && hoursUntil <= 1 && !updatedBooking.remindersSent.oneHour) {
+                    addPersistentNotification({ type: 'info', title: '¡Tu partido es pronto!', message: `Tu reserva en ${booking.field.name} es en aproximadamente una hora.` });
+                    updatedBooking.remindersSent.oneHour = true;
+                    reminderSent = true;
+                }
+    
+                if (reminderSent) {
+                    await db.updateBooking(updatedBooking.id, { remindersSent: updatedBooking.remindersSent });
+                    bookingsToUpdate.push(updatedBooking);
+                }
+            }
+    
+            if (bookingsToUpdate.length > 0) {
+                setAllBookings(prevAllBookings => {
+                    const updatedMap = new Map(bookingsToUpdate.map(b => [b.id, b]));
+                    return prevAllBookings.map(b => updatedMap.get(b.id) || b);
+                });
+            }
+        };
+    
+        const intervalId = setInterval(checkBookingReminders, 60000); // Check every minute
+        checkBookingReminders();
+    
+        return () => clearInterval(intervalId);
+    }, [bookings, addPersistentNotification]);
+    
+    // Automatically mark past bookings as 'completed'
+    useEffect(() => {
+        const completePastBookings = async () => {
+            const now = new Date();
+            const bookingsToComplete: ConfirmedBooking[] = [];
+    
+            allBookings.forEach(booking => {
+                if (booking.status === 'confirmed') {
+                    const bookingDateTime = new Date(booking.date);
+                    const [hours, minutes] = booking.time.split(':').map(Number);
+                    bookingDateTime.setHours(hours, minutes);
+    
+                    // Mark as completed 2 hours after start time for scorekeeping flexibility
+                    const twoHoursAfterStart = bookingDateTime.getTime() + 2 * 60 * 60 * 1000;
+                    if (now.getTime() > twoHoursAfterStart) {
+                        bookingsToComplete.push(booking);
+                    }
+                }
+            });
+    
+            if (bookingsToComplete.length > 0) {
+                const updates = bookingsToComplete.map(b => 
+                    db.updateBooking(b.id, { status: 'completed' })
+                );
+                await Promise.all(updates);
+    
+                setAllBookings(prevAllBookings => {
+                    const completedIds = new Set(bookingsToComplete.map(b => b.id));
+                    return prevAllBookings.map(b =>
+                        completedIds.has(b.id) ? { ...b, status: 'completed' } : b
+                    );
+                });
+            }
+        };
+    
+        const intervalId = setInterval(completePastBookings, 60 * 1000); // Run every minute
+        completePastBookings(); // Run once on load
+    
+        return () => clearInterval(intervalId);
+    }, [allBookings]);
+
+    // Loyalty Program Check - now triggers on completed bookings
+    useEffect(() => {
+        if (!user || loading || rewardInfo || ratingInfo) return;
+
+        const checkLoyaltyForCompletedGames = async () => {
+            const completedBookings = bookings.filter(b =>
+                b.userId === user.id &&
+                b.status === 'completed' &&
+                !b.loyaltyApplied
+            );
+
+            if (completedBookings.length > 0) {
+                let newLoyalty: UserLoyalty = user.loyalty ? JSON.parse(JSON.stringify(user.loyalty)) : {};
+                let loyaltyWasUpdated = false;
+
+                for (const booking of completedBookings) {
+                    if (!booking.field.loyaltyEnabled) continue;
+
+                    const fieldId = booking.field.id;
+                    const loyaltyGoal = booking.field.loyaltyGoal || 7;
+
+                    if (!newLoyalty[fieldId]) {
+                        newLoyalty[fieldId] = { progress: 0, freeTickets: 0 };
+                    }
+
+                    newLoyalty[fieldId].progress++;
+                    loyaltyWasUpdated = true;
+
+                    if (newLoyalty[fieldId].progress >= loyaltyGoal) {
+                        newLoyalty[fieldId].progress = 0;
+                        newLoyalty[fieldId].freeTickets++;
+                        setRewardInfo({ field: booking.field });
+                        addPersistentNotification({
+                            type: 'success',
+                            title: '¡Cancha Gratis!',
+                            message: `¡Completaste ${loyaltyGoal} reservas en ${booking.field.name}! Acabas de ganar un ticket para una cancha gratis en este lugar.`
+                        });
+                    }
+                }
+
+                if (loyaltyWasUpdated) {
+                    await db.updateUser(user.id, { loyalty: newLoyalty });
+                    const updatedUser = { ...user, loyalty: newLoyalty };
+                    setUser(updatedUser);
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                }
+
+                const completedBookingIds = new Set(completedBookings.map(b => b.id));
+                for (const bookingId of completedBookingIds) {
+                    await db.updateBooking(bookingId, { loyaltyApplied: true });
+                }
+                
+                setAllBookings(prevBookings =>
+                    prevBookings.map(b =>
+                        completedBookingIds.has(b.id) ? { ...b, loyaltyApplied: true } : b
+                    )
+                );
+            }
+        };
+
+        checkLoyaltyForCompletedGames();
+    }, [user, allBookings, bookings, loading, addPersistentNotification, rewardInfo, ratingInfo]);
+
+    // Check for remembered user on app load
+    useEffect(() => {
+        if (loading || user) return; // Don't run if data is loading or a user is already logged in
+
+        const rememberedUserId = localStorage.getItem('rememberedUserId');
+        if (rememberedUserId && allUsers.length > 0) {
+            const rememberedUser = allUsers.find(u => u.id === rememberedUserId);
+            if (rememberedUser) {
+                setUser(rememberedUser);
+                setNotifications(rememberedUser.notifications?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) || []);
+                showToast({
+                    type: 'info',
+                    title: 'Sesión Restaurada',
+                    message: `¡Hola de nuevo, ${rememberedUser.name}!`
+                });
+            } else {
+                // Clean up if the user ID is invalid
+                localStorage.removeItem('rememberedUserId');
+            }
+        }
+    }, [allUsers, loading, user, showToast]);
+
+    const handleLogin = (email: string, password: string, rememberMe: boolean) => {
+        const loggedInUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    
+        if (loggedInUser) {
+            if (rememberMe) {
+                localStorage.setItem('rememberedUserId', loggedInUser.id);
+            } else {
+                localStorage.removeItem('rememberedUserId');
+            }
+
+            setUser(loggedInUser);
+            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            setNotifications(sortedNotifications);
+            showToast({
+                type: 'success',
+                title: 'Inicio de sesión exitoso',
+                message: `¡Bienvenido, ${loggedInUser.name}!`
+            });
+
+            if (loggedInUser.isAdmin) {
+                handleNavigate(View.SUPER_ADMIN_DASHBOARD);
+            } else if (loggedInUser.isOwner && loggedInUser.ownerStatus === 'approved') {
+                handleNavigate(View.OWNER_DASHBOARD);
+            } else {
+                handleNavigate(View.HOME);
+            }
         } else {
-             showToast({ type: 'error', title: 'Error', message: 'Usuario no encontrado o contraseña incorrecta.' });
+             showToast({
+                type: 'error',
+                title: 'Error de inicio de sesión',
+                message: `Correo o contraseña incorrectos.`
+            });
+        }
+    };
+
+    const handleRegister = async (newUserData: Omit<User, 'id' | 'favoriteFields' | 'isPremium' | 'playerProfile' | 'isAdmin'>) => {
+        setIsRegisterLoading(true);
+        try {
+            const newUser: Omit<User, 'id'> = {
+                ...newUserData,
+                isOwner: false,
+                isAdmin: false,
+                isPremium: false,
+                favoriteFields: [],
+                cancheoCoins: 100, // Starting bonus
+            };
+            const createdUser = await db.addUser(newUser);
+            setUser(createdUser);
+            setAllUsers(prev => [...prev, createdUser]);
+            handleNavigate(View.HOME);
+            showToast({
+                type: 'success',
+                title: '¡Bienvenido!',
+                message: `Tu cuenta ha sido creada exitosamente, ${createdUser.name}.`
+            });
+        } catch (error) {
+            if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
+                showToast({
+                    type: 'error',
+                    title: 'Error de Registro',
+                    message: 'Ya existe una cuenta con este correo electrónico.'
+                });
+            } else {
+                showToast({
+                    type: 'error',
+                    title: 'Error Inesperado',
+                    message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+                });
+                // Fix: The 'error' object is of type 'unknown' in a catch block.
+                // Accessing properties like 'message' directly is unsafe and causes a type error.
+                // We must first check if it's an instance of Error before accessing 'message',
+                // otherwise, we convert it to a string for safe logging.
+                // Fix: Explicitly convert error to string for consistent and safe logging.
+                console.error('Registration error:', String(error));
+            }
+        } finally {
+            setIsRegisterLoading(false);
+        }
+    };
+    
+    const handleOwnerRegister = async (applicationData: Omit<OwnerApplication, 'id' | 'userId' | 'status' | 'userName' | 'userEmail'>, userData: Omit<User, 'id' | 'isOwner' | 'isAdmin' | 'favoriteFields' | 'isPremium' | 'playerProfile'>) => {
+        setIsOwnerRegisterLoading(true);
+        try {
+            const tempUser: Omit<User, 'id'> = {
+                ...userData,
+                isOwner: false,
+                isAdmin: false,
+                isPremium: false,
+                favoriteFields: [],
+                ownerStatus: 'pending',
+            };
+            const newUser = await db.addUser(tempUser);
+            
+            const newApplicationData: Omit<OwnerApplication, 'id'> = {
+                ...applicationData,
+                userId: newUser.id,
+                userName: newUser.name,
+                userEmail: newUser.email,
+                status: 'pending',
+            };
+
+            const newApplication = await db.addOwnerApplication(newApplicationData);
+
+            setAllUsers(prev => [...prev, newUser]);
+            setOwnerApplications(prev => [...prev, newApplication]);
+
+            addPersistentNotification({
+                type: 'success',
+                title: 'Solicitud Recibida',
+                message: `Gracias ${newUser.name}, hemos recibido tu solicitud y la revisaremos pronto.`,
+            });
+
+            handleNavigate(View.OWNER_PENDING_VERIFICATION);
+        } catch (error) {
+            if (error instanceof Error && error.message === 'DUPLICATE_EMAIL') {
+                showToast({
+                    type: 'error',
+                    title: 'Error de Registro',
+                    message: 'Ya existe una cuenta con este correo electrónico.'
+                });
+            } else {
+                showToast({
+                    type: 'error',
+                    title: 'Error Inesperado',
+                    message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+                });
+                // Fix: Explicitly convert error to string for consistent and safe logging.
+                console.error('Owner registration error:', String(error));
+            }
+        } finally {
+            setIsOwnerRegisterLoading(false);
         }
     };
 
     const handleLogout = () => {
+        localStorage.removeItem('rememberedUserId');
         setUser(null);
-        localStorage.removeItem('userEmail');
-        setCurrentView(View.LOGIN);
         setNotifications([]);
+        handleNavigate(View.HOME);
     };
 
-    const handleRegister = async (newUser: any) => {
-        try {
-            const createdUser = await db.addUser(newUser);
-            setAllUsers(prev => [...prev, createdUser]);
-            handleLogin(createdUser.email);
-        } catch (error) {
-             showToast({ type: 'error', title: 'Error', message: 'No se pudo registrar el usuario.' });
+    const handleNavigate = (newView: View, options: { isBack?: boolean; isTab?: boolean } = {}) => {
+        if (options.isTab) {
+            setAnimationClass('animate-fade-in');
+        } else if (options.isBack) {
+            setAnimationClass('animate-slide-in-from-left');
+        } else {
+            setAnimationClass('animate-slide-in-from-right');
+        }
+        
+        setView(newView);
+        setViewKey(prev => prev + 1); // Force re-render with new animation
+        window.scrollTo(0, 0);
+
+        // Update active tab based on view
+        if (options.isTab) {
+            // Tab is already handled by handleTabNavigate
+        } else {
+             if ([View.HOME, View.SEARCH_RESULTS, View.FIELD_DETAIL].includes(newView)) setActiveTab('explore');
+            else if ([View.BOOKINGS, View.BOOKING_DETAIL].includes(newView)) setActiveTab('bookings');
+            else if ([View.SOCIAL, View.PLAYER_PROFILE_CREATOR].includes(newView)) setActiveTab('community');
+            else if ([View.PROFILE, View.APPEARANCE, View.HELP_SUPPORT, View.PAYMENT_METHODS].includes(newView)) setActiveTab('profile');
+        }
+    };
+    
+    const handleTabNavigate = (tab: Tab) => {
+        setActiveTab(tab);
+        const navOptions = { isTab: true };
+        switch (tab) {
+            case 'explore':
+                handleNavigate(View.HOME, navOptions);
+                break;
+            case 'community':
+                if (!user) {
+                    handleNavigate(View.LOGIN);
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para acceder a DaviPlay.' });
+                } else {
+                    handleNavigate(View.SOCIAL, navOptions);
+                    setSocialSection('hub');
+                }
+                break;
+            case 'bookings':
+                if (!user) {
+                    handleNavigate(View.LOGIN);
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para ver tus reservas.' });
+                } else {
+                    handleNavigate(View.BOOKINGS, navOptions);
+                }
+                break;
+            case 'profile':
+                 if (!user) {
+                    handleNavigate(View.LOGIN);
+                    showToast({ type: 'info', title: 'Inicia sesión', message: 'Debes iniciar sesión para ver tu perfil.' });
+                } else {
+                    handleNavigate(View.PROFILE, navOptions);
+                }
+                break;
         }
     };
 
-    const handleNavigate = (view: View) => {
-        setCurrentView(view);
-        window.scrollTo(0, 0);
+    const handleSearch = (location: string, filters?: { size?: '5v5' | '7v7' | '11v11' }) => {
+        const searchLocation = location.toLowerCase();
+        const results = fields.filter(field =>
+            (field.name.toLowerCase().includes(searchLocation) || field.city.toLowerCase().includes(searchLocation)) &&
+            (!filters?.size || field.size === filters.size)
+        );
+        setSearchResults(results);
+        handleNavigate(View.SEARCH_RESULTS);
     };
 
+    const handleSearchByLocation = async () => {
+        if (!navigator.geolocation) {
+            showToast({
+                type: 'error',
+                title: 'Geolocalización no soportada',
+                message: 'Tu dispositivo no soporta esta función.'
+            });
+            return;
+        }
+    
+        setIsSearchingLocation(true);
+    
+        try {
+            if (navigator.permissions) {
+                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+    
+                if (permissionStatus.state === 'denied') {
+                    showToast({
+                        type: 'error',
+                        title: 'Permiso de Ubicación Denegado',
+                        message: 'Para usar esta función, activa el permiso de ubicación para "Cancheo" en los ajustes de tu celular.'
+                    });
+                    setIsSearchingLocation(false);
+                    return;
+                }
+            }
+    
+            const position = await getCurrentPosition({ timeout: 20000, maximumAge: 60000, enableHighAccuracy: false });
+            const { latitude, longitude } = position.coords;
+    
+            const fieldsWithDistance = fields.map(field => {
+                const distance = calculateDistance(latitude, longitude, field.latitude, field.longitude);
+                return { ...field, distance };
+            });
+            
+            fieldsWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    
+            setSearchResults(fieldsWithDistance);
+            handleNavigate(View.SEARCH_RESULTS);
+            
+        } catch (error) {
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error('Error getting location:', String(error));
+            let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
+            if (error instanceof GeolocationPositionError) {
+                if (error.code === 1) { // PERMISSION_DENIED
+                    message = 'Permiso de ubicación denegado. Actívalo en los ajustes de tu celular para usar esta función.';
+                } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                    message = 'La información de ubicación no está disponible. Revisa que el GPS de tu celular esté activado.';
+                } else if (error.code === 3) { // TIMEOUT
+                    message = 'Se agotó el tiempo de espera para obtener la ubicación. Intenta de nuevo en un lugar con mejor señal.';
+                }
+            }
+            showToast({
+                type: 'error',
+                title: 'Error de Ubicación',
+                message: message
+            });
+        } finally {
+            setIsSearchingLocation(false);
+        }
+    };
+
+    const handleSelectField = (field: SoccerField) => {
+        setSelectedField(field);
+        handleNavigate(View.FIELD_DETAIL);
+    };
+
+    const handleBookNow = (field: SoccerField, time: string, date: Date) => {
+        if (!user) {
+            handleNavigate(View.LOGIN);
+            showToast({type: 'info', title: 'Inicia sesión para reservar', message: 'Debes tener una cuenta para poder reservar una cancha.'});
+            return;
+        }
+        setBookingDetails({ field, time, date });
+        handleNavigate(View.BOOKING);
+    };
+    
+    const handleConfirmBooking = async (booking: Omit<ConfirmedBooking, 'id' | 'status' | 'userId' | 'userName' | 'userPhone'>) => {
+        if (!user) return;
+    
+        setIsBookingLoading(true);
+        try {
+            if (booking.isFree) {
+                const fieldId = booking.field.id;
+                const updatedLoyalty = { ...user.loyalty };
+                if (updatedLoyalty[fieldId]) {
+                    updatedLoyalty[fieldId].freeTickets -= 1;
+                    await db.updateUser(user.id, { loyalty: updatedLoyalty });
+                    const updatedUser = { ...user, loyalty: updatedLoyalty };
+                    setUser(updatedUser);
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                }
+            }
+            
+            const bookingData: Omit<ConfirmedBooking, 'id'> = { 
+                ...booking, 
+                status: 'confirmed',
+                userId: user.id,
+                userName: user.name,
+                userPhone: user.phone,
+                remindersSent: { twentyFourHour: false, oneHour: false }
+            };
+            const newBooking = await db.addBooking(bookingData);
+            setConfirmedBooking(newBooking);
+            // setAllBookings no es necesario aquí si usamos listeners en tiempo real
+            handleNavigate(View.BOOKING_CONFIRMATION);
+            addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
+        } catch (error) {
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error('Booking confirmation error:', String(error));
+            showToast({
+                type: 'error',
+                title: 'Error de Reserva',
+                message: 'No se pudo confirmar tu reserva. Por favor, inténtalo de nuevo.'
+            });
+        } finally {
+            setIsBookingLoading(false);
+        }
+    };
+
+    const handleToggleFavorite = async (complexId: string) => {
+        if (!user) return;
+        const isCurrentlyFavorite = user.favoriteFields.includes(complexId);
+        const newFavorites = isCurrentlyFavorite
+            ? user.favoriteFields.filter(id => id !== complexId)
+            : [...user.favoriteFields, complexId];
+        
+        await db.updateUser(user.id, { favoriteFields: newFavorites });
+        const updatedUser = { ...user, favoriteFields: newFavorites };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+
+        const complexField = fields.find(f => (f.complexId || f.id) === complexId);
+        const complexName = complexField ? (complexField.name.split(' - ')[0] || complexField.name) : 'El complejo';
+
+        if (isCurrentlyFavorite) {
+            showToast({type: 'info', title: 'Favorito eliminado', message: `${complexName} fue eliminado de tus favoritos.`});
+        } else {
+             showToast({type: 'success', title: 'Favorito añadido', message: `${complexName} fue añadido a tus favoritos.`});
+        }
+    };
+    
+    const handleSelectBooking = (booking: ConfirmedBooking) => {
+        setSelectedBooking(booking);
+        handleNavigate(View.BOOKING_DETAIL);
+    };
+
+    const handleCancelBooking = async (bookingId: string) => {
+        const bookingToCancel = bookings.find(b => b.id === bookingId);
+        if (bookingToCancel) {
+            await db.updateBooking(bookingId, { status: 'cancelled' });
+            // El estado se actualizará automáticamente gracias al listener
+            
+            if (selectedBooking && selectedBooking.id === bookingId) {
+                setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
+            }
+
+            handleNavigate(View.BOOKINGS, { isBack: true });
+            addPersistentNotification({
+                type: 'success',
+                title: 'Reserva Cancelada',
+                message: `Tu reserva en ${bookingToCancel.field.name} ha sido cancelada.`
+            });
+        }
+    };
+
+    const handleUpdateScore = async (bookingId: string, scoreA: number, scoreB: number) => {
+        await db.updateBooking(bookingId, { scoreA, scoreB });
+        // El estado se actualizará automáticamente gracias al listener
+        if (selectedBooking && selectedBooking.id === bookingId) {
+            setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB } : null);
+        }
+    };
+
+    const handleFinalizeMatch = async (bookingId: string, scoreA: number, scoreB: number) => {
+        await db.updateBooking(bookingId, { scoreA, scoreB, status: 'completed' });
+        // El estado se actualizará automáticamente gracias al listener
+         if (selectedBooking && selectedBooking.id === bookingId) {
+            setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB, status: 'completed' } : null);
+        }
+        showToast({type: 'success', title: 'Partido Finalizado', message: `El marcador final fue ${scoreA} - ${scoreB}.`});
+    };
+
+    const handleUpdateProfilePicture = async (imageDataUrl: string) => {
+        if (!user) return;
+    
+        const updates: { profilePicture: string; 'playerProfile.profilePicture'?: string } = {
+            profilePicture: imageDataUrl,
+        };
+        if (user.playerProfile) {
+            updates['playerProfile.profilePicture'] = imageDataUrl;
+        }
+    
+        await db.updateUser(user.id, updates);
+    
+        const updatedUser = { 
+            ...user, 
+            profilePicture: imageDataUrl,
+            ...(user.playerProfile && { 
+                playerProfile: { ...user.playerProfile, profilePicture: imageDataUrl } 
+            })
+        };
+        
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Foto actualizada', message: 'Tu foto de perfil ha sido guardada.' });
+    };
+    
+    const handleRemoveProfilePicture = async () => {
+        if (!user) return;
+    
+        const fieldsToRemove: (keyof User | string)[] = ['profilePicture'];
+        if (user.playerProfile) {
+            fieldsToRemove.push('playerProfile.profilePicture');
+        }
+        await db.removeUserField(user.id, fieldsToRemove);
+    
+        const { profilePicture, ...restOfUser } = user;
+        let updatedUser: User = restOfUser as User;
+    
+        if (updatedUser.playerProfile) {
+            // Create a new player profile object without the profilePicture
+            const { profilePicture: playerPP, ...restOfPlayerProfile } = updatedUser.playerProfile;
+            updatedUser = { ...updatedUser, playerProfile: restOfPlayerProfile as Player };
+        }
+    
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'info', title: 'Foto eliminada', message: 'Tu foto de perfil ha sido eliminada.' });
+    };
+    
+    const handleUpdateUserInfo = async (updatedInfo: { name: string; phone?: string }) => {
+        if (!user) return;
+        await db.updateUser(user.id, updatedInfo);
+        const updatedUser = { ...user, ...updatedInfo };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Perfil Actualizado', message: 'Tu información personal ha sido guardada.' });
+    };
+    
+    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+        if (!user) return;
+    
+        if (user.password !== currentPassword) {
+            showToast({
+                type: 'error',
+                title: 'Error de Contraseña',
+                message: 'La contraseña actual es incorrecta.'
+            });
+            return;
+        }
+    
+        try {
+            await db.updateUser(user.id, { password: newPassword });
+            
+            const updatedUser = { ...user, password: newPassword };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+
+            showToast({
+                type: 'success',
+                title: 'Contraseña Actualizada',
+                message: 'Tu contraseña ha sido cambiada exitosamente.'
+            });
+        } catch (error) {
+            // Fix: Explicitly convert error to string for consistent and safe logging.
+            console.error('Error updating password:', String(error));
+            showToast({
+                type: 'error',
+                title: 'Error Inesperado',
+                message: 'No se pudo actualizar tu contraseña. Inténtalo de nuevo.'
+            });
+        }
+    };
+    
+    const handleUpdateNotificationPreferences = async (prefs: { newAvailability: boolean; specialDiscounts: boolean; importantNews: boolean; }) => {
+        if (!user) return;
+        await db.updateUser(user.id, { notificationPreferences: prefs });
+        const updatedUser = { ...user, notificationPreferences: prefs };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Preferencias actualizadas', message: 'Tus ajustes de notificación han sido guardados.' });
+    };
+    
+    const handleUpdateTheme = (newTheme: Theme) => setTheme(newTheme);
+    const handleUpdateAccentColor = (newColor: AccentColor) => setAccentColor(newColor);
+
+    const handleAddPaymentMethod = async (method: Omit<PaymentMethod, 'id'>) => {
+        if (!user) return;
+        const newMethod = { ...method, id: `pm_${Date.now()}` } as PaymentMethod;
+        const updatedMethods = [...(user.paymentMethods || []), newMethod];
+        if (updatedMethods.filter(m => m.type === 'card').length === 1) {
+            const cardIndex = updatedMethods.findIndex(m => m.id === newMethod.id);
+            if (cardIndex !== -1) (updatedMethods[cardIndex] as CardPaymentMethod).isDefault = true;
+        }
+        await db.updateUser(user.id, { paymentMethods: updatedMethods });
+        const updatedUser = { ...user, paymentMethods: updatedMethods };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Método de pago añadido', message: 'Tu nuevo método de pago ha sido guardado.' });
+    };
+
+    const handleDeletePaymentMethod = async (methodId: string) => {
+        if (!user) return;
+        const updatedMethods = user.paymentMethods?.filter(m => m.id !== methodId) || [];
+        await db.updateUser(user.id, { paymentMethods: updatedMethods });
+        const updatedUser = { ...user, paymentMethods: updatedMethods };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'info', title: 'Método de pago eliminado', message: 'El método de pago ha sido eliminado.' });
+    };
+
+    const handleSetDefaultPaymentMethod = async (methodId: string) => {
+        if (!user || !user.paymentMethods) return;
+        const updatedMethods: PaymentMethod[] = user.paymentMethods.map(m => ({ ...m, isDefault: m.id === methodId }));
+        await db.updateUser(user.id, { paymentMethods: updatedMethods });
+        const updatedUser = { ...user, paymentMethods: updatedMethods };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Método predeterminado', message: 'Se ha actualizado tu método de pago principal.' });
+    };
+
+    const handleUpdatePlayerProfile = async (updatedProfile: Player) => {
+        if (!user) return;
+        await db.updateUser(user.id, { playerProfile: updatedProfile });
+        const updatedUser = { ...user, playerProfile: updatedProfile };
+        setUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        showToast({ type: 'success', title: 'Perfil de Jugador Guardado', message: '¡Tus estadísticas han sido actualizadas!' });
+        handleNavigate(View.SOCIAL);
+    };
+
+    const handleUpdateUserTeams = async (teamIds: string[]) => {
+        if (!user) return;
+        try {
+            await db.updateUser(user.id, { teamIds });
+            const updatedUser = { ...user, teamIds };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        } catch (error) {
+            console.error("Error al actualizar los equipos del usuario:", String(error));
+            showToast({
+                type: 'error',
+                title: 'Error de Equipo',
+                message: 'No se pudo asignar el equipo a tu perfil.'
+            });
+        }
+    };
+
+    const handleUpdateTeam = async (teamId: string, updates: Partial<Team>) => {
+        try {
+            await db.updateTeam(teamId, updates);
+            if (!isFirebaseConfigured) {
+                setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
+            }
+        } catch (error) {
+            console.error("Error al actualizar el equipo:", String(error));
+            showToast({
+                type: 'error',
+                title: 'Error de Equipo',
+                message: 'No se pudieron guardar los cambios en el equipo.'
+            });
+        }
+    };
+
+    const handleRemovePlayerFromTeam = async (teamId: string, playerId: string) => {
+        const team = allTeams.find(t => t.id === teamId);
+        const userToRemove = allUsers.find(u => u.id === playerId);
+    
+        if (!team || !userToRemove) {
+            showToast({ type: 'error', title: 'Error', message: 'No se pudo encontrar el equipo o el jugador.' });
+            return;
+        }
+    
+        const updatedPlayers = team.players.filter(p => p.id !== playerId);
+        const updatedTeamIds = userToRemove.teamIds?.filter(id => id !== teamId) || [];
+    
+        const notificationForRemovedPlayer: Omit<Notification, 'id' | 'timestamp'> = {
+            type: 'error',
+            title: 'Has sido expulsado del equipo',
+            message: `El capitán de "${team.name}" te ha eliminado de la plantilla.`,
+            read: false,
+        };
+        const newNotification = { ...notificationForRemovedPlayer, id: Date.now(), timestamp: new Date() };
+        const updatedNotifications = [newNotification, ...(userToRemove.notifications || [])].slice(0, 50);
+
+        const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
+            type: 'system',
+            text: `${userToRemove.name} ha sido expulsado del equipo por el capitán.`,
+        };
+    
+        try {
+            await db.updateTeam(teamId, { players: updatedPlayers });
+            await db.updateUser(playerId, { teamIds: updatedTeamIds, notifications: updatedNotifications });
+            await db.addChatMessage(teamId, systemMessageData);
+    
+            if (!isFirebaseConfigured) {
+                 setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
+            }
+    
+            setAllUsers(prev => prev.map(u => {
+                if (u.id === playerId) {
+                    return { ...u, teamIds: updatedTeamIds, notifications: updatedNotifications };
+                }
+                return u;
+            }));
+            
+            showToast({ type: 'info', title: 'Jugador Expulsado', message: `${userToRemove.name} ha sido eliminado de ${team.name}.` });
+    
+        } catch (error) {
+            console.error("Error al eliminar jugador del equipo:", String(error));
+            showToast({ type: 'error', title: 'Error', message: 'No se pudo eliminar al jugador.' });
+        }
+    };
+
+    const handleLeaveTeam = async (teamId: string) => {
+        if (!user) return;
+        const team = allTeams.find(t => t.id === teamId);
+        if (!team) return;
+
+        const updatedPlayers = team.players.filter(p => p.id !== user.id);
+        const updatedTeamIds = user.teamIds?.filter(id => id !== teamId) || [];
+
+        const notificationForCaptain: Omit<Notification, 'id'| 'timestamp'> = {
+            type: 'error',
+            title: 'Baja en el equipo',
+            message: `${user.name} ha abandonado ${team.name}.`,
+            read: false
+        };
+        const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
+        const captain = allUsers.find(u => u.id === team.captainId);
+        const updatedCaptainNotifications = [newNotification, ...(captain?.notifications || [])].slice(0, 50);
+
+        const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
+            type: 'system',
+            text: `${user.name} ha abandonado el equipo.`,
+        };
+
+        try {
+            await db.updateTeam(teamId, { players: updatedPlayers });
+            await db.updateUser(user.id, { teamIds: updatedTeamIds });
+            if(captain) {
+                await db.updateUser(captain.id, { notifications: updatedCaptainNotifications });
+            }
+            await db.addChatMessage(teamId, systemMessageData);
+
+            if (!isFirebaseConfigured) {
+                setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
+            }
+    
+            const updatedUser = { ...user, teamIds: updatedTeamIds };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => {
+                if (u.id === user.id) return updatedUser;
+                if (captain && u.id === captain.id) return { ...u, notifications: updatedCaptainNotifications };
+                return u;
+            }));
+
+            showToast({ type: 'info', title: 'Has abandonado el equipo', message: `Ya no eres parte de ${team.name}.` });
+        } catch (error) {
+            console.error("Error al abandonar el equipo:", String(error));
+            showToast({ type: 'error', title: 'Error', message: 'No se pudo abandonar el equipo.' });
+        }
+    };
+
+    const handleRewardAnimationEnd = useCallback(() => {
+        if (rewardInfo) {
+            setRatingInfo({ field: rewardInfo.field });
+        }
+        setRewardInfo(null);
+    }, [rewardInfo]);
+
+    const handleRatingSubmit = async (fieldId: string, rating: number, comment: string) => {
+        if (!user) return;
+        const newReview: Review = { id: `r${Date.now()}`, author: user.name, rating, comment, timestamp: new Date() };
+        await db.addReviewToField(fieldId, newReview);
+        
+        setFields(prevFields => {
+            return prevFields.map(field => {
+                if (field.id === fieldId) {
+                    const newTotalReviews = field.reviews.length + 1;
+                    const newAverageRating = ((field.rating * field.reviews.length) + rating) / newTotalReviews;
+                    return { ...field, reviews: [newReview, ...field.reviews], rating: parseFloat(newAverageRating.toFixed(1)) };
+                }
+                return field;
+            });
+        });
+
+        setRatingInfo(null);
+        showToast({ type: 'success', title: '¡Gracias por tu opinión!', message: 'Tu calificación nos ayuda a mejorar.' });
+    };
+
+    const handleSendInvitation = async (team: Team, playerToRecruit: Player) => {
+        if (!user) return;
+        const invitationData: Omit<Invitation, 'id'> = {
+            teamId: team.id,
+            teamName: team.name,
+            teamLogo: team.logo,
+            fromUserId: user.id,
+            fromUserName: user.name,
+            toUserId: playerToRecruit.id,
+            toUserName: playerToRecruit.name,
+            timestamp: new Date(),
+        };
+        await db.addInvitation(invitationData);
+        showToast({ type: 'success', title: 'Invitación Enviada', message: `Se ha invitado a ${playerToRecruit.name} a unirse a ${team.name}.` });
+    };
+
+    const handleCancelInvitation = async (invitationId: string) => {
+        await db.deleteInvitation(invitationId);
+        showToast({ type: 'info', title: 'Invitación Cancelada', message: 'La invitación ha sido retirada.' });
+    };
+
+    const handleAcceptInvitation = async (invitation: Invitation) => {
+        if (!user || !user.playerProfile) return;
+        const team = allTeams.find(t => t.id === invitation.teamId);
+        if (!team) {
+            showToast({ type: 'error', title: 'Error', message: 'El equipo ya no existe.' });
+            await db.deleteInvitation(invitation.id);
+            return;
+        }
+
+        // Add player to team
+        const updatedPlayers = [...team.players, user.playerProfile];
+        await handleUpdateTeam(team.id, { players: updatedPlayers });
+
+        // Add team to player's profile
+        const updatedTeamIds = [...(user.teamIds || []), team.id];
+        await handleUpdateUserTeams(updatedTeamIds);
+
+        // Notify the captain
+        const captain = allUsers.find(u => u.id === invitation.fromUserId);
+        if (captain) {
+            const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'success',
+                title: '¡Nuevo Miembro!',
+                message: `${invitation.toUserName} se ha unido a ${invitation.teamName}.`,
+                read: false
+            };
+            
+            const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
+            const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
+            
+            await db.updateUser(captain.id, { notifications: updatedNotifications });
+            // Update local state for consistency
+            setAllUsers(prevUsers => prevUsers.map(u => 
+                u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
+            ));
+        }
+
+        // Enviar mensaje al chat del equipo
+        const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
+            type: 'system',
+            text: `${invitation.toUserName} se ha unido al equipo. ¡Bienvenido!`,
+        };
+        await db.addChatMessage(invitation.teamId, systemMessageData);
+
+        // Delete the invitation
+        await db.deleteInvitation(invitation.id);
+        
+        // Show toast to the current user
+        showToast({ type: 'success', title: '¡Te has unido!', message: `Ahora eres miembro de ${team.name}.` });
+    };
+
+    const handleRejectInvitation = async (invitation: Invitation) => {
+        // Notify the captain
+        const captain = allUsers.find(u => u.id === invitation.fromUserId);
+        if (captain) {
+            const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'info',
+                title: 'Invitación Rechazada',
+                message: `${invitation.toUserName} ha rechazado unirse a ${invitation.teamName}.`,
+                read: false
+            };
+
+            const newNotification = { ...notificationForCaptain, id: Date.now(), timestamp: new Date() };
+            const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
+
+            await db.updateUser(captain.id, { notifications: updatedNotifications });
+            // Update local state for consistency
+            setAllUsers(prevUsers => prevUsers.map(u =>
+                u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
+            ));
+        }
+        
+        // Delete the invitation
+        await db.deleteInvitation(invitation.id);
+
+        // Show toast to the current user
+        showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
+    };
+
+    const sendNotificationToUser = async (targetUserId: string, notifData: Omit<Notification, 'id' | 'timestamp'>) => {
+        const targetUser = allUsers.find(u => u.id === targetUserId);
+        if (!targetUser) return;
+
+        const newNotification = { ...notifData, id: Date.now(), timestamp: new Date(), read: false };
+        const updatedNotifications = [newNotification, ...(targetUser.notifications || [])].slice(0, 50);
+
+        try {
+            await db.updateUser(targetUserId, { notifications: updatedNotifications });
+            if (!isFirebaseConfigured) {
+                setAllUsers(prevUsers => prevUsers.map(u => 
+                    u.id === targetUserId ? { ...u, notifications: updatedNotifications } : u
+                ));
+            }
+        } catch (error) {
+            console.error(`Error sending notification to user ${targetUserId}:`, String(error));
+        }
+    };
+    
     const handleAcceptMatchInvite = async (notification: Notification) => {
         if (!user || !notification.payload) return;
 
@@ -240,30 +1578,9 @@ const App: React.FC = () => {
 
         const updatedAcceptedMatches = [...(user.acceptedMatchInvites || []), acceptedMatch];
         
-        // 3. Automatically disable availability
-        let updatedPlayerProfile = user.playerProfile;
-        if (updatedPlayerProfile) {
-            updatedPlayerProfile = {
-                ...updatedPlayerProfile,
-                isAvailableToday: false,
-                // Optionally clear note or leave it for next time
-            };
-        }
-        
         try {
-            const updates: any = { acceptedMatchInvites: updatedAcceptedMatches };
-            if (updatedPlayerProfile) {
-                updates.playerProfile = updatedPlayerProfile;
-            }
-
-            await db.updateUser(user.id, updates);
-            
-            const updatedUser = { 
-                ...user, 
-                acceptedMatchInvites: updatedAcceptedMatches,
-                playerProfile: updatedPlayerProfile || user.playerProfile
-            };
-            
+            await db.updateUser(user.id, { acceptedMatchInvites: updatedAcceptedMatches });
+            const updatedUser = { ...user, acceptedMatchInvites: updatedAcceptedMatches };
             setUser(updatedUser);
             setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         } catch (error) {
@@ -275,521 +1592,392 @@ const App: React.FC = () => {
         showToast({
             type: 'success',
             title: 'Invitación Aceptada',
-            message: `Confirmaste tu asistencia. Tu estado 'Disponible hoy' se ha desactivado.`,
+            message: `Confirmaste tu asistencia al partido.`,
         });
     };
 
     const handleRejectMatchInvite = async (notification: Notification) => {
-        if(!user) return;
-         const updatedNotifications = notifications.filter(n => n.id !== notification.id);
+        if (!user || !notification.payload) return;
+
+        const updatedNotifications = notifications.filter(n => n.id !== notification.id);
         setNotifications(updatedNotifications);
-         try {
-            await db.updateUser(user.id, { notifications: updatedNotifications });
-            showToast({ type: 'info', title: 'Invitación Rechazada', message: 'Has rechazado la invitación.' });
-        } catch (error) {
-             console.error("Error removing notification:", error);
-        }
-    };
-
-    const handleRefreshWeather = async () => {
-        setIsWeatherLoading(true);
         try {
-             const position = await getCurrentPosition();
-             // Mock fetch for now, replace with actual API call if needed or keep using mock data generator
-             // For this example, we'll simulate a response structure based on types
-             const mockWeather: WeatherData = {
-                 latitude: position.coords.latitude,
-                 longitude: position.coords.longitude,
-                 timezone: 'America/Bogota',
-                 lastUpdated: new Date(),
-                 locationName: 'Ubicación Actual',
-                 current: {
-                     time: new Date(),
-                     temperature: 22,
-                     apparentTemperature: 24,
-                     precipitationProbability: 10,
-                     windSpeed: 5,
-                     weatherCode: 1
-                 },
-                 hourly: Array.from({length: 24}, (_, i) => ({
-                     time: new Date(Date.now() + i * 3600000),
-                     temperature: 20 + Math.random() * 5,
-                     apparentTemperature: 22 + Math.random() * 5,
-                     precipitationProbability: Math.random() * 20,
-                     windSpeed: Math.random() * 10,
-                     weatherCode: 1
-                 }))
-             };
-             setWeatherData(mockWeather);
+            await db.updateUser(user.id, { notifications: updatedNotifications });
         } catch (error) {
-            console.error("Weather fetch failed:", error);
-        } finally {
-            setIsWeatherLoading(false);
+            console.error("Error removing match invite notification:", String(error));
         }
-    };
 
-    const getTabForView = (view: View): 'explore' | 'bookings' | 'community' | 'profile' => {
-        switch (view) {
-            case View.HOME:
-            case View.SEARCH_RESULTS:
-            case View.FIELD_DETAIL:
-            case View.BOOKING:
-            case View.BOOKING_CONFIRMATION:
-                return 'explore';
-            case View.BOOKINGS:
-            case View.BOOKING_DETAIL:
-                return 'bookings';
-            case View.SOCIAL:
-            case View.PLAYER_PROFILE_CREATOR:
-                return 'community';
-            case View.PROFILE:
-            case View.APPEARANCE:
-            case View.HELP_SUPPORT:
-            case View.PAYMENT_METHODS:
-                return 'profile';
-            default:
-                return 'explore';
-        }
-    };
+        const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
+            type: 'info',
+            title: 'Invitación Rechazada',
+            message: `${user.name} ha rechazado tu invitación al partido en ${notification.payload.fieldName}.`,
+            read: false,
+        };
+        await sendNotificationToUser(notification.payload.fromUserId, notificationForInviter);
 
-    // --- Render ---
+        showToast({
+            type: 'info',
+            title: 'Invitación Rechazada',
+            message: `Has rechazado la invitación al partido.`,
+        });
+    };
     
-    if (isLoading) {
-        return <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">Cargando...</div>;
-    }
+    const handleCancelMatchAttendance = async (acceptedInviteId: string) => {
+        if (!user || !user.acceptedMatchInvites) return;
 
+        const inviteToCancel = user.acceptedMatchInvites.find(inv => inv.id === acceptedInviteId);
+        if (!inviteToCancel) return;
+
+        const updatedAcceptedMatches = user.acceptedMatchInvites.filter(inv => inv.id !== acceptedInviteId);
+
+        try {
+            await db.updateUser(user.id, { acceptedMatchInvites: updatedAcceptedMatches });
+            const updatedUser = { ...user, acceptedMatchInvites: updatedAcceptedMatches };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            
+            // Notify inviter
+            const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'error',
+                title: 'Asistencia Cancelada',
+                message: `${user.name} ha cancelado su asistencia al partido en ${inviteToCancel.fieldName}.`,
+                read: false,
+            };
+            await sendNotificationToUser(inviteToCancel.inviterId, notificationForInviter);
+
+            showToast({ type: 'info', title: 'Asistencia Cancelada', message: 'Has cancelado tu asistencia al partido.' });
+
+        } catch (error) {
+            console.error("Error cancelling match attendance:", String(error));
+             showToast({ type: 'error', title: 'Error', message: 'No se pudo cancelar la asistencia.' });
+        }
+    };
+    
+    const handleSetAvailability = async (isAvailable: boolean, note?: string) => {
+        if (!user || !user.playerProfile) return;
+    
+        let locationUpdate: { latitude: number; longitude: number; timestamp: Date } | null = null;
+        if (isAvailable) {
+            try {
+                const position = await getCurrentPosition({ timeout: 10000 });
+                locationUpdate = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    timestamp: new Date(),
+                };
+            } catch (error) {
+                console.error("No se pudo obtener la ubicación:", String(error));
+                showToast({
+                    type: 'error',
+                    title: 'Error de Ubicación',
+                    message: 'No se pudo obtener tu ubicación. Activa los permisos e inténtalo de nuevo.'
+                });
+                return Promise.reject(error);
+            }
+        }
+    
+        const updatedPlayerProfile = {
+            ...user.playerProfile,
+            isAvailableToday: isAvailable,
+            lastKnownLocation: isAvailable ? locationUpdate : null,
+            availabilityNote: note || '',
+        };
+    
+        try {
+            await db.updateUser(user.id, { playerProfile: updatedPlayerProfile });
+    
+            const updatedUser = { ...user, playerProfile: updatedPlayerProfile };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+    
+            showToast({
+                type: 'success',
+                title: 'Disponibilidad Actualizada',
+                message: isAvailable ? 'Ahora eres visible para otros jugadores.' : 'Ya no estás visible como disponible.'
+            });
+            return Promise.resolve();
+        } catch (error) {
+            console.error("Error al actualizar disponibilidad:", String(error));
+            showToast({
+                type: 'error',
+                title: 'Error',
+                message: 'No se pudo actualizar tu disponibilidad.'
+            });
+            return Promise.reject(error);
+        }
+    };
+
+
+    const renderView = () => {
+        const homeComponent = <Home 
+            onSearch={handleSearch} 
+            onSelectField={handleSelectField} 
+            fields={fields} 
+            loading={loading && allBookings.length === 0} 
+            favoriteFields={user?.favoriteFields || []} 
+            onToggleFavorite={handleToggleFavorite} 
+            theme={theme} 
+            announcements={announcements} 
+            user={user} 
+            onSearchByLocation={handleSearchByLocation} 
+            isSearchingLocation={isSearchingLocation} 
+            weatherData={weatherData} 
+            isWeatherLoading={isWeatherLoading} 
+            onRefreshWeather={fetchWeather}
+            onSearchResults={(results) => {
+                setSearchResults(results);
+                handleNavigate(View.SEARCH_RESULTS);
+            }} 
+            allBookings={allBookings}
+            allTeams={allTeams}
+            currentTime={currentTime}
+            acceptedMatches={user?.acceptedMatchInvites || []}
+            onCancelMatchAttendance={handleCancelMatchAttendance}
+        />;
+        
+        const viewElement = (() => {
+            switch (view) {
+                case View.SEARCH_RESULTS:
+                    return <SearchResults fields={searchResults} onSelectField={handleSelectField} onBack={() => handleNavigate(View.HOME, { isBack: true })} favoriteFields={user?.favoriteFields || []} onToggleFavorite={handleToggleFavorite} theme={theme} loading={isSearchingLocation} />;
+                case View.FIELD_DETAIL:
+                    if (selectedField) {
+                        const complexFields = fields.filter(f => f.complexId === selectedField.complexId);
+                        const complexObject = {
+                            name: selectedField.name.split(' - ')[0],
+                            address: selectedField.address,
+                            city: selectedField.city,
+                            description: selectedField.description,
+                            images: selectedField.images,
+                            services: selectedField.services,
+                            fields: complexFields.length > 0 ? complexFields : [selectedField] // Fallback for fields without complexId
+                        };
+                        return <FieldDetail 
+                                    complex={complexObject} 
+                                    initialFieldId={selectedField.id}
+                                    onBookNow={handleBookNow} 
+                                    onBack={() => handleNavigate(View.HOME, { isBack: true })} 
+                                    favoriteFields={user?.favoriteFields || []} 
+                                    // FIX: Corrected a typo where 'onToggleFavorite' was passed instead of the handler 'handleToggleFavorite'.
+                                    onToggleFavorite={handleToggleFavorite}
+                                    allBookings={allBookings}
+                                    weatherData={weatherData}
+                                />;
+                    }
+                    return homeComponent;
+                case View.BOOKING:
+                    if (bookingDetails && user) {
+                        return <Booking user={user} allTeams={allTeams} details={bookingDetails} onConfirm={handleConfirmBooking} onBack={() => handleNavigate(View.FIELD_DETAIL, { isBack: true })} isBookingLoading={isBookingLoading} />;
+                    }
+                    return homeComponent;
+                case View.BOOKING_CONFIRMATION:
+                    if(confirmedBooking) {
+                        return <BookingConfirmation details={confirmedBooking} onDone={() => handleNavigate(View.HOME)} weatherData={weatherData} />;
+                    }
+                    return homeComponent;
+                case View.LOGIN:
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.REGISTER:
+                    return <Register onRegister={handleRegister} onNavigate={handleNavigate} isRegisterLoading={isRegisterLoading} />;
+                case View.OWNER_REGISTER:
+                    return <OwnerRegisterView onRegister={handleOwnerRegister} onNavigate={handleNavigate} isOwnerRegisterLoading={isOwnerRegisterLoading} />;
+                case View.OWNER_PENDING_VERIFICATION:
+                    return <OwnerPendingVerificationView onNavigate={handleNavigate} />;
+                case View.FORGOT_PASSWORD:
+                    return <ForgotPasswordView onNavigate={handleNavigate} addNotification={showToast} />;
+                case View.OWNER_DASHBOARD:
+                    if (user) {
+                        return <OwnerDashboard 
+                                    user={user}
+                                    fields={ownerFields} 
+                                    setFields={setFields} 
+                                    bookings={ownerBookings}
+                                    setBookings={setAllBookings}
+                                    announcements={announcements}
+                                    setAnnouncements={setAnnouncements}
+                                    addNotification={showToast}
+                                    onLogout={handleLogout}
+                                    allUsers={allUsers}
+                                    allFields={fields}
+                                />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.SUPER_ADMIN_DASHBOARD:
+                    return <SuperAdminDashboard
+                                currentUser={user}
+                                allUsers={allUsers}
+                                setAllUsers={setAllUsers}
+                                fields={fields}
+                                setFields={setFields}
+                                ownerApplications={ownerApplications}
+                                setOwnerApplications={setOwnerApplications}
+                                addNotification={showToast}
+                                onLogout={handleLogout}
+                            />;
+                case View.PROFILE:
+                    if (user) {
+                        return <ProfileView 
+                                    user={user} 
+                                    allTeams={allTeams}
+                                    setSocialSection={setSocialSection}
+                                    onLogout={handleLogout} 
+                                    allFields={fields} 
+                                    onToggleFavorite={handleToggleFavorite} 
+                                    onSelectField={handleSelectField}
+                                    onUpdateProfilePicture={handleUpdateProfilePicture}
+                                    onRemoveProfilePicture={handleRemoveProfilePicture}
+                                    onUpdateUser={handleUpdateUserInfo}
+                                    onChangePassword={handleChangePassword}
+                                    onUpdateNotificationPreferences={handleUpdateNotificationPreferences}
+                                    onNavigate={handleNavigate}
+                                    setIsPremiumModalOpen={setIsPremiumModalOpen}
+                                />;
+                    }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.APPEARANCE:
+                     if (user) {
+                        return <AppearanceSettings 
+                            currentTheme={theme}
+                            onUpdateTheme={handleUpdateTheme}
+                            onBack={() => handleNavigate(View.PROFILE, { isBack: true })}
+                            currentAccentColor={accentColor}
+                            onUpdateAccentColor={handleUpdateAccentColor}
+                        />
+                     }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.HELP_SUPPORT:
+                     if (user) {
+                        return <HelpView onNavigate={handleNavigate} />
+                     }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.PAYMENT_METHODS:
+                     if(user){
+                        return <PaymentMethodsView 
+                                user={user}
+                                onBack={() => handleNavigate(View.PROFILE, { isBack: true })}
+                                onAddPaymentMethod={handleAddPaymentMethod}
+                                onDeletePaymentMethod={handleDeletePaymentMethod}
+                                onSetDefaultPaymentMethod={handleSetDefaultPaymentMethod}
+                                />;
+                     }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.BOOKINGS:
+                    if(user){
+                        return <BookingsView bookings={bookings} onSelectBooking={handleSelectBooking} />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.BOOKING_DETAIL:
+                    if(user && selectedBooking){
+                        return <BookingDetailView 
+                                    booking={selectedBooking} 
+                                    user={user}
+                                    allTeams={allTeams}
+                                    onBack={() => handleNavigate(View.BOOKINGS, { isBack: true })} 
+                                    onCancelBooking={handleCancelBooking} 
+                                    weatherData={weatherData}
+                                    onUpdateScore={handleUpdateScore}
+                                    onFinalizeMatch={handleFinalizeMatch}
+                                    currentTime={currentTime}
+                                />;
+                    }
+                     return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.SOCIAL:
+                    if (user) {
+                        return <SocialView 
+                                    user={user}
+                                    allTeams={allTeams}
+                                    allUsers={allUsers}
+                                    allBookings={allBookings}
+                                    addNotification={showToast} 
+                                    onNavigate={handleNavigate} 
+                                    setIsPremiumModalOpen={setIsPremiumModalOpen} 
+                                    section={socialSection}
+                                    setSection={setSocialSection}
+                                    onUpdateUserTeams={handleUpdateUserTeams}
+                                    onUpdateTeam={handleUpdateTeam}
+                                    sentInvitations={sentInvitations}
+                                    onSendInvitation={handleSendInvitation}
+                                    onCancelInvitation={handleCancelInvitation}
+                                    onRemovePlayerFromTeam={handleRemovePlayerFromTeam}
+                                    onLeaveTeam={handleLeaveTeam}
+                                    weatherData={weatherData}
+                                    onSetAvailability={handleSetAvailability}
+                                />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                 case View.PLAYER_PROFILE_CREATOR:
+                    if (user) {
+                        return <PlayerProfileCreatorView 
+                                    onBack={() => handleNavigate(View.SOCIAL, { isBack: true })} 
+                                    user={user}
+                                    onSave={handleUpdatePlayerProfile}
+                                />;
+                    }
+                    return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+                case View.HOME:
+                default:
+                    return homeComponent;
+            }
+        })();
+        
+        return (
+            <div key={viewKey} className={animationClass}>
+                {viewElement}
+            </div>
+        );
+    };
+    
+    // FIX: Removed duplicated function and constant declarations.
+    const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
+    
+    const isSocialView = view === View.SOCIAL;
+    const socialSectionsWithDarkBg = ['hub', 'my-team', 'available-today'];
+    const showDarkSocialBg = isSocialView && socialSectionsWithDarkBg.includes(socialSection);
+    const isChatView = isSocialView && socialSection === 'chat';
+    
+    const showHeader = !isChatView && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
+    const showBottomNav = !isChatView && user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
+    
     return (
-        <div className={`min-h-screen bg-slate-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 ${theme}`}>
-            {/* Header (conditionally rendered) */}
-            {![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SUPER_ADMIN_DASHBOARD, View.OWNER_DASHBOARD].includes(currentView) && (
-                <Header 
-                    user={user} 
-                    onNavigate={handleNavigate} 
-                    onLogout={handleLogout}
-                    notifications={notifications}
-                    invitations={invitations}
-                    onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
-                    onMarkAllAsRead={() => {
-                         const updated = notifications.map(n => ({ ...n, read: true }));
-                         setNotifications(updated);
-                         if(user) db.updateUser(user.id, { notifications: updated });
-                    }}
-                    onClearAll={() => {
-                         const invites = notifications.filter(n => n.type === 'match_invite');
-                         setNotifications(invites);
-                         if(user) db.updateUser(user.id, { notifications: invites });
-                    }}
-                    onAcceptInvitation={async (inv) => {
-                         // Logic to accept team invitation
-                         if(!user) return;
-                         await db.updateUser(user.id, { teamIds: [...(user.teamIds || []), inv.teamId] });
-                         await db.deleteInvitation(inv.id);
-                         setInvitations(prev => prev.filter(i => i.id !== inv.id));
-                         showToast({ type: 'success', title: 'Equipo Unido', message: `Te has unido a ${inv.teamName}.` });
-                    }}
-                    onRejectInvitation={async (inv) => {
-                        await db.deleteInvitation(inv.id);
-                        setInvitations(prev => prev.filter(i => i.id !== inv.id));
-                        showToast({ type: 'info', title: 'Invitación Rechazada', message: `Rechazaste unirte a ${inv.teamName}.` });
-                    }}
-                    onAcceptMatchInvite={handleAcceptMatchInvite}
-                    onRejectMatchInvite={handleRejectMatchInvite}
-                    currentTime={new Date()}
-                />
-            )}
-
-            <main className="container mx-auto px-4 py-6 pb-24 md:pb-6">
-                 {currentView === View.HOME && (
-                    <Home 
-                        onSearch={(loc, filters) => {
-                            // Filter logic
-                            let results = fields;
-                             if (loc) {
-                                const term = loc.toLowerCase();
-                                results = results.filter(f => f.name.toLowerCase().includes(term) || f.city.toLowerCase().includes(term));
-                            }
-                            if (filters?.size) {
-                                results = results.filter(f => f.size === filters.size);
-                            }
-                            setSearchResults(results);
-                            setCurrentView(View.SEARCH_RESULTS);
-                        }}
-                        onSelectField={(f) => { setSelectedField(f); setCurrentView(View.FIELD_DETAIL); }}
-                        fields={fields}
-                        loading={false}
-                        favoriteFields={user?.favoriteFields || []}
-                        onToggleFavorite={(id) => {
-                            if(!user) return;
-                            const newFavs = user.favoriteFields.includes(id) 
-                                ? user.favoriteFields.filter(f => f !== id) 
-                                : [...user.favoriteFields, id];
-                            setUser({...user, favoriteFields: newFavs});
-                            db.updateUser(user.id, { favoriteFields: newFavs });
-                        }}
-                        theme={theme}
-                        announcements={announcements}
-                        user={user}
-                        onSearchByLocation={() => {
-                            setIsSearchingLocation(true);
-                            getCurrentPosition().then(() => {
-                                setIsSearchingLocation(false);
-                                // Sort fields by distance (mock)
-                                showToast({ type: 'info', title: 'Ubicación', message: 'Mostrando canchas cercanas.' });
-                            }).catch(() => setIsSearchingLocation(false));
-                        }}
-                        isSearchingLocation={isSearchingLocation}
-                        weatherData={weatherData}
-                        isWeatherLoading={isWeatherLoading}
-                        onRefreshWeather={handleRefreshWeather}
-                        onSearchResults={(res) => { setSearchResults(res); setCurrentView(View.SEARCH_RESULTS); }}
-                        allBookings={bookings}
-                        allTeams={allTeams}
-                        currentTime={new Date()}
-                        acceptedMatches={user?.acceptedMatchInvites}
-                        onCancelMatchAttendance={async (id) => {
-                             if(!user) return;
-                             const updated = user.acceptedMatchInvites?.filter(m => m.id !== id);
-                             setUser({...user, acceptedMatchInvites: updated});
-                             await db.updateUser(user.id, { acceptedMatchInvites: updated });
-                             showToast({type: 'info', title: 'Asistencia Cancelada', message: 'Ya no asistirás a este partido.'});
-                        }}
-                    />
-                )}
-                
-                {currentView === View.SEARCH_RESULTS && (
-                     <SearchResults 
-                        fields={searchResults}
-                        onSelectField={(f) => { setSelectedField(f); setCurrentView(View.FIELD_DETAIL); }}
-                        onBack={() => setCurrentView(View.HOME)}
-                        favoriteFields={user?.favoriteFields || []}
-                        onToggleFavorite={(id) => {
-                             if(!user) return;
-                             const newFavs = user.favoriteFields.includes(id) ? user.favoriteFields.filter(f => f !== id) : [...user.favoriteFields, id];
-                             setUser({...user, favoriteFields: newFavs});
-                             db.updateUser(user.id, { favoriteFields: newFavs });
-                        }}
-                        theme={theme}
-                     />
-                )}
-
-                {currentView === View.FIELD_DETAIL && selectedField && (
-                    <FieldDetail 
-                        complex={{
-                             name: selectedField.name, // Assuming simple mapping for now
-                             address: selectedField.address,
-                             city: selectedField.city,
-                             description: selectedField.description,
-                             images: selectedField.images,
-                             services: selectedField.services,
-                             fields: [selectedField] // Or fetch siblings
-                        }}
-                        initialFieldId={selectedField.id}
-                        onBookNow={(field, time, date) => {
-                            setBookingDetails({ field, time, date });
-                            setCurrentView(View.BOOKING);
-                        }}
-                        onBack={() => setCurrentView(View.HOME)}
-                        favoriteFields={user?.favoriteFields || []}
-                        onToggleFavorite={(id) => {
-                              if(!user) return;
-                             const newFavs = user.favoriteFields.includes(id) ? user.favoriteFields.filter(f => f !== id) : [...user.favoriteFields, id];
-                             setUser({...user, favoriteFields: newFavs});
-                             db.updateUser(user.id, { favoriteFields: newFavs });
-                        }}
-                        allBookings={bookings}
-                        weatherData={weatherData}
-                    />
-                )}
-
-                {currentView === View.BOOKING && bookingDetails && user && (
-                    <Booking 
-                        details={bookingDetails}
-                        user={user}
-                        allTeams={allTeams}
-                        onConfirm={async (info) => {
-                            const newBooking = await db.addBooking({ ...info, userId: user.id, userName: user.name, userPhone: user.phone, status: 'confirmed' });
-                            setBookings(prev => [...prev, newBooking]);
-                            setLastConfirmedBooking(newBooking);
-                            setCurrentView(View.BOOKING_CONFIRMATION);
-                        }}
-                        onBack={() => setCurrentView(View.FIELD_DETAIL)}
-                        isBookingLoading={false}
-                    />
-                )}
-
-                {currentView === View.BOOKING_CONFIRMATION && lastConfirmedBooking && (
-                    <BookingConfirmation 
-                        details={lastConfirmedBooking}
-                        onDone={() => setCurrentView(View.HOME)}
-                        weatherData={weatherData}
-                    />
-                )}
-
-                {currentView === View.SOCIAL && user && (
-                    <SocialView 
-                        user={user}
-                        allTeams={allTeams}
-                        allUsers={allUsers}
-                        allBookings={bookings}
-                        addNotification={showToast}
-                        onNavigate={handleNavigate}
-                        setIsPremiumModalOpen={setIsPremiumModalOpen}
-                        section={socialSection}
-                        setSection={setSocialSection}
-                        onUpdateUserTeams={async (teamIds) => {
-                             setUser(prev => prev ? ({ ...prev, teamIds }) : null);
-                             await db.updateUser(user.id, { teamIds });
-                        }}
-                        onUpdateTeam={async (teamId, updates) => {
-                             await db.updateTeam(teamId, updates);
-                             setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
-                        }}
-                        sentInvitations={invitations} // This should ideally be outgoing invites, simplified here
-                        onSendInvitation={async (team, player) => {
-                            // Logic to send invite
-                             const inv = await db.addInvitation({
-                                 teamId: team.id, teamName: team.name, teamLogo: team.logo,
-                                 fromUserId: user.id, fromUserName: user.name,
-                                 toUserId: player.id, toUserName: player.name,
-                                 timestamp: new Date()
-                             });
-                             // Note: In a real app we would update a sentInvitations state
-                             showToast({ type: 'success', title: 'Invitación Enviada', message: `Invitación enviada a ${player.name}` });
-                        }}
-                        onCancelInvitation={async (id) => {
-                            await db.deleteInvitation(id);
-                        }}
-                        onRemovePlayerFromTeam={async (teamId, playerId) => {
-                             const team = allTeams.find(t => t.id === teamId);
-                             if(team) {
-                                 const updatedPlayers = team.players.filter(p => p.id !== playerId);
-                                 await db.updateTeam(teamId, { players: updatedPlayers });
-                                 setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
-                                 // Also update the user's teamIds
-                                 const playerUser = allUsers.find(u => u.id === playerId);
-                                 if(playerUser && playerUser.teamIds) {
-                                     const updatedTeamIds = playerUser.teamIds.filter(tid => tid !== teamId);
-                                     await db.updateUser(playerId, { teamIds: updatedTeamIds });
-                                 }
-                             }
-                        }}
-                        onLeaveTeam={async (teamId) => {
-                             const team = allTeams.find(t => t.id === teamId);
-                             if(team) {
-                                 const updatedPlayers = team.players.filter(p => p.id !== user.id);
-                                 await db.updateTeam(teamId, { players: updatedPlayers });
-                                 setAllTeams(prev => prev.map(t => t.id === teamId ? { ...t, players: updatedPlayers } : t));
-                                 
-                                 const updatedTeamIds = (user.teamIds || []).filter(tid => tid !== teamId);
-                                 setUser({ ...user, teamIds: updatedTeamIds });
-                                 await db.updateUser(user.id, { teamIds: updatedTeamIds });
-                             }
-                        }}
-                        weatherData={weatherData}
-                        onSetAvailability={async (isAvailable, note) => {
-                             const updatedProfile = { ...user.playerProfile!, isAvailableToday: isAvailable, availabilityNote: note };
-                             setUser({ ...user, playerProfile: updatedProfile });
-                             await db.updateUser(user.id, { playerProfile: updatedProfile });
-                        }}
-                    />
-                )}
-
-                {currentView === View.PLAYER_PROFILE_CREATOR && user && (
-                     <PlayerProfileCreatorView 
-                        user={user}
-                        onBack={() => setCurrentView(View.SOCIAL)}
-                        onSave={async (profile) => {
-                            setUser({ ...user, playerProfile: profile });
-                            await db.updateUser(user.id, { playerProfile: profile });
-                            setCurrentView(View.SOCIAL);
-                            showToast({ type: 'success', title: 'Perfil Actualizado', message: 'Tu perfil de jugador ha sido guardado.' });
-                        }}
-                     />
-                )}
-
-                {currentView === View.PROFILE && user && (
-                    <ProfileView 
-                        user={user}
-                        allTeams={allTeams}
-                        setSocialSection={setSocialSection}
-                        onLogout={handleLogout}
-                        allFields={fields}
-                        onToggleFavorite={(id) => {
-                             const newFavs = user.favoriteFields.includes(id) ? user.favoriteFields.filter(f => f !== id) : [...user.favoriteFields, id];
-                             setUser({...user, favoriteFields: newFavs});
-                             db.updateUser(user.id, { favoriteFields: newFavs });
-                        }}
-                        onSelectField={(f) => { setSelectedField(f); setCurrentView(View.FIELD_DETAIL); }}
-                        onUpdateProfilePicture={async (url) => {
-                             setUser({...user, profilePicture: url});
-                             await db.updateUser(user.id, { profilePicture: url });
-                        }}
-                        onRemoveProfilePicture={async () => {
-                             setUser({...user, profilePicture: undefined});
-                             await db.updateUser(user.id, { profilePicture: null });
-                        }}
-                        onUpdateUser={async (data) => {
-                             setUser({...user, ...data});
-                             await db.updateUser(user.id, data);
-                        }}
-                        onChangePassword={async (current, newPass) => {
-                             // Mock logic
-                             await db.updateUser(user.id, { password: newPass });
-                             showToast({ type: 'success', title: 'Contraseña Actualizada', message: 'Tu contraseña ha sido cambiada.' });
-                        }}
-                        onUpdateNotificationPreferences={async (prefs) => {
-                             setUser({...user, notificationPreferences: prefs});
-                             await db.updateUser(user.id, { notificationPreferences: prefs });
-                        }}
-                        onNavigate={handleNavigate}
-                        setIsPremiumModalOpen={setIsPremiumModalOpen}
-                    />
-                )}
-
-                {currentView === View.APPEARANCE && (
-                    <AppearanceSettings 
-                        currentTheme={theme}
-                        onUpdateTheme={setTheme}
-                        onBack={() => setCurrentView(View.PROFILE)}
-                        currentAccentColor={accentColor}
-                        onUpdateAccentColor={setAccentColor}
-                    />
-                )}
-
-                {currentView === View.BOOKINGS && user && (
-                     <BookingsView 
-                        bookings={bookings.filter(b => b.userId === user.id)}
-                        onSelectBooking={(b) => {
-                            // Mock navigation to details
-                            showToast({type: 'info', title: 'Detalle', message: `Viendo reserva en ${b.field.name}`});
-                        }}
-                     />
-                )}
-
-                {currentView === View.LOGIN && (
-                    <Login 
-                        onLogin={handleLogin}
-                        onNavigateToHome={() => setCurrentView(View.HOME)}
-                        onNavigate={handleNavigate}
-                    />
-                )}
-                
-                {currentView === View.REGISTER && (
-                    <Register 
-                        onRegister={handleRegister}
-                        onNavigate={handleNavigate}
-                        isRegisterLoading={false}
-                    />
-                )}
-
-                {currentView === View.OWNER_REGISTER && (
-                    <OwnerRegisterView 
-                        onRegister={async (appData, userData) => {
-                             try {
-                                 // 1. Create User
-                                 const newUser = await db.addUser({ ...userData, isOwner: true, ownerStatus: 'pending', notificationPreferences: { newAvailability: true, specialDiscounts: true, importantNews: true }, loyalty: {}, paymentMethods: [] });
-                                 // 2. Create Application
-                                 await db.addOwnerApplication({ ...appData, userId: newUser.id, status: 'pending', userName: newUser.name, userEmail: newUser.email });
-                                 setCurrentView(View.OWNER_PENDING_VERIFICATION);
-                             } catch (error) {
-                                 showToast({ type: 'error', title: 'Error', message: 'No se pudo enviar la solicitud.' });
-                             }
-                        }}
-                        onNavigate={handleNavigate}
-                        isOwnerRegisterLoading={false}
-                    />
-                )}
-
-                {currentView === View.OWNER_PENDING_VERIFICATION && (
-                    <OwnerPendingVerificationView onNavigate={handleNavigate} />
-                )}
-
-                {currentView === View.OWNER_DASHBOARD && user && (
-                     <OwnerDashboard 
-                        user={user}
-                        fields={fields.filter(f => f.ownerId === user.id)}
-                        setFields={setFields}
-                        bookings={bookings.filter(b => b.field.ownerId === user.id)}
-                        setBookings={setBookings}
-                        announcements={announcements.filter(a => a.ownerId === user.id)}
-                        setAnnouncements={setAnnouncements}
-                        addNotification={showToast}
-                        onLogout={handleLogout}
-                        allUsers={allUsers}
-                        allFields={fields}
-                     />
-                )}
-
-                {currentView === View.SUPER_ADMIN_DASHBOARD && user && (
-                    <SuperAdminDashboardView 
-                        currentUser={user}
-                        allUsers={allUsers}
-                        setAllUsers={setAllUsers}
-                        fields={fields}
-                        setFields={setFields}
-                        ownerApplications={ownerApplications}
-                        setOwnerApplications={setOwnerApplications}
-                        addNotification={showToast}
-                        onLogout={handleLogout}
-                    />
-                )}
-
-                {currentView === View.HELP_SUPPORT && (
-                    <HelpView onNavigate={handleNavigate} />
-                )}
-                
-                {currentView === View.FORGOT_PASSWORD && (
-                    <ForgotPasswordView onNavigate={handleNavigate} addNotification={showToast} />
-                )}
-                 
-                {currentView === View.PAYMENT_METHODS && user && (
-                    <PaymentMethodsView 
-                        user={user}
-                        onBack={() => setCurrentView(View.PROFILE)}
-                        onAddPaymentMethod={async (method) => {
-                             const newMethod = { ...method, id: `pm-${Date.now()}`, isDefault: user.paymentMethods?.length === 0 };
-                             const updatedMethods = [...(user.paymentMethods || []), newMethod];
-                             setUser({ ...user, paymentMethods: updatedMethods });
-                             await db.updateUser(user.id, { paymentMethods: updatedMethods });
-                             showToast({ type: 'success', title: 'Método Agregado', message: 'Se ha guardado tu método de pago.' });
-                        }}
-                        onDeletePaymentMethod={async (id) => {
-                             const updatedMethods = user.paymentMethods?.filter(m => m.id !== id) || [];
-                             setUser({ ...user, paymentMethods: updatedMethods });
-                             await db.updateUser(user.id, { paymentMethods: updatedMethods });
-                             showToast({ type: 'info', title: 'Método Eliminado', message: 'Se ha eliminado el método de pago.' });
-                        }}
-                        onSetDefaultPaymentMethod={async (id) => {
-                             const updatedMethods = user.paymentMethods?.map(m => ({ ...m, isDefault: m.id === id })) || [];
-                             setUser({ ...user, paymentMethods: updatedMethods });
-                             await db.updateUser(user.id, { paymentMethods: updatedMethods });
-                             showToast({ type: 'success', title: 'Actualizado', message: 'Se ha actualizado tu método predeterminado.' });
-                        }}
-                    />
-                )}
-
-            </main>
+        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
+            {showDarkSocialBg && <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/80 z-0"></div>}
             
-            {/* Bottom Navigation (conditionally rendered) */}
-            {user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.BOOKING, View.BOOKING_CONFIRMATION, View.FIELD_DETAIL, View.SOCIAL, View.PLAYER_PROFILE_CREATOR].includes(currentView) && (
-                <BottomNav activeTab={getTabForView(currentView)} onNavigate={(tab) => {
-                    if (tab === 'explore') setCurrentView(View.HOME);
-                    if (tab === 'bookings') setCurrentView(View.BOOKINGS);
-                    if (tab === 'community') { setCurrentView(View.SOCIAL); setSocialSection('hub'); }
-                    if (tab === 'profile') setCurrentView(View.PROFILE);
-                }} />
-            )}
-
-            <NotificationContainer notifications={notifications} onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))} />
-            
-            {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
-            {rewardField && <RewardAnimation field={rewardField} onAnimationEnd={() => { setFieldToRate(rewardField); setRewardField(null); }} />}
-            {fieldToRate && <RatingModal field={fieldToRate} onClose={() => setFieldToRate(null)} onSubmit={(id, rating, comment) => {
-                 // Handle rating submit
-                 showToast({ type: 'success', title: '¡Gracias!', message: 'Tu opinión nos ayuda a mejorar.' });
-                 setFieldToRate(null);
-            }} />}
-
+            <div className="relative z-10">
+                <FirebaseWarningBanner />
+                <OfflineBanner isOnline={isOnline} />
+                {showHeader && <Header 
+                                user={user} 
+                                onNavigate={handleNavigate} 
+                                onLogout={handleLogout} 
+                                notifications={notifications} 
+                                invitations={receivedInvitations}
+                                onDismiss={dismissNotification} 
+                                onMarkAllAsRead={handleMarkAllNotificationsAsRead} 
+                                onClearAll={handleClearNotifications} 
+                                onAcceptInvitation={handleAcceptInvitation}
+                                onRejectInvitation={handleRejectInvitation}
+                                onAcceptMatchInvite={handleAcceptMatchInvite}
+                                onRejectMatchInvite={handleRejectMatchInvite}
+                                currentTime={currentTime}/>}
+                <main className={`transition-all duration-300 ${!isChatView && 'overflow-x-hidden'} ${!showHeader ? '' : `container mx-auto px-4 py-6 sm:py-8 ${showBottomNav ? 'pb-28' : ''}`} ${view === View.PLAYER_PROFILE_CREATOR ? 'p-0 sm:p-0 max-w-full' : ''} ${isFullscreenView ? 'p-0 sm:p-0 max-w-full' : ''} ${isSocialView ? 'container mx-auto p-0 sm:p-0 max-w-full' : ''}`}>
+                    {renderView()}
+                </main>
+                {showBottomNav && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
+                <NotificationContainer notifications={toasts} onDismiss={dismissToast} />
+                {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
+                {rewardInfo && (
+                    <RewardAnimation 
+                        field={rewardInfo.field}
+                        onAnimationEnd={() => handleRewardAnimationEnd()}
+                    />
+                )}
+                {ratingInfo && (
+                    <RatingModal 
+                        field={ratingInfo.field}
+                        onClose={() => setRatingInfo(null)}
+                        onSubmit={handleRatingSubmit}
+                    />
+                )}
+            </div>
         </div>
     );
 };
