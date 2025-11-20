@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { User, Team, Player, Tournament, Match, Notification, Group, KnockoutRound, MatchEvent, TeamEvent, Formation, SocialSection, ChatMessage, Invitation, WeatherData, ConfirmedBooking } from '../../types';
 import { UserPlusIcon } from '../components/icons/UserPlusIcon';
@@ -25,7 +26,7 @@ import { CalendarDaysIcon } from '../components/icons/CalendarDaysIcon';
 import { MedalIcon } from '../components/icons/MedalIcon';
 import { FireIcon } from '../components/icons/FireIcon';
 import { ForumIcon } from '../components/icons/ForumIcon';
-import { SwordsIcon } from '../components/icons/SwordsIcon';
+import { SwordsAndBallIcon } from '../components/icons/SwordsAndBallIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import StarRating from '../components/StarRating';
 import TeamChatView from './team/TeamChatView';
@@ -222,9 +223,9 @@ const HubNavigation: React.FC<{ onNavigate: (section: SocialSection) => void }> 
         { section: 'sports-forum' as SocialSection, icon: <ForumIcon className="w-7 h-7" />, label: 'Foro' },
         { section: 'my-team' as SocialSection, icon: <ShieldIcon className="w-7 h-7" />, label: 'Mi Equipo' },
         { section: 'tournaments' as SocialSection, icon: <TrophyIcon className="w-7 h-7" />, label: 'Torneos' },
-        { section: 'challenge' as SocialSection, icon: <SwordsIcon className="w-7 h-7" />, label: 'Retar' },
+        { section: 'challenge' as SocialSection, icon: <SwordsAndBallIcon className="w-7 h-7" />, label: 'Retar' },
         { section: 'find-players' as SocialSection, icon: <UserPlusIcon className="w-7 h-7" />, label: 'Fichajes' },
-        { section: 'available-today' as SocialSection, icon: <PlayerKickingBallIcon className="w-7 h-7" />, label: 'Disponibles Hoy' },
+        { section: 'available-today' as SocialSection, icon: <SoccerBallIcon className="w-7 h-7" />, label: 'Disponibles Hoy' },
     ];
     return (
         <div className="mt-6 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4">
@@ -381,7 +382,7 @@ const TeamChallengeCard: React.FC<{
                 onClick={(e) => { e.stopPropagation(); onChallenge(team); }}
                 className="flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-700 shadow-sm text-sm flex-shrink-0"
             >
-                <SwordsIcon className="w-4 h-4" />
+                <SwordsAndBallIcon className="w-4 h-4" />
                 Retar
             </button>
         ) : (
@@ -484,7 +485,7 @@ const ChallengeView: React.FC<{
                     ))
                 ) : (
                     <div className="text-center py-20 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border dark:border-gray-700">
-                        <SwordsIcon className="mx-auto h-16 w-16 text-gray-400" />
+                        <SwordsAndBallIcon className="mx-auto h-16 w-16 text-gray-400" />
                         <h2 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">No se encontraron equipos</h2>
                         <p className="mt-2 text-base text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                             Intenta con otro nombre o ajusta los filtros de búsqueda.

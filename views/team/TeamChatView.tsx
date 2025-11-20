@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -79,10 +80,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             // For immediate feedback, we can clear it locally.
             setMessages([]);
             setDeletedForMeIds(new Set<string>());
-            localStorage.removeItem(String(localStorageKey));
+            localStorage.removeItem(localStorageKey);
             addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
         } catch (error) {
-            console.error(`Error al vaciar el chat: ${String(error)}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error(`Error al vaciar el chat: ${errorMessage}`);
             addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
         }
     }, [team.id, localStorageKey, addNotification]);
@@ -157,7 +159,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error) {
-            console.error(`Error al eliminar mensajes: ${String(error)}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error(`Error al eliminar mensajes: ${errorMessage}`);
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
         } finally {
             setShowDeleteModal(false);
