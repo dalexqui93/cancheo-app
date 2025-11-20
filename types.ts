@@ -1,3 +1,4 @@
+
 // Basic types
 export type Theme = 'system' | 'light' | 'dark';
 export type AccentColor = 'green' | 'blue' | 'orange' | 'purple';
@@ -108,6 +109,18 @@ export interface Player {
 
 export type OwnerStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction';
 
+export interface AcceptedMatchInvite {
+    id: string;
+    bookingId: string;
+    inviterId: string;
+    inviterName: string;
+    inviterPhone?: string;
+    matchDate: Date;
+    matchTime: string;
+    fieldName: string;
+    acceptedAt: Date;
+}
+
 export interface User {
     id: string;
     name: string;
@@ -131,6 +144,7 @@ export interface User {
     playerProfile?: Player;
     cancheoCoins?: number;
     teamIds?: string[];
+    acceptedMatchInvites?: AcceptedMatchInvite[];
 }
 
 export interface Notification {

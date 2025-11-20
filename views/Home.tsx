@@ -1,7 +1,8 @@
 
 
+
 import React, { useState, useMemo, useEffect } from 'react';
-import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team } from '../types';
+import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team, AcceptedMatchInvite } from '../types';
 import FieldCard from '../components/FieldCard';
 import { SearchIcon } from '../components/icons/SearchIcon';
 import { LocationIcon } from '../components/icons/LocationIcon';
@@ -15,6 +16,11 @@ import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { GoogleGenAI, Type } from '@google/genai';
 import { calculateDistance } from '../utils/geolocation';
 import ScrollOnOverflow from '../components/ScrollOnOverflow';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { ClockIcon } from '../components/icons/ClockIcon';
+import { PhoneIcon } from '../components/icons/PhoneIcon';
+import { XIcon } from '../components/icons/XIcon';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 
 interface HomeProps {
@@ -36,6 +42,8 @@ interface HomeProps {
     allBookings: ConfirmedBooking[];
     allTeams: Team[];
     currentTime: Date;
+    acceptedMatches?: AcceptedMatchInvite[];
+    onCancelMatchAttendance?: (id: string) => void;
 }
 
 const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
@@ -277,7 +285,70 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
     );
 };
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime }) => {
+const AcceptedMatchCard: React.FC<{ 
+    invite: AcceptedMatchInvite; 
+    onCancel: (id: string) => void; 
+}> = ({ invite, onCancel }) => {
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    
+    const handleContact = () => {
+        if (invite.inviterPhone) {
+            const cleanPhone = invite.inviterPhone.replace(/\D/g, '');
+            window.open(`https://wa.me/57${cleanPhone}`, '_blank');
+        }
+    };
+
+    const formattedDate = new Date(invite.matchDate).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    return (
+        <>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 border-[var(--color-primary-500)] p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-[300px] flex-shrink-0">
+                <div>
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100">{invite.fieldName}</h3>
+                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4" /> {formattedDate}</span>
+                        <span className="flex items-center gap-1"><ClockIcon className="w-4 h-4" /> {invite.matchTime}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                        Invitado por: <span className="font-semibold">{invite.inviterName}</span>
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button 
+                        onClick={handleContact}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-semibold text-xs hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                        title="Contactar por WhatsApp"
+                    >
+                        <PhoneIcon className="w-4 h-4" /> Contactar
+                    </button>
+                    <button 
+                        onClick={() => setIsCancelModalOpen(true)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg font-semibold text-xs hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                    >
+                        <XIcon className="w-4 h-4" /> Cancelar
+                    </button>
+                </div>
+            </div>
+
+            {isCancelModalOpen && (
+                <ConfirmationModal
+                    isOpen={isCancelModalOpen}
+                    onClose={() => setIsCancelModalOpen(false)}
+                    onConfirm={() => {
+                        onCancel(invite.id);
+                        setIsCancelModalOpen(false);
+                    }}
+                    title="¿Cancelar asistencia?"
+                    message={`¿Estás seguro de que quieres cancelar tu asistencia al partido en ${invite.fieldName}? Se notificará a ${invite.inviterName}.`}
+                    confirmButtonText="Sí, cancelar asistencia"
+                    cancelButtonText="No, mantener"
+                />
+            )}
+        </>
+    );
+};
+
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime, acceptedMatches, onCancelMatchAttendance }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAiSearching, setIsAiSearching] = useState(false);
 
@@ -440,6 +511,18 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         return groupedFields.filter(group => !favoriteFields.includes(group[0].complexId || group[0].id));
     }, [groupedFields, favoriteFields]);
 
+    // Filter out old accepted matches (e.g. from yesterday)
+    const upcomingAcceptedMatches = useMemo(() => {
+        if (!acceptedMatches) return [];
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Compare dates only initially
+        
+        return acceptedMatches
+            .map(m => ({ ...m, matchDate: new Date(m.matchDate) })) // Ensure Date object
+            .filter(m => m.matchDate >= now)
+            .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
+    }, [acceptedMatches]);
+
     return (
         <div className="space-y-8 pb-[5.5rem] md:pb-4">
             {/* Header and Search */}
@@ -520,6 +603,24 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                     Fútbol 11
                 </button>
             </div>
+
+            {/* Accepted Matches Section */}
+            {upcomingAcceptedMatches.length > 0 && (
+                <section>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                        Partidos Aceptados <span className="text-sm font-normal bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">{upcomingAcceptedMatches.length}</span>
+                    </h2>
+                    <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+                        {upcomingAcceptedMatches.map(invite => (
+                            <AcceptedMatchCard 
+                                key={invite.id} 
+                                invite={invite} 
+                                onCancel={onCancelMatchAttendance || (() => {})} 
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Today's Matches */}
             <section>

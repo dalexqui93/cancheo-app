@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // FIX: Corrected type imports by fixing the types.ts file.
-import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage } from '../types';
+import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage, AcceptedMatchInvite } from '../types';
 import { View } from '../types';
 import Header from '../components/Header';
 import Home from '../views/Home';
@@ -62,7 +63,7 @@ const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
 }
 
 // Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -1552,6 +1553,7 @@ const App = () => {
             console.error("Error removing match invite notification:", String(error));
         }
 
+        // 1. Notify the inviter
         const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
             type: 'success',
             title: 'Invitación Aceptada',
@@ -1559,6 +1561,33 @@ const App = () => {
             read: false,
         };
         await sendNotificationToUser(notification.payload.fromUserId, notificationForInviter);
+
+        // 2. Add accepted match to user profile
+        const inviter = allUsers.find(u => u.id === notification.payload!.fromUserId);
+        const acceptedMatch: AcceptedMatchInvite = {
+            id: notification.id.toString(),
+            bookingId: notification.payload.bookingId,
+            inviterId: notification.payload.fromUserId,
+            inviterName: notification.payload.fromUserName,
+            inviterPhone: inviter?.phone,
+            fieldName: notification.payload.fieldName,
+            matchDate: new Date(notification.payload.matchDate),
+            matchTime: notification.payload.matchTime,
+            acceptedAt: new Date()
+        };
+
+        const updatedAcceptedMatches = [...(user.acceptedMatchInvites || []), acceptedMatch];
+        
+        try {
+            await db.updateUser(user.id, { acceptedMatchInvites: updatedAcceptedMatches });
+            const updatedUser = { ...user, acceptedMatchInvites: updatedAcceptedMatches };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        } catch (error) {
+             console.error("Error saving accepted match:", String(error));
+             showToast({ type: 'error', title: 'Error', message: 'No se pudo guardar la aceptación del partido.' });
+             return;
+        }
 
         showToast({
             type: 'success',
@@ -1591,6 +1620,37 @@ const App = () => {
             title: 'Invitación Rechazada',
             message: `Has rechazado la invitación al partido.`,
         });
+    };
+    
+    const handleCancelMatchAttendance = async (acceptedInviteId: string) => {
+        if (!user || !user.acceptedMatchInvites) return;
+
+        const inviteToCancel = user.acceptedMatchInvites.find(inv => inv.id === acceptedInviteId);
+        if (!inviteToCancel) return;
+
+        const updatedAcceptedMatches = user.acceptedMatchInvites.filter(inv => inv.id !== acceptedInviteId);
+
+        try {
+            await db.updateUser(user.id, { acceptedMatchInvites: updatedAcceptedMatches });
+            const updatedUser = { ...user, acceptedMatchInvites: updatedAcceptedMatches };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+            
+            // Notify inviter
+            const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
+                type: 'error',
+                title: 'Asistencia Cancelada',
+                message: `${user.name} ha cancelado su asistencia al partido en ${inviteToCancel.fieldName}.`,
+                read: false,
+            };
+            await sendNotificationToUser(inviteToCancel.inviterId, notificationForInviter);
+
+            showToast({ type: 'info', title: 'Asistencia Cancelada', message: 'Has cancelado tu asistencia al partido.' });
+
+        } catch (error) {
+            console.error("Error cancelling match attendance:", String(error));
+             showToast({ type: 'error', title: 'Error', message: 'No se pudo cancelar la asistencia.' });
+        }
     };
     
     const handleSetAvailability = async (isAvailable: boolean, note?: string) => {
@@ -1671,6 +1731,8 @@ const App = () => {
             allBookings={allBookings}
             allTeams={allTeams}
             currentTime={currentTime}
+            acceptedMatches={user?.acceptedMatchInvites || []}
+            onCancelMatchAttendance={handleCancelMatchAttendance}
         />;
         
         const viewElement = (() => {
