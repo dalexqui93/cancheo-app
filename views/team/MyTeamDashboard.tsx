@@ -105,15 +105,15 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
         .slice(0, 5)
         .map(match => {
             // FIX: Ensure we check for type 'number' specifically, as 0 is a valid score but is falsy in JS.
-            if (typeof match.scoreA !== 'number' || typeof match.scoreB !== 'number') return { result: 'D', key: match.id};
+            if (typeof match.scoreA !== 'number' || typeof match.scoreB !== 'number') return { result: 'E', key: match.id};
             
             const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
             const scoreUs = isTeamA ? match.scoreA : match.scoreB;
             const scoreThem = isTeamA ? match.scoreB : match.scoreA;
             
-            if (scoreUs > scoreThem) return { result: 'W', key: match.id};
-            if (scoreUs < scoreThem) return { result: 'L', key: match.id};
-            return { result: 'D', key: match.id};
+            if (scoreUs > scoreThem) return { result: 'V', key: match.id};
+            if (scoreUs < scoreThem) return { result: 'D', key: match.id};
+            return { result: 'E', key: match.id};
         });
 
     return (
@@ -131,10 +131,10 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
             <Widget title="Forma Reciente" icon={<TeamFormIcon className="w-5 h-5"/>}>
                 <div className="flex items-center gap-2">
                     {teamForm.map(item => {
-                        const colors = {
-                            W: 'bg-green-500',
-                            D: 'bg-yellow-500',
-                            L: 'bg-red-500',
+                        const colors: Record<string, string> = {
+                            V: 'bg-green-500',
+                            E: 'bg-yellow-500',
+                            D: 'bg-red-500',
                         };
                         return <div key={item.key} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${colors[item.result]}`}>{item.result}</div>
                     })}
