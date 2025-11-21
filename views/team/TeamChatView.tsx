@@ -51,7 +51,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     useEffect(() => {
         const storedIds = localStorage.getItem(localStorageKey);
         if (storedIds) {
-            setDeletedForMeIds(new Set(JSON.parse(storedIds)));
+            setDeletedForMeIds(new Set(JSON.parse(storedIds) as string[]));
         }
     }, [currentUser.id, team.id, localStorageKey]);
 
@@ -82,7 +82,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             setDeletedForMeIds(new Set<string>());
             localStorage.removeItem(localStorageKey);
             addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
-        } catch (error) {
+        } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.error(`Error al vaciar el chat: ${errorMessage}`);
             addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
@@ -158,7 +158,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
             const deletePromises = Array.from(selectedMessages).map(id => db.deleteChatMessage(team.id, id));
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
-        } catch (error) {
+        } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.error(`Error al eliminar mensajes: ${errorMessage}`);
             addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });

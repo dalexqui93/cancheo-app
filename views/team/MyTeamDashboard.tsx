@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 // FIX: Import UserMessage type to correctly type mockMessages and resolve property access errors.
 import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage, ConfirmedBooking, SystemMessage } from '../../types';
@@ -103,10 +104,13 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
     const teamForm = (team.matchHistory || [])
         .slice(0, 5)
         .map(match => {
-            if (!match.scoreA || !match.scoreB) return { result: 'D', key: match.id};
+            // FIX: Ensure we check for type 'number' specifically, as 0 is a valid score but is falsy in JS.
+            if (typeof match.scoreA !== 'number' || typeof match.scoreB !== 'number') return { result: 'D', key: match.id};
+            
             const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
             const scoreUs = isTeamA ? match.scoreA : match.scoreB;
             const scoreThem = isTeamA ? match.scoreB : match.scoreA;
+            
             if (scoreUs > scoreThem) return { result: 'W', key: match.id};
             if (scoreUs < scoreThem) return { result: 'L', key: match.id};
             return { result: 'D', key: match.id};

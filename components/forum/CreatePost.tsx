@@ -17,7 +17,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
     const [selectedTag, setSelectedTag] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
-    const MAX_IMAGES = 4;
+    const MAX_IMAGES = 2;
     const [isPosting, setIsPosting] = useState(false);
 
     const handleSubmit = async () => {
@@ -111,7 +111,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ user, onPost }) => {
                         rows={content.split('\n').length > 1 ? 4 : 2}
                     />
                     {imagePreviews.length > 0 && (
-                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <div className="mt-4 grid grid-cols-2 gap-2">
                             {imagePreviews.map((preview, index) => (
                                 <div key={index} className="relative aspect-square">
                                     <img src={preview} alt={`Vista previa ${index + 1}`} className="rounded-lg w-full h-full object-cover" />

@@ -15,7 +15,7 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
     const [selectedTag, setSelectedTag] = useState<string>(post.tags?.[0] || 'Fútbol');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const categories = ['Fútbol', 'Apuestas', 'Debate'];
-    const MAX_IMAGES = 4;
+    const MAX_IMAGES = 2;
 
     const handleSave = () => {
         const updatedPost: ForumPost = {
@@ -95,7 +95,7 @@ const EditPostModal: React.FC<EditPostModalProps> = ({ post, onSave, onClose }) 
                         rows={5}
                     />
                     {images.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                             {images.map((img, index) => (
                                 <div key={index} className="relative aspect-square">
                                     <img src={img} alt={`Vista previa ${index + 1}`} className="rounded-lg w-full h-full object-cover" />
