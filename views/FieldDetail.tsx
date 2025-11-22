@@ -13,82 +13,11 @@ import ReviewsModal from '../components/ReviewsModal';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import ImageLightbox from '../components/ImageLightbox';
 import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
-import { GoogleGenAI, Type } from '@google/genai';
 import { SunIcon } from '../components/icons/SunIcon';
 import { MoonIcon } from '../components/icons/MoonIcon';
-
-
-const ThumbsUpIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M7.25 7.72a.75.75 0 011.06 0l2.25 2.25a.75.75 0 01-1.06 1.06L8 9.56V16.5a.75.75 0 01-1.5 0V7.72zM12 6.25a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V7a.75.75 0 00-.75-.75zM16.75 7.72a.75.75 0 010 1.06L15.47 10.5a.75.75 0 01-1.06-1.06l1.28-1.28v-7.5a.75.75 0 011.5 0V7.72z"></path><path fillRule="evenodd" d="M12 1.25C6.063 1.25 1.25 6.063 1.25 12S6.063 22.75 12 22.75 22.75 17.937 22.75 12 17.937 1.25 12 1.25zM2.75 12a9.25 9.25 0 1118.5 0 9.25 9.25 0 01-18.5 0z" clipRule="evenodd"></path></svg>
-);
-
-const ThumbsDownIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M16.75 16.28a.75.75 0 01-1.06 0l-2.25-2.25a.75.75 0 011.06-1.06l1.28 1.28V7.5a.75.75 0 011.5 0v8.78zM12 17.75a.75.75 0 00.75-.75V6.5a.75.75 0 00-1.5 0V17a.75.75 0 00.75.75zM7.25 16.28a.75.75 0 010-1.06l1.28-1.28a.75.75 0 011.06 1.06L8.31 16.5V24a.75.75 0 01-1.5 0V16.28z"></path><path fillRule="evenodd" d="M12 1.25C6.063 1.25 1.25 6.063 1.25 12S6.063 22.75 12 22.75 22.75 17.937 22.75 12 17.937 1.25 12 1.25zM2.75 12a9.25 9.25 0 1118.5 0 9.25 9.25 0 01-18.5 0z" clipRule="evenodd"></path></svg>
-);
-
-
-interface ReviewSummaryProps {
-    summary: { pros: string[]; cons: string[] };
-}
-
-const ReviewSummary: React.FC<ReviewSummaryProps> = ({ summary }) => (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Análisis de Reseñas por IA</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <h3 className="font-bold text-lg text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
-                    <ThumbsUpIcon className="w-6 h-6" />
-                    Puntos Positivos
-                </h3>
-                <ul className="space-y-2">
-                    {summary.pros.map((pro, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                            <span className="text-green-500 mt-1">✓</span>
-                            <span className="text-gray-700 dark:text-gray-300">{pro}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-             <div>
-                <h3 className="font-bold text-lg text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
-                    <ThumbsDownIcon className="w-6 h-6" />
-                    Puntos a Mejorar
-                </h3>
-                <ul className="space-y-2">
-                    {summary.cons.map((con, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                            <span className="text-red-500 mt-1">✗</span>
-                            <span className="text-gray-700 dark:text-gray-300">{con}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        </div>
-    </div>
-);
-
-const ReviewSummarySkeleton: React.FC = () => (
-     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
-        <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4 shimmer-bg"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-3 shimmer-bg"></div>
-                <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full shimmer-bg"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6 shimmer-bg"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full shimmer-bg"></div>
-                </div>
-            </div>
-            <div>
-                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-3 shimmer-bg"></div>
-                <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full shimmer-bg"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-4/6 shimmer-bg"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-);
+import { GoogleGenAI } from '@google/genai';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 
 
 interface ComplexDisplayData {
@@ -250,6 +179,24 @@ const BookingWidget: React.FC<{
     );
 };
 
+const ReviewSummary: React.FC<{ summary: string }> = ({ summary }) => {
+    return (
+        <div className="mt-6 bg-gradient-to-br from-[var(--color-primary-50)] to-blue-50 dark:from-gray-800 dark:to-gray-800 p-5 rounded-xl border border-[var(--color-primary-200)] dark:border-gray-700 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-10">
+                <SparklesIcon className="w-24 h-24 text-[var(--color-primary-600)]" />
+            </div>
+            <h3 className="font-bold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100 mb-3">
+                <SparklesIcon className="w-5 h-5 text-[var(--color-primary-500)]" /> Resumen de Opiniones (IA)
+            </h3>
+            <div className="prose dark:prose-invert text-sm text-gray-700 dark:text-gray-300 max-w-none">
+                {summary.split('\n').map((line, i) => (
+                    <p key={i} className="mb-2 last:mb-0">{line}</p>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, allBookings, weatherData }) => {
     const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
     const selectedField = complex.fields.find(f => f.id === selectedFieldId) || complex.fields[0];
@@ -263,49 +210,11 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
     const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-
-    const [summary, setSummary] = useState<{ pros: string[]; cons: string[] } | null>(null);
-    const [isSummaryLoading, setIsSummaryLoading] = useState(true);
-
-    useEffect(() => {
-        const generateSummary = async () => {
-            if (!complex || complex.fields.length === 0) return;
     
-            const allReviews = complex.fields.flatMap(f => f.reviews);
-            if (allReviews.length < 3) {
-                setIsSummaryLoading(false);
-                return;
-            }
-    
-            setIsSummaryLoading(true);
-            try {
-                const reviewsText = allReviews.map(r => `Calificación: ${r.rating}/5. Comentario: ${r.comment}`).join('\n---\n');
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: `Analiza estas reseñas de una cancha de fútbol. Identifica hasta 3 puntos positivos comunes y 3 puntos negativos comunes. Ignora comentarios no relevantes. Reseñas:\n${reviewsText}`,
-                    config: {
-                        responseMimeType: 'application/json',
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                pros: { type: Type.ARRAY, description: "Lista de 3 puntos positivos clave.", items: { type: Type.STRING } },
-                                cons: { type: Type.ARRAY, description: "Lista de 3 puntos negativos clave.", items: { type: Type.STRING } },
-                            },
-                        },
-                    },
-                });
-                setSummary(JSON.parse(response.text));
-            } catch (error) {
-                // FIX: Explicitly convert error to string for consistent and safe logging.
-                console.error("No se pudo generar el resumen de reseñas:", String(error));
-                setSummary(null);
-            } finally {
-                setIsSummaryLoading(false);
-            }
-        };
-        generateSummary();
-    }, [complex]);
+    // AI Summary State
+    const [summary, setSummary] = useState<string | null>(null);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!selectedDate || !selectedField.id) return;
@@ -354,6 +263,41 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
     const handleFieldChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedFieldId(e.target.value);
         setSelectedTime(null);
+        setSummary(null); // Reset summary when field changes
+        setSummaryError(null);
+    };
+
+    const handleGenerateSummary = async () => {
+        if (!selectedField.reviews || selectedField.reviews.length === 0) return;
+        
+        setIsSummaryLoading(true);
+        setSummaryError(null);
+        try {
+            const reviewsText = selectedField.reviews.map(r => r.comment).join('\n');
+            const prompt = `Resume brevemente las opiniones de los usuarios sobre esta cancha de fútbol basándote en los siguientes comentarios. Destaca los puntos positivos y negativos principales en una lista corta:\n\n${reviewsText}`;
+            
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({ 
+                model: 'gemini-2.5-flash', // Using flash to avoid quota issues
+                contents: prompt 
+            });
+            
+            setSummary(response.text);
+        } catch (error: any) {
+            console.error("Error generating summary:", error);
+            // Improved error handling for quota exhaustion
+            if (
+                error?.status === 429 || 
+                error?.status === 'RESOURCE_EXHAUSTED' || 
+                (error?.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')))
+            ) {
+                setSummaryError('Se ha excedido el límite de uso de la IA. Por favor, intenta de nuevo más tarde.');
+            } else {
+                setSummaryError('No se pudo generar el resumen. Intenta de nuevo.');
+            }
+        } finally {
+            setIsSummaryLoading(false);
+        }
     };
 
     const formatDateForInput = (date: Date) => {
@@ -457,13 +401,35 @@ const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBo
                         </div>
 
                         <div>
-                            {isSummaryLoading ? <ReviewSummarySkeleton /> : (summary && (summary.pros.length > 0 || summary.cons.length > 0)) && <ReviewSummary summary={summary} />}
-                        </div>
-
-                        <div>
                             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Opiniones ({selectedField.reviews.length})</h2>
                             <div className="space-y-6">{selectedField.reviews.slice(0, 2).map(review => (<div key={review.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700"><div className="flex items-start"><div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center mr-4 flex-shrink-0"><UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-400"/></div><div className="flex-1"><div className="flex items-center mb-1"><p className="font-bold text-gray-800 dark:text-gray-200">{review.author}</p><div className="ml-auto"><StarRating rating={review.rating} /></div></div><p className="text-gray-700 dark:text-gray-300 leading-relaxed">{review.comment}</p></div></div></div>))}</div>
+                            
                             {selectedField.reviews.length > 2 && (<div className="mt-6 text-center"><button onClick={() => setIsReviewsModalOpen(true)} className="font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">Mostrar las {selectedField.reviews.length} opiniones</button></div>)}
+
+                            {/* AI Summary Button */}
+                            {selectedField.reviews.length > 0 && !summary && !isSummaryLoading && (
+                                <div className="mt-6">
+                                    <button 
+                                        onClick={handleGenerateSummary}
+                                        className="flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--color-primary-500)] to-blue-500 hover:from-[var(--color-primary-600)] hover:to-blue-600 py-2 px-4 rounded-full shadow-md transition-all transform hover:scale-105"
+                                    >
+                                        <SparklesIcon className="w-4 h-4" />
+                                        Resumir Opiniones con IA
+                                    </button>
+                                    {summaryError && <p className="text-red-500 text-xs mt-2">{summaryError}</p>}
+                                </div>
+                            )}
+
+                            {/* Loading State */}
+                            {isSummaryLoading && (
+                                <div className="mt-6 flex items-center gap-2 text-gray-500 dark:text-gray-400 animate-pulse">
+                                    <SpinnerIcon className="w-5 h-5" />
+                                    <span className="text-sm font-semibold">La IA está analizando las reseñas...</span>
+                                </div>
+                            )}
+
+                            {/* Summary Result */}
+                            {summary && <ReviewSummary summary={summary} />}
                         </div>
                     </div>
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { ForumPost, User, SportsEmoji, Notification, ForumComment } from '../../types';
 import { UserIcon } from '../../components/icons/UserIcon';
@@ -89,10 +90,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onToggleReaction
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
             setSummary(response.text);
-        } catch (error) {
+        } catch (error: any) {
             // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error("Error al generar resumen:", String(error));
-            setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
+            if (
+                error?.status === 429 || 
+                error?.status === 'RESOURCE_EXHAUSTED' || 
+                (error?.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')))
+            ) {
+                setSummary('Se ha excedido la cuota de IA. Intenta de nuevo más tarde.');
+            } else {
+                setSummary('No se pudo generar el resumen en este momento. Por favor, inténtalo de nuevo.');
+            }
         } finally {
             setIsSummaryLoading(false);
         }

@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Team, Formation, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -39,12 +37,19 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
 
             try {
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+                const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
                 setAnalysis(response.text);
-            } catch (e) {
-                // FIX: Explicitly convert 'unknown' error to string for safe logging.
+            } catch (e: any) {
                 console.error("Error getting AI analysis:", String(e));
-                setAnalysis('Hubo un error al obtener el análisis. Por favor, inténtalo de nuevo más tarde.');
+                if (
+                    e?.status === 429 || 
+                    e?.status === 'RESOURCE_EXHAUSTED' || 
+                    (e?.message && (e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('quota')))
+                ) {
+                    setAnalysis('Has excedido tu cuota de IA. Por favor, inténtalo más tarde.');
+                } else {
+                    setAnalysis('Hubo un error al obtener el análisis. Por favor, inténtalo de nuevo más tarde.');
+                }
             } finally {
                 setIsLoading(false);
             }

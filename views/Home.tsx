@@ -351,7 +351,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         try {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-pro',
+                model: 'gemini-2.5-flash',
                 contents: `Analiza la consulta del usuario para encontrar una cancha de fútbol y extrae los criterios relevantes. La consulta es: "${searchTerm}". Responde ÚNICAMENTE con un objeto JSON.`,
                 config: {
                     responseMimeType: 'application/json',
