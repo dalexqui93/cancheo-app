@@ -130,12 +130,31 @@ export interface AcceptedMatchInvite {
     acceptedAt: Date;
 }
 
+export interface RecurringContract {
+    id: string;
+    ownerId: string;
+    playerId: string;
+    playerName: string; // Cached for display
+    fieldId: string;
+    fieldName: string; // Cached for display
+    dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+    time: string; // "20:00"
+    startDate: Date;
+    endDate: Date;
+    confirmationDeadlineHours: number; // e.g., 4 hours before match
+    status: 'active' | 'cancelled' | 'completed';
+    generatedBookings: string[]; // IDs of bookings generated from this contract
+}
+
 export interface User {
     id: string;
     name: string;
     email: string;
     password?: string; // Should not be stored/retrieved on client but needed for mock data
     phone?: string;
+    identification?: string;
+    age?: number;
+    gender?: string;
     profilePicture?: string;
     isAdmin: boolean;
     isOwner: boolean;
@@ -206,6 +225,8 @@ export interface ConfirmedBooking {
     loyaltyApplied?: boolean;
     scoreA?: number;
     scoreB?: number;
+    contractId?: string; // Links to RecurringContract
+    confirmationStatus?: 'pending' | 'confirmed'; // Specific for contract bookings
 }
 
 export interface Announcement {

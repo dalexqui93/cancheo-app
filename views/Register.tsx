@@ -1,8 +1,12 @@
+
 import React, { useState } from 'react';
 import { MailIcon } from '../components/icons/MailIcon';
 import { LockIcon } from '../components/icons/LockIcon';
 import { UserIcon } from '../components/icons/UserIcon';
 import { PhoneIcon } from '../components/icons/PhoneIcon';
+import { IdentificationIcon } from '../components/icons/IdentificationIcon';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { GenderIcon } from '../components/icons/GenderIcon';
 import { View } from '../types';
 import type { User } from '../types';
 import { EyeIcon } from '../components/icons/EyeIcon';
@@ -20,6 +24,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [identification, setIdentification] = useState('');
+    const [age, setAge] = useState('');
+    const [gender, setGender] = useState('Masculino');
+    
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -27,6 +35,12 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        // Validate all fields are mandatory
+        if (!name || !email || !phone || !password || !confirmPassword || !identification || !age || !gender) {
+            setError('Por favor completa todos los campos obligatorios.');
+            return;
+        }
 
         if (password !== confirmPassword) {
             setError('Las contraseñas no coinciden.');
@@ -48,6 +62,9 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
             email,
             phone,
             password,
+            identification,
+            age: parseInt(age),
+            gender,
             isOwner: false,
             notificationPreferences: {
                 newAvailability: true,
@@ -77,7 +94,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
                     <h1 className="text-4xl font-bold tracking-tight text-white">Canche<span className="text-[var(--color-primary-400)]">o</span></h1>
                 </div>
 
-                <div className="bg-black/20 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20">
+                <div className="bg-black/20 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-white/20 max-h-[90vh] overflow-y-auto scrollbar-hide">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight text-white text-center">
                             Crea una cuenta nueva
@@ -98,6 +115,50 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
                                     <UserIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
                                     <input id="name" name="name" type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)}
                                         className="block w-full appearance-none rounded-md border border-white/30 py-2 px-3 pl-10 placeholder-gray-300 shadow-sm focus:border-[var(--color-primary-400)] focus:outline-none focus:ring-[var(--color-primary-400)] sm:text-sm bg-white/10 text-white" />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label htmlFor="identification" className="block text-sm font-medium text-gray-100">Identificación</label>
+                                <div className="mt-1 relative">
+                                    <IdentificationIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+                                    <input 
+                                        id="identification" 
+                                        name="identification" 
+                                        type="tel" 
+                                        required 
+                                        value={identification} 
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (value === '' || /^\d*$/.test(value)) {
+                                                setIdentification(value);
+                                            }
+                                        }}
+                                        className="block w-full appearance-none rounded-md border border-white/30 py-2 px-3 pl-10 placeholder-gray-300 shadow-sm focus:border-[var(--color-primary-400)] focus:outline-none focus:ring-[var(--color-primary-400)] sm:text-sm bg-white/10 text-white" 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <div className="w-1/2">
+                                    <label htmlFor="age" className="block text-sm font-medium text-gray-100">Edad</label>
+                                    <div className="mt-1 relative">
+                                        <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+                                        <input id="age" name="age" type="number" required value={age} onChange={(e) => setAge(e.target.value)} min="12" max="100"
+                                            className="block w-full appearance-none rounded-md border border-white/30 py-2 px-3 pl-10 placeholder-gray-300 shadow-sm focus:border-[var(--color-primary-400)] focus:outline-none focus:ring-[var(--color-primary-400)] sm:text-sm bg-white/10 text-white" />
+                                    </div>
+                                </div>
+                                <div className="w-1/2">
+                                    <label htmlFor="gender" className="block text-sm font-medium text-gray-100">Género</label>
+                                    <div className="mt-1 relative">
+                                        <GenderIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+                                        <select id="gender" name="gender" required value={gender} onChange={(e) => setGender(e.target.value)}
+                                            className="block w-full appearance-none rounded-md border border-white/30 py-2 px-3 pl-10 placeholder-gray-300 shadow-sm focus:border-[var(--color-primary-400)] focus:outline-none focus:ring-[var(--color-primary-400)] sm:text-sm bg-white/10 text-white"
+                                        >
+                                            <option value="Masculino" className="text-gray-900">Masculino</option>
+                                            <option value="Femenino" className="text-gray-900">Femenino</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             
