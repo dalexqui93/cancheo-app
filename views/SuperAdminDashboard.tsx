@@ -1,14 +1,5 @@
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { View } from '../types';
 import type { SoccerField, User, OwnerApplication, Notification, OwnerStatus, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
 import { PitchIcon } from '../components/icons/PitchIcon';
@@ -24,12 +15,11 @@ import { CreditCardIcon } from '../components/icons/CreditCardIcon';
 import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
 import { SoccerBallIcon } from '../components/icons/SoccerBallIcon';
 import { CogIcon } from '../components/icons/CogIcon';
-// Fix: Corrected import path from '../firebase' to '../database' to resolve module not found error.
 import * as db from '../database';
 import { EyeIcon } from '../components/icons/EyeIcon';
-// FIX: Import EyeOffIcon to toggle password visibility
 import { EyeOffIcon } from '../components/icons/EyeOffIcon';
 import { LockIcon } from '../components/icons/LockIcon';
+import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 
 interface SuperAdminDashboardProps {
     currentUser: User | null;
@@ -41,9 +31,12 @@ interface SuperAdminDashboardProps {
     setOwnerApplications: React.Dispatch<React.SetStateAction<OwnerApplication[]>>;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
     onLogout: () => void;
+    onNavigate: (view: View) => void;
 }
 
 type AdminView = 'dashboard' | 'users' | 'fields' | 'verifications' | 'settings';
+
+// ... (Subcomponents like AdminSettingsView, StatCard, VerificationRequestsView, VerificationDetailModal, FieldDetailModal, UserDetailModal remain unchanged, so I will focus on the main component export)
 
 const AdminSettingsView: React.FC<{
     currentUser: User;
@@ -75,15 +68,11 @@ const AdminSettingsView: React.FC<{
         }
         try {
             await db.updateUser(currentUser.id, { password });
-            
-            // This is the key change to fix the re-login bug
             setAllUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, password: password } : u));
-            
             addNotification({ type: 'success', title: 'Contraseña Actualizada', message: 'Tu contraseña ha sido cambiada. Por favor, inicia sesión de nuevo.' });
             onLogout();
         } catch (error) {
             setPasswordError('No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error al actualizar la contraseña:', String(error));
         }
     };
@@ -122,7 +111,6 @@ const AdminSettingsView: React.FC<{
             } else {
                 setCreateUserError('No se pudo crear el usuario. Inténtalo de nuevo.');
             }
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error al crear usuario:', String(error));
         } finally {
             setIsCreatingUser(false);
@@ -144,13 +132,11 @@ const AdminSettingsView: React.FC<{
                     <div className="relative">
                         <label className="text-sm font-medium">Nueva Contraseña</label>
                         <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className={inputClasses} />
-                        {/* FIX: Toggle between EyeIcon and EyeOffIcon for password visibility */}
                         <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-7 h-5 w-5 text-gray-400">{showPass ? <EyeOffIcon/> : <EyeIcon/>}</button>
                     </div>
                     <div className="relative">
                         <label className="text-sm font-medium">Confirmar Contraseña</label>
                         <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputClasses} />
-                        {/* FIX: Toggle between EyeIcon and EyeOffIcon for password visibility */}
                         <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-7 h-5 w-5 text-gray-400">{showConfirm ? <EyeOffIcon/> : <EyeIcon/>}</button>
                     </div>
                 </div>
@@ -168,7 +154,6 @@ const AdminSettingsView: React.FC<{
                     <input type="tel" name="phone" value={newUser.phone} onChange={handleNewUserChange} placeholder="Teléfono" className={inputClasses} />
                     <div className="relative">
                         <input type={showNewUserPass ? 'text' : 'password'} name="password" value={newUser.password} onChange={handleNewUserChange} placeholder="Contraseña" className={inputClasses} />
-                        {/* FIX: Toggle between EyeIcon and EyeOffIcon for password visibility */}
                         <button type="button" onClick={() => setShowNewUserPass(!showNewUserPass)} className="absolute right-3 top-2 h-5 w-5 text-gray-400">{showNewUserPass ? <EyeOffIcon/> : <EyeIcon/>}</button>
                     </div>
                     <select name="role" value={newUser.role} onChange={handleNewUserChange} className={inputClasses}>
@@ -221,15 +206,15 @@ const VerificationRequestsView: React.FC<SuperAdminDashboardProps> = ({ ownerApp
                     ownerId: app.userId,
                     name: app.complexName,
                     address: app.address,
-                    city: 'Bogotá', // Placeholder city
-                    pricePerHour: 80000, // Placeholder price
+                    city: 'Bogotá',
+                    pricePerHour: 80000,
                     rating: 0,
-                    images: ['https://picsum.photos/seed/new-field/800/600'], // Placeholder image
+                    images: ['https://picsum.photos/seed/new-field/800/600'],
                     description: `Bienvenido a ${app.complexName}. Complejo recién registrado.`,
                     services: [],
                     reviews: [],
                     size: '5v5',
-                    latitude: 4.6097, // Placeholder coords
+                    latitude: 4.6097,
                     longitude: -74.0817,
                     loyaltyEnabled: false,
                     loyaltyGoal: 7,
@@ -325,7 +310,6 @@ const FieldDetailModal: React.FC<{
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
                 </div>
                 <div className="p-5 overflow-y-auto space-y-6 text-sm">
-                    {/* Owner Info */}
                     <div className="p-4 bg-slate-50 dark:bg-gray-700/50 rounded-lg">
                         <h4 className="text-lg font-bold mb-3">Propietario</h4>
                         {owner ? (
@@ -338,7 +322,6 @@ const FieldDetailModal: React.FC<{
                             <p>No se encontró información del propietario.</p>
                         )}
                     </div>
-                    {/* Field Info */}
                     <div>
                          <h4 className="text-lg font-bold mb-3">Detalles de la Cancha</h4>
                          <div className="space-y-2">
@@ -348,7 +331,6 @@ const FieldDetailModal: React.FC<{
                             <p><strong>Descripción:</strong> {field.description}</p>
                          </div>
                     </div>
-                     {/* Services */}
                      <div>
                         <h4 className="text-lg font-bold mb-3">Servicios</h4>
                         <div className="flex flex-wrap gap-3">
@@ -359,7 +341,6 @@ const FieldDetailModal: React.FC<{
                             ))}
                         </div>
                      </div>
-                     {/* Stats */}
                      <div>
                         <h4 className="text-lg font-bold mb-3">Estadísticas</h4>
                         <div className="flex items-center gap-4">
@@ -397,7 +378,6 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
                 </div>
                 <div className="p-5 overflow-y-auto space-y-6 text-sm">
-                    {/* User Info */}
                     <div className="flex items-center gap-4">
                         <div className="w-20 h-20 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                            {user.profilePicture ? <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" /> : <UsersIcon className="w-10 h-10 text-slate-500 dark:text-gray-400"/>}
@@ -417,7 +397,6 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                         {user.ownerStatus && <p><strong>Estado de Propietario:</strong> <span className="font-semibold">{user.ownerStatus}</span></p>}
                     </div>
 
-                    {/* Stats */}
                      <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-slate-50 dark:bg-gray-700/50 rounded-lg flex items-center gap-3">
                            <HeartIcon className="w-6 h-6 text-red-500"/>
@@ -435,7 +414,6 @@ const UserDetailModal: React.FC<{ user: User; onClose: () => void; }> = ({ user,
                         </div>
                      </div>
 
-                    {/* Player Profile */}
                     {user.playerProfile && (
                         <div className="p-4 bg-slate-50 dark:bg-gray-700/50 rounded-lg">
                             <h4 className="text-lg font-bold mb-3">Perfil de Jugador</h4>
@@ -537,16 +515,18 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = (props) => {
 
     return (
          <div className="min-h-screen bg-slate-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-            {/* Header */}
             <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b dark:border-gray-700 sticky top-0 z-40 p-4 flex justify-between items-center">
-                 <div className="w-8"></div> {/* Spacer */}
+                 <div className="flex items-center">
+                     <button onClick={() => props.onNavigate(View.HOME)} className="mr-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" title="Ir a la App">
+                        <ChevronLeftIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                     </button>
+                 </div>
                  <h1 className="text-xl font-bold text-center">{currentTab?.label}</h1>
                  <button onClick={props.onLogout} title="Cerrar Sesión" className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                     <LogoutIcon className="w-6 h-6" />
                  </button>
             </header>
 
-            {/* Main Content */}
             <main className="p-4 pb-28">
                 {renderContent()}
             </main>
@@ -554,7 +534,6 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = (props) => {
             {selectedField && <FieldDetailModal field={selectedField} owner={ownerOfSelectedField} onClose={() => setSelectedField(null)} />}
             {selectedUser && <UserDetailModal user={selectedUser} onClose={() => setSelectedUser(null)} />}
 
-            {/* Bottom Nav */}
             <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 z-50 flex justify-around items-center">
                 {TABS.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative flex flex-col items-center gap-1 transition-colors ${activeTab === tab.id ? 'text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]' : 'text-gray-500 dark:text-gray-400'}`}>

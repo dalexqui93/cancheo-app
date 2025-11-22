@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { ConfirmedBooking, WeatherData } from '../types';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
@@ -69,6 +70,23 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({ details, onDo
                     <div className="flex justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Hora:</span>
                         <span className="font-semibold">{details.time}</span>
+                    </div>
+                    
+                    {details.selectedExtras && details.selectedExtras.length > 0 && (
+                        <div className="border-t border-gray-200 dark:border-gray-600 pt-3 mt-3">
+                            <p className="font-semibold mb-2">Servicios Adicionales:</p>
+                            {details.selectedExtras.map((extra, i) => (
+                                <div key={i} className="flex justify-between text-sm">
+                                    <span className="text-gray-500 dark:text-gray-400">{extra.name} (x{extra.quantity})</span>
+                                    <span>${(extra.price * extra.quantity).toLocaleString('es-CO')}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    
+                    <div className="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-600 mt-3">
+                        <span className="font-bold text-lg">Total:</span>
+                        <span className="font-bold text-lg">${details.totalPrice.toLocaleString('es-CO')}</span>
                     </div>
                 </div>
                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">

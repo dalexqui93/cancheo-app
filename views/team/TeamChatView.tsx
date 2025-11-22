@@ -148,14 +148,14 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     };
     
     const handleConfirmDeleteForMe = () => {
-        selectedMessages.forEach(id => handleDeleteForMe(id));
+        selectedMessages.forEach((id: string) => handleDeleteForMe(id));
         setShowDeleteModal(false);
         handleCancelSelection();
     };
 
     const handleConfirmDeleteForEveryone = async () => {
         try {
-            const deletePromises = Array.from(selectedMessages).map(id => db.deleteChatMessage(team.id, id));
+            const deletePromises = Array.from(selectedMessages).map((id: string) => db.deleteChatMessage(team.id, id));
             await Promise.all(deletePromises);
             addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
         } catch (error: any) {
@@ -170,7 +170,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     
     const canDeleteForEveryone = useMemo(() => {
         if (!isSelectionMode) return false;
-        return Array.from(selectedMessages).every(id => {
+        return Array.from(selectedMessages).every((id: string) => {
             const msg = messages.find(m => m.id === id);
             return msg && msg.type === 'user' && msg.senderId === currentUser.id && !msg.deleted;
         });
@@ -308,7 +308,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                         isCurrentUser={(item as UserMessage).senderId === currentUser.id}
                                         onReply={setReplyingTo}
                                         onDelete={handleDeleteForMe}
-                                        onDeleteForEveryone={(messageId) => {
+                                        onDeleteForEveryone={(messageId: string) => {
                                             setSelectedMessages(new Set([messageId]));
                                             setShowDeleteModal(true);
                                         }}

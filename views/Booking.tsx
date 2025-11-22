@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
-import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod, Team } from '../types';
+import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod, Team, FieldExtra } from '../types';
 import { CreditCardIcon } from '../components/icons/CreditCardIcon';
 import { CashIcon } from '../components/icons/CashIcon';
 import { CardBrandIcon } from '../components/icons/CardBrandIcon';
@@ -79,7 +79,7 @@ const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, sele
 
 
 const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, onBack, isBookingLoading }) => {
-    const [extras, setExtras] = useState({ balls: 0, vests: 0 });
+    const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
     const defaultPaymentMethod = user.paymentMethods?.find(pm => pm.isDefault)?.id || 'cash';
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(defaultPaymentMethod);
     const [paymentInfo, setPaymentInfo] = useState({ cardNumber: '', expiry: '', cvc: '', name: '' });
@@ -96,6 +96,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
 
     const fieldId = details.field.id;
     const freeTicketsForField = user.loyalty?.[fieldId]?.freeTickets || 0;
+    const availableExtras = details.field.extras || [];
 
     const isCardFormValid = useMemo(() => {
         return paymentInfo.name.trim() !== '' &&
@@ -104,10 +105,24 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
                paymentInfo.cvc.trim().length >= 3;
     }, [paymentInfo]);
 
-    const ballPrice = 5000;
-    const vestPrice = 10000;
-    const totalExtras = (extras.balls * ballPrice) + (extras.vests * vestPrice);
-    const totalPrice = useFreeTicket ? 0 : details.field.pricePerHour + totalExtras;
+    const handleExtraChange = (extraId: string, delta: number, max: number) => {
+        setSelectedExtras(prev => {
+            const current = prev[extraId] || 0;
+            const newValue = Math.max(0, Math.min(max, current + delta));
+            if (newValue === 0) {
+                const { [extraId]: _, ...rest } = prev;
+                return rest;
+            }
+            return { ...prev, [extraId]: newValue };
+        });
+    };
+
+    const extrasCost = availableExtras.reduce((sum, extra) => {
+        const quantity = selectedExtras[extra.id] || 0;
+        return sum + (quantity * extra.price);
+    }, 0);
+
+    const totalPrice = useFreeTicket ? 0 : details.field.pricePerHour + extrasCost;
     
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -126,9 +141,18 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
 
         if (!policiesAccepted || (isNewCardPayment && !isCardFormValid)) return;
         
+        const finalExtras = availableExtras
+            .filter(extra => selectedExtras[extra.id] && selectedExtras[extra.id] > 0)
+            .map(extra => ({
+                extraId: extra.id,
+                name: extra.name,
+                price: extra.price,
+                quantity: selectedExtras[extra.id]
+            }));
+
         const confirmedDetails: Omit<ConfirmedBooking, 'id' | 'status' | 'userId' | 'userName' | 'userPhone'> = {
             ...details,
-            extras,
+            selectedExtras: finalExtras,
             totalPrice,
             paymentMethod: effectivePaymentMethod,
             isFree: useFreeTicket,
@@ -152,33 +176,29 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
                 {/* Payment & Extras */}
                 <div className="lg:col-span-3">
                     <form onSubmit={handleSubmit} className="space-y-8">
-                         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
-                            <h3 className="text-xl font-bold mb-4">Servicios Adicionales</h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold">Balones Adicionales</p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">${ballPrice.toLocaleString('es-CO')} c/u</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button type="button" onClick={() => setExtras(p => ({...p, balls: Math.max(0, p.balls - 1)}))} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">-</button>
-                                        <span className="w-8 text-center font-semibold">{extras.balls}</span>
-                                        <button type="button" onClick={() => setExtras(p => ({...p, balls: p.balls + 1}))} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">+</button>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold">Juego de Petos (10 und)</p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">${vestPrice.toLocaleString('es-CO')} c/u</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button type="button" onClick={() => setExtras(p => ({...p, vests: Math.max(0, p.vests - 1)}))} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">-</button>
-                                        <span className="w-8 text-center font-semibold">{extras.vests}</span>
-                                        <button type="button" onClick={() => setExtras(p => ({...p, vests: p.vests + 1}))} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">+</button>
-                                    </div>
+                         {availableExtras.length > 0 && (
+                             <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
+                                <h3 className="text-xl font-bold mb-4">Servicios Adicionales</h3>
+                                <div className="space-y-4">
+                                    {availableExtras.map(extra => (
+                                        <div key={extra.id} className="flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-2xl">{extra.icon}</span>
+                                                <div>
+                                                    <p className="font-semibold">{extra.name}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">${extra.price.toLocaleString('es-CO')} c/u</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button type="button" onClick={() => handleExtraChange(extra.id, -1, extra.maxQuantity)} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">-</button>
+                                                <span className="w-8 text-center font-semibold">{selectedExtras[extra.id] || 0}</span>
+                                                <button type="button" onClick={() => handleExtraChange(extra.id, 1, extra.maxQuantity)} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">+</button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
+                         )}
 
                         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
                             <h3 className="text-xl font-bold mb-4">Detalles del Partido (Opcional)</h3>
@@ -331,14 +351,19 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
                                     <p>Reserva de cancha (1 hora)</p>
                                     <p className={`font-medium ${useFreeTicket ? 'line-through' : ''}`}>${details.field.pricePerHour.toLocaleString('es-CO')}</p>
                                 </div>
-                                {extras.balls > 0 && <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                                    <p>Balones adicionales ({extras.balls})</p>
-                                    <p className="font-medium">${(extras.balls * ballPrice).toLocaleString('es-CO')}</p>
-                                </div>}
-                                {extras.vests > 0 && <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                                    <p>Juego de petos ({extras.vests})</p>
-                                    <p className="font-medium">${(extras.vests * vestPrice).toLocaleString('es-CO')}</p>
-                                </div>}
+                                
+                                {/* Dynamic Extras Summary */}
+                                {availableExtras.map(extra => {
+                                    const qty = selectedExtras[extra.id];
+                                    if (!qty) return null;
+                                    return (
+                                        <div key={extra.id} className="flex justify-between text-gray-600 dark:text-gray-300">
+                                            <p>{extra.name} ({qty})</p>
+                                            <p className="font-medium">${(qty * extra.price).toLocaleString('es-CO')}</p>
+                                        </div>
+                                    );
+                                })}
+
                                 {useFreeTicket && (
                                     <div className="flex justify-between text-green-600 dark:text-green-400">
                                         <p>Ticket de Fidelidad</p>

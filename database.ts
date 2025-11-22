@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation } from './types';
 
@@ -103,6 +104,11 @@ const fieldsToSeed = [
     images: ['https://i.pinimg.com/736x/47/33/3e/47333e07ed4963aa120c821b597d0f8e.jpg', 'https://i.pinimg.com/736x/ee/5b/8d/ee5b8d1fe632960104478b7c5b883c85.jpg'],
     description: 'El mejor lugar para jugar con tus amigos. Canchas de última generación con césped sintético de alta calidad.',
     services: [ { name: 'Vestuarios', icon: '👕' }, { name: 'Cafetería', icon: '☕' }, { name: 'Parqueadero', icon: '🅿️' } ],
+    extras: [
+        { id: 'ext-1', name: 'Petos (10)', price: 10000, icon: '🎽', maxQuantity: 20 },
+        { id: 'ext-2', name: 'Balón Profesional', price: 5000, icon: '⚽', maxQuantity: 5 },
+        { id: 'ext-3', name: 'Arbitraje', price: 40000, icon: '🧑‍⚖️', maxQuantity: 1 }
+    ],
     reviews: [
         { id: 'r1', author: 'Juan Perez', rating: 5, comment: 'Excelente cancha, muy bien cuidada. El césped está en perfectas condiciones.', timestamp: new Date('2024-07-20T10:00:00Z') },
         { id: 'r2', author: 'Maria Rodriguez', rating: 4, comment: 'Muy buenas instalaciones, aunque a veces es difícil conseguir reserva. Recomiendo planificar con tiempo.', timestamp: new Date('2024-07-18T15:30:00Z') },
@@ -114,6 +120,10 @@ const fieldsToSeed = [
     images: ['https://i.pinimg.com/736x/7f/b7/3c/7fb73cf022f824a1443d5c9081cfe618.jpg', 'https://i.pinimg.com/736x/a5/7a/fa/a57afa6abeaeb64f8f2a1a0689e9a3f8.jpg'],
     description: 'El mejor lugar para jugar con tus amigos. Canchas de última generación con césped sintético de alta calidad.',
     services: [ { name: 'Vestuarios', icon: '👕' }, { name: 'Cafetería', icon: '☕' }, { name: 'Parqueadero', icon: '🅿️' } ],
+    extras: [
+        { id: 'ext-1', name: 'Petos (10)', price: 10000, icon: '🎽', maxQuantity: 20 },
+        { id: 'ext-2', name: 'Balón Profesional', price: 5000, icon: '⚽', maxQuantity: 5 }
+    ],
     reviews: [], size: '7v7', latitude: 4.648283, longitude: -74.088951, loyaltyEnabled: true, loyaltyGoal: 7,
   },
   {
@@ -121,6 +131,7 @@ const fieldsToSeed = [
     images: ['https://i.pinimg.com/originals/7f/e1/99/7fe1991a0c74a7b73c4e33989e24634f.jpg', 'https://i.pinimg.com/originals/1c/c7/2b/1cc72b7a957252277d3f0a9903b418a0.jpg'],
     description: 'Canchas económicas y de buena calidad en el corazón de la ciudad. Ideal para partidos casuales.',
     services: [ { name: 'Balones', icon: '⚽' }, { name: 'Tienda', icon: '🏪' } ],
+    extras: [],
     reviews: [ { id: 'r3', author: 'Carlos Diaz', rating: 4, comment: 'Buen precio y la cancha está bien.', timestamp: new Date() } ],
     size: '5v5', latitude: 6.25184, longitude: -75.56359, loyaltyEnabled: true, loyaltyGoal: 10,
   }
@@ -316,8 +327,8 @@ const initializeDemoData = () => {
     const completedStartTime = new Date(nowForBooking.getTime() - 2 * 24 * 60 * 60 * 1000); 
 
     demoData.bookings = [
-        { id: 'booking-live', field: demoData.fields[1], time: `${String(liveStartTime.getHours()).padStart(2, '0')}:${String(liveStartTime.getMinutes()).padStart(2, '0')}`, date: liveStartTime, userId: 'player-1', userName: 'Juan Perez', teamName: 'Los Galácticos', rivalName: 'Los Invencibles', userPhone: '3110000001', extras: { balls: 0, vests: 1 }, totalPrice: 130000, paymentMethod: 'cash', status: 'confirmed', scoreA: 1, scoreB: 0 },
-        { id: 'booking-upcoming-1', field: demoData.fields[0], time: '19:00', date: upcomingStartTime, userId: 'player-1', userName: 'Juan Perez', teamName: 'Los Galácticos', rivalName: 'Furia Roja FC', userPhone: '3110000002', extras: { balls: 1, vests: 0 }, totalPrice: 95000, paymentMethod: 'card-1', status: 'confirmed' },
+        { id: 'booking-live', field: demoData.fields[1], time: `${String(liveStartTime.getHours()).padStart(2, '0')}:${String(liveStartTime.getMinutes()).padStart(2, '0')}`, date: liveStartTime, userId: 'player-1', userName: 'Juan Perez', teamName: 'Los Galácticos', rivalName: 'Los Invencibles', userPhone: '3110000001', selectedExtras: [{ extraId: 'ext-1', name: 'Petos (10)', price: 10000, quantity: 1 }], totalPrice: 130000, paymentMethod: 'cash', status: 'confirmed', scoreA: 1, scoreB: 0 },
+        { id: 'booking-upcoming-1', field: demoData.fields[0], time: '19:00', date: upcomingStartTime, userId: 'player-1', userName: 'Juan Perez', teamName: 'Los Galácticos', rivalName: 'Furia Roja FC', userPhone: '3110000002', selectedExtras: [{ extraId: 'ext-2', name: 'Balón Profesional', price: 5000, quantity: 1 }], totalPrice: 95000, paymentMethod: 'card-1', status: 'confirmed' },
         { 
             id: 'booking-completed-1', 
             field: demoData.fields[2], 
@@ -328,7 +339,7 @@ const initializeDemoData = () => {
             teamName: 'Los Galácticos', 
             rivalName: 'Atlético Barrial', 
             userPhone: '3110000003', 
-            extras: { balls: 0, vests: 0 }, 
+            selectedExtras: [], 
             totalPrice: 75000, 
             paymentMethod: 'cash', 
             status: 'completed', 

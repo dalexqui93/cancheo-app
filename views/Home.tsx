@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SoccerField, User, Announcement, Theme, WeatherData, ConfirmedBooking, Team, AcceptedMatchInvite } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -9,9 +7,6 @@ import { LocationIcon } from '../components/icons/LocationIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import FieldCardSkeleton from '../components/FieldCardSkeleton';
 import CompactWeatherWidget from '../components/weather/CompactWeatherWidget';
-import { UsersFiveIcon } from '../components/icons/UsersFiveIcon';
-import { UsersSevenIcon } from '../components/icons/UsersSevenIcon';
-import { UsersElevenIcon } from '../components/icons/UsersElevenIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { GoogleGenAI, Type } from '@google/genai';
 import { calculateDistance } from '../utils/geolocation';
@@ -43,7 +38,7 @@ interface HomeProps {
     allTeams: Team[];
     currentTime: Date;
     acceptedMatches?: AcceptedMatchInvite[];
-    onCancelMatchAttendance?: (id: string) => void;
+    onCancelMatchAttendance?: (id: string, reason?: string) => void;
 }
 
 const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
@@ -66,10 +61,7 @@ const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ lo
 };
 
 const getMatchTimestamps = (match: ConfirmedBooking, timezone: string): { startTs: number; endTs: number } => {
-    // Step 1: Get the calendar date components (year, month, day) in the target timezone.
-    // This avoids "day before/after" issues if the user's browser is in a different day than the match location.
     const matchDate = new Date(match.date);
-    // Fix: Correctly type the dateParts object by using Object.fromEntries instead of reduce with an empty initial object.
     const parts = new Intl.DateTimeFormat('en-CA', {
         timeZone: timezone,
         year: 'numeric',
@@ -79,27 +71,14 @@ const getMatchTimestamps = (match: ConfirmedBooking, timezone: string): { startT
     const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
 
     const datePart = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
-
-    // Step 2: Create a naive Date object from the local date and time string.
-    // JavaScript will interpret this using the browser's local timezone, which is what we want for now.
     const naiveDate = new Date(`${datePart}T${match.time}:00`);
-
-    // Step 3: Calculate the offset of the browser's timezone from UTC.
-    // getTimezoneOffset returns minutes, so we convert to milliseconds.
     const browserOffsetMs = naiveDate.getTimezoneOffset() * 60 * 1000;
-
-    // Step 4: Calculate the offset of the target timezone from UTC for that specific date.
-    // This is the key to correctly handling different timezones and daylight saving time.
-    // We create a date string for the target timezone and one for UTC from the same timestamp,
-    // then find the difference in their milliseconds value.
     const utcDate = new Date(naiveDate.toLocaleString('en-US', { timeZone: 'UTC' }));
     const tzDate = new Date(naiveDate.toLocaleString('en-US', { timeZone: timezone }));
     const targetOffsetMs = utcDate.getTime() - tzDate.getTime();
 
-    // Step 5: The correct start timestamp is the naive timestamp (based on browser's parsing)
-    // adjusted by the difference between the two offsets.
     const startTs = naiveDate.getTime() - (targetOffsetMs - browserOffsetMs);
-    const endTs = startTs + 60 * 60 * 1000; // Match duration is 60 minutes
+    const endTs = startTs + 60 * 60 * 1000;
 
     return { startTs, endTs };
 };
@@ -114,7 +93,6 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
         const currentScoreB = match.scoreB ?? 0;
         let goalTeam: 'A' | 'B' | null = null;
 
-        // Detect score increase for animation
         if (currentScoreA > displayScore.a) {
             goalTeam = 'A';
         } else if (currentScoreB > displayScore.b) {
@@ -126,11 +104,10 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
             const timer = setTimeout(() => {
                 setDisplayScore({ a: currentScoreA, b: currentScoreB });
                 setGoalAnimation({ team: null });
-            }, 4000); // Animation duration
+            }, 4000);
 
             return () => clearTimeout(timer);
         } else {
-            // If scores decrease or are just different (e.g., initial load), update immediately.
             if (currentScoreA !== displayScore.a || currentScoreB !== displayScore.b) {
                 setDisplayScore({ a: currentScoreA, b: currentScoreB });
             }
@@ -287,9 +264,10 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
 
 const AcceptedMatchCard: React.FC<{ 
     invite: AcceptedMatchInvite; 
-    onCancel: (id: string) => void; 
+    onCancel: (id: string, reason: string) => void; 
 }> = ({ invite, onCancel }) => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
     
     const handleContact = () => {
         if (invite.inviterPhone) {
@@ -335,13 +313,19 @@ const AcceptedMatchCard: React.FC<{
                     isOpen={isCancelModalOpen}
                     onClose={() => setIsCancelModalOpen(false)}
                     onConfirm={() => {
-                        onCancel(invite.id);
+                        onCancel(invite.id, cancelReason);
                         setIsCancelModalOpen(false);
+                        setCancelReason('');
                     }}
                     title="¿Cancelar asistencia?"
                     message={`¿Estás seguro de que quieres cancelar tu asistencia al partido en ${invite.fieldName}? Se notificará a ${invite.inviterName}.`}
                     confirmButtonText="Sí, cancelar asistencia"
                     cancelButtonText="No, mantener"
+                    showInput={true}
+                    inputPlaceholder="Motivo (opcional, máx 30 caracteres)"
+                    inputValue={cancelReason}
+                    onInputChange={setCancelReason}
+                    inputMaxLength={30}
                 />
             )}
         </>
@@ -416,13 +400,12 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                 results = results.filter(f => f.pricePerHour <= criteria.price_max);
             } else if (criteria.price_preference && (criteria.price_preference === 'barato' || criteria.price_preference === 'económico')) {
                  const avgPrice = fields.reduce((acc, f) => acc + f.pricePerHour, 0) / fields.length;
-                 results = results.filter(f => f.pricePerHour < avgPrice * 0.8); // 20% below average
+                 results = results.filter(f => f.pricePerHour < avgPrice * 0.8);
             }
             
             onSearchResults(results);
     
         } catch (error) {
-            // FIX: Explicitly convert 'unknown' error to string for safe logging.
             console.error("Búsqueda con IA fallida:", String(error));
             onSearch(searchTerm);
         } finally {
@@ -451,7 +434,6 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         const CITY_RADIUS_KM = 50;
     
         const now = currentTime;
-        // 'en-CA' format is YYYY-MM-DD which is robust for comparisons
         const todayString = now.toLocaleDateString('en-CA', { timeZone: targetTimezone });
     
         const todayMatchesInCity = allBookings.filter(booking => {
@@ -468,7 +450,6 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             const bookingDateString = bookingDate.toLocaleDateString('en-CA', { timeZone: targetTimezone });
             
             const isToday = bookingDateString === todayString;
-            
             return isToday;
         });
     
@@ -490,14 +471,12 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                 return statusOrder[statusA] - statusOrder[statusB];
             }
 
-            // If status is the same, sort by time
             if (statusA === 'upcoming') {
-                return a.time.localeCompare(b.time); // Earliest upcoming first
+                return a.time.localeCompare(b.time);
             }
             if (statusA === 'finished') {
-                return b.time.localeCompare(a.time); // Most recently finished first
+                return b.time.localeCompare(a.time);
             }
-            // For live matches, sort by start time
             return a.time.localeCompare(b.time);
         });
     
@@ -511,14 +490,13 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         return groupedFields.filter(group => !favoriteFields.includes(group[0].complexId || group[0].id));
     }, [groupedFields, favoriteFields]);
 
-    // Filter out old accepted matches (e.g. from yesterday)
     const upcomingAcceptedMatches = useMemo(() => {
         if (!acceptedMatches) return [];
         const now = new Date();
-        now.setHours(0, 0, 0, 0); // Compare dates only initially
+        now.setHours(0, 0, 0, 0);
         
         return acceptedMatches
-            .map(m => ({ ...m, matchDate: new Date(m.matchDate) })) // Ensure Date object
+            .map(m => ({ ...m, matchDate: new Date(m.matchDate) }))
             .filter(m => m.matchDate >= now)
             .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
     }, [acceptedMatches]);

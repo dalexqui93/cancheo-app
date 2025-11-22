@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { ConfirmedBooking, User, WeatherData, Team } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
@@ -145,6 +146,21 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {/* Extras Breakdown */}
+                    {booking.selectedExtras && booking.selectedExtras.length > 0 && (
+                        <div className="bg-slate-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                            <h4 className="font-bold text-sm mb-2 text-gray-700 dark:text-gray-300">Servicios Adicionales</h4>
+                            <ul className="space-y-1 text-sm">
+                                {booking.selectedExtras.map((extra, i) => (
+                                    <li key={i} className="flex justify-between">
+                                        <span>{extra.name} (x{extra.quantity})</span>
+                                        <span className="font-medium">${(extra.price * extra.quantity).toLocaleString('es-CO')}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
                     <BookingWeatherStatus weatherData={weatherData} selectedDate={booking.date} selectedTime={booking.time} />
                     

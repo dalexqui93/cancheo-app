@@ -1,6 +1,6 @@
+
 import React from 'react';
 import { ExclamationTriangleIcon } from './icons/ExclamationTriangleIcon';
-import { XIcon } from './icons/XIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 
 interface ConfirmationModalProps {
@@ -13,6 +13,11 @@ interface ConfirmationModalProps {
     cancelButtonText?: string;
     confirmButtonColor?: string;
     isConfirming?: boolean;
+    showInput?: boolean;
+    inputPlaceholder?: string;
+    inputValue?: string;
+    onInputChange?: (value: string) => void;
+    inputMaxLength?: number;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -25,6 +30,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     cancelButtonText = 'Cancelar',
     confirmButtonColor = 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
     isConfirming = false,
+    showInput = false,
+    inputPlaceholder = '',
+    inputValue = '',
+    onInputChange,
+    inputMaxLength,
 }) => {
     if (!isOpen) return null;
 
@@ -36,7 +46,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
                             <ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
                         </div>
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                             <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100" id="modal-title">
                                 {title}
                             </h3>
@@ -44,6 +54,23 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {message}
                                 </p>
+                                {showInput && onInputChange && (
+                                    <div className="mt-4">
+                                        <textarea
+                                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                            placeholder={inputPlaceholder}
+                                            value={inputValue}
+                                            onChange={(e) => onInputChange(e.target.value)}
+                                            maxLength={inputMaxLength}
+                                            rows={3}
+                                        />
+                                        {inputMaxLength && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">
+                                                {inputValue.length}/{inputMaxLength}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -1,11 +1,6 @@
 
-
-
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus } from '../types';
+import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus, FieldExtra } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
 import { PitchIcon } from '../components/icons/PitchIcon';
 import { ListBulletIcon } from '../components/icons/ListBulletIcon';
@@ -22,11 +17,14 @@ import { PhoneIcon } from '../components/icons/PhoneIcon';
 import { WhatsappIcon } from '../components/icons/WhatsappIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { IdentificationIcon } from '../components/icons/IdentificationIcon';
-// Fix: Corrected import path from '../firebase' to '../database' to resolve module not found error.
 import * as db from '../database';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { UserIcon } from '../components/icons/UserIcon';
 import { TrophyIcon } from '../components/icons/TrophyIcon';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { ClockIcon } from '../components/icons/ClockIcon';
+import { SunIcon } from '../components/icons/SunIcon';
+import { MoonIcon } from '../components/icons/MoonIcon';
 
 
 interface OwnerDashboardProps {
@@ -44,6 +42,55 @@ interface OwnerDashboardProps {
 }
 
 type OwnerView = 'dashboard' | 'fields' | 'bookings' | 'announcements';
+
+const POSSIBLE_TIMES = {
+    mañana: ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00'],
+    tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+    noche: ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00']
+};
+
+// Helper function to compress images
+const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_DIMENSION = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_DIMENSION) {
+                        height *= MAX_DIMENSION / width;
+                        width = MAX_DIMENSION;
+                    }
+                } else {
+                    if (height > MAX_DIMENSION) {
+                        width *= MAX_DIMENSION / height;
+                        height = MAX_DIMENSION;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    // Compress to JPEG with 60% quality to save space in Firestore
+                    resolve(canvas.toDataURL('image/jpeg', 0.6));
+                } else {
+                    reject(new Error('Failed to get canvas context'));
+                }
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+};
 
 // --- Sub-Views / Components ---
 
@@ -103,6 +150,64 @@ const TopCustomers: React.FC<{ topCustomers: [string, number][] }> = ({ topCusto
     </div>
 );
 
+const ScheduleManager: React.FC<{
+    slots: { mañana: string[]; tarde: string[]; noche: string[] };
+    onChange: (newSlots: { mañana: string[]; tarde: string[]; noche: string[] }) => void;
+}> = ({ slots, onChange }) => {
+    
+    const toggleTime = (period: 'mañana' | 'tarde' | 'noche', time: string) => {
+        const currentSlots = slots[period] || [];
+        let newPeriodSlots;
+        
+        if (currentSlots.includes(time)) {
+            newPeriodSlots = currentSlots.filter(t => t !== time);
+        } else {
+            newPeriodSlots = [...currentSlots, time].sort();
+        }
+        
+        onChange({
+            ...slots,
+            [period]: newPeriodSlots
+        });
+    };
+
+    const renderPeriod = (period: 'mañana' | 'tarde' | 'noche', icon: React.ReactNode, title: string, colorClass: string) => (
+        <div className="mb-4">
+            <div className={`flex items-center gap-2 mb-2 text-sm font-bold ${colorClass}`}>
+                {icon}
+                <span className="capitalize">{title}</span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                {POSSIBLE_TIMES[period].map((time) => {
+                    const isSelected = (slots[period] || []).includes(time);
+                    return (
+                        <button
+                            key={time}
+                            onClick={() => toggleTime(period, time)}
+                            className={`py-1.5 px-2 rounded-md text-xs font-semibold transition-all border ${
+                                isSelected
+                                    ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                                    : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400'
+                            }`}
+                        >
+                            {time}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="bg-gray-50 dark:bg-gray-900/30 p-4 rounded-lg border dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 text-center">Selecciona las horas disponibles para reservar.</p>
+            {renderPeriod('mañana', <SunIcon className="w-4 h-4"/>, 'Mañana', 'text-yellow-500')}
+            {renderPeriod('tarde', <SunIcon className="w-4 h-4"/>, 'Tarde', 'text-orange-500')}
+            {renderPeriod('noche', <MoonIcon className="w-4 h-4"/>, 'Noche', 'text-indigo-400')}
+        </div>
+    );
+};
+
 
 const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerField[] }> = ({ bookings, fields }) => {
     const { todayRevenue, upcomingBookingsCount } = useMemo(() => {
@@ -113,7 +218,7 @@ const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerFiel
 
         bookings.forEach(b => {
             const bookingDate = new Date(b.date);
-            if (bookingDate.toISOString().split('T')[0] === todayStr) {
+            if (bookingDate.toISOString().split('T')[0] === todayStr && b.status === 'confirmed') {
                 todayRevenue += b.totalPrice;
             }
             if (bookingDate >= today && b.status === 'confirmed') {
@@ -128,14 +233,14 @@ const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerFiel
         date.setDate(new Date().getDate() - (6 - i));
         const dateStr = date.toISOString().split('T')[0];
         const revenue = bookings
-            .filter(b => new Date(b.date).toISOString().split('T')[0] === dateStr)
+            .filter(b => new Date(b.date).toISOString().split('T')[0] === dateStr && (b.status === 'confirmed' || b.status === 'completed'))
             .reduce((sum, b) => sum + b.totalPrice, 0);
         return { label: date.toLocaleDateString('es-CO', { weekday: 'short' }), value: revenue };
     }), [bookings]);
 
     const topCustomers = useMemo(() => {
         const customerCounts: { [key: string]: number } = bookings.reduce((acc, booking) => {
-            if (booking.status === 'confirmed') {
+            if (booking.status === 'confirmed' || booking.status === 'completed') {
                 acc[booking.userName] = (acc[booking.userName] || 0) + 1;
             }
             return acc;
@@ -146,7 +251,7 @@ const DashboardHome: React.FC<{ bookings: ConfirmedBooking[], fields: SoccerFiel
     }, [bookings]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-2 gap-4">
                 <StatCard title="Ingresos Hoy" value={`$${todayRevenue.toLocaleString()}`} icon={<CurrencyDollarIcon className="w-6 h-6" />} />
                 <StatCard title="Próximas" value={String(upcomingBookingsCount)} icon={<ListBulletIcon className="w-6 h-6" />} />
@@ -177,6 +282,7 @@ const ComplexEditorModal: React.FC<{
 }> = ({ complex, onClose, onSave, addNotification }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [formData, setFormData] = useState({
         complexId: complex?.complexId || `complex-${Date.now()}`,
@@ -189,6 +295,7 @@ const ComplexEditorModal: React.FC<{
         services: complex?.services?.map(s => s.name) || [],
         latitude: complex?.fields?.[0]?.latitude || null,
         longitude: complex?.fields?.[0]?.longitude || null,
+        extras: complex?.fields?.[0]?.extras || [], // Use first field's extras as base for complex editing
         subFields: complex?.fields?.map(f => ({
             id: f.id,
             name: f.name.includes(' - ') ? f.name.split(' - ').slice(1).join(' - ') : f.name,
@@ -199,8 +306,19 @@ const ComplexEditorModal: React.FC<{
             availableSlots: f.availableSlots || { mañana: [], tarde: [], noche: [] },
         })) || [],
     });
-    const [formErrors, setFormErrors] = useState<{ name?: string; images?: string; subFields?: string; subFieldErrorIndex?: number | null; subFieldErrorField?: 'name' | 'price' | 'loyalty' | 'slots' | null }>({});
+    const [formErrors, setFormErrors] = useState<{ 
+        name?: string; 
+        address?: string; 
+        city?: string; 
+        description?: string; 
+        images?: string; 
+        subFields?: string; 
+        subFieldErrorIndex?: number | null; 
+        subFieldErrorField?: 'name' | 'price' | 'loyalty' | 'slots' | null 
+    }>({});
     const [openSubFieldIndex, setOpenSubFieldIndex] = useState<number | null>(0);
+    const [newExtra, setNewExtra] = useState<Partial<FieldExtra>>({ name: '', price: 0, icon: '⭐', maxQuantity: 10 });
+
     const availableServices: Service[] = [
         { name: 'Arbitraje', icon: '🧑‍⚖️' },
         { name: 'Balones', icon: '⚽' },
@@ -212,15 +330,21 @@ const ComplexEditorModal: React.FC<{
         { name: 'Tienda', icon: '🏪' },
         { name: 'Vestuarios', icon: '👕' },
     ];
-    const allTimes = {
-        mañana: ['08:00', '09:00', '10:00', '11:00'],
-        tarde: ['12:00', '13:00', '14:00', '15:00', '16:00'],
-        noche: ['17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
-    };
+
+    const availableExtrasPresets = [
+        { name: 'Petos', price: 10000, icon: '🎽', maxQuantity: 20 },
+        { name: 'Balón Extra', price: 5000, icon: '⚽', maxQuantity: 5 },
+        { name: 'Arbitraje', price: 40000, icon: '🧑‍⚖️', maxQuantity: 1 },
+        { name: 'Hidratación (Pack)', price: 15000, icon: '💧', maxQuantity: 5 },
+    ];
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear error when typing
+        if (formErrors[name as keyof typeof formErrors]) {
+            setFormErrors(prev => ({ ...prev, [name]: undefined }));
+        }
     };
 
     const handleSubFieldChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -237,17 +361,9 @@ const ComplexEditorModal: React.FC<{
         setFormData(prev => ({ ...prev, subFields: newSubFields }));
     };
 
-    const handleAddTimeSlot = (index: number, period: 'mañana' | 'tarde' | 'noche', time: string) => {
+    const handleScheduleChange = (index: number, newSlots: { mañana: string[]; tarde: string[]; noche: string[] }) => {
         const newSubFields = [...formData.subFields];
-        const field = newSubFields[index];
-        if (!field.availableSlots) field.availableSlots = { mañana: [], tarde: [], noche: [] };
-        
-        const currentSlots = field.availableSlots[period];
-        if(currentSlots.includes(time)) {
-            field.availableSlots[period] = currentSlots.filter(t => t !== time);
-        } else {
-            field.availableSlots[period] = [...currentSlots, time].sort();
-        }
+        newSubFields[index].availableSlots = newSlots;
         setFormData(prev => ({ ...prev, subFields: newSubFields }));
     };
 
@@ -256,7 +372,19 @@ const ComplexEditorModal: React.FC<{
             ...prev,
             subFields: [
                 ...prev.subFields,
-                { id: `new-${Date.now()}`, name: '', size: '5v5', pricePerHour: 0, loyaltyEnabled: false, loyaltyGoal: 7, availableSlots: { mañana: [], tarde: [], noche: [] } }
+                { 
+                    id: `new-${Date.now()}`, 
+                    name: '', 
+                    size: '5v5', 
+                    pricePerHour: 0, 
+                    loyaltyEnabled: false, 
+                    loyaltyGoal: 7, 
+                    availableSlots: { 
+                        mañana: POSSIBLE_TIMES.mañana, 
+                        tarde: POSSIBLE_TIMES.tarde, 
+                        noche: POSSIBLE_TIMES.noche 
+                    } 
+                }
             ]
         }));
         setOpenSubFieldIndex(formData.subFields.length);
@@ -277,15 +405,49 @@ const ComplexEditorModal: React.FC<{
                 : [...prev.services, serviceName]
         }));
     };
+
+    const addExtra = (extraData: Partial<FieldExtra>) => {
+        const newExtraItem: FieldExtra = {
+            id: `ext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: extraData.name || 'Nuevo Servicio',
+            price: Number(extraData.price) || 0,
+            icon: extraData.icon || '⭐',
+            maxQuantity: Number(extraData.maxQuantity) || 10
+        };
+        setFormData(prev => ({ ...prev, extras: [...prev.extras, newExtraItem] }));
+        setNewExtra({ name: '', price: 0, icon: '⭐', maxQuantity: 10 }); // Reset form
+    };
+
+    const removeExtra = (id: string) => {
+        setFormData(prev => ({ ...prev, extras: prev.extras.filter(e => e.id !== id) }));
+    };
+
+    const handleUpdateExtra = (id: string, field: keyof FieldExtra, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            extras: prev.extras.map(e => e.id === id ? { ...e, [field]: value } : e)
+        }));
+    };
     
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if(e.target.files && e.target.files.length > 0){
+            setIsUploadingImage(true);
             const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, images: [reader.result as string, ...prev.images].slice(0, 5) }));
+            try {
+                const compressedImage = await compressImage(file);
+                setFormData(prev => {
+                    const newImages = [compressedImage, ...prev.images].slice(0, 5);
+                    if (newImages.length > 0 && formErrors.images) {
+                        setFormErrors(errors => ({ ...errors, images: undefined }));
+                    }
+                    return { ...prev, images: newImages };
+                });
+            } catch (error) {
+                console.error("Error compressing image", error);
+                addNotification({type: 'error', title: 'Error', message: 'No se pudo procesar la imagen.'});
+            } finally {
+                setIsUploadingImage(false);
             }
-            reader.readAsDataURL(file);
         }
     };
     
@@ -306,7 +468,6 @@ const ComplexEditorModal: React.FC<{
             }
         } catch (error) {
             addNotification({type: 'error', title: 'Error de Red', message: 'No se pudo conectar al servicio de geolocalización.'});
-            // FIX: Explicitly convert 'unknown' error to string for safe logging.
             console.error("Error al buscar coordenadas:", String(error));
         } finally {
             setIsLocating(false);
@@ -315,12 +476,15 @@ const ComplexEditorModal: React.FC<{
 
     const validateForm = () => {
         const errors: typeof formErrors = {};
-        if (!formData.name.trim()) {
-            errors.name = "El nombre del complejo es obligatorio.";
-        }
+        if (!formData.name.trim()) errors.name = "El nombre del complejo es obligatorio.";
+        if (!formData.city.trim()) errors.city = "La ciudad es obligatoria.";
+        if (!formData.address.trim()) errors.address = "La dirección es obligatoria.";
+        if (!formData.description.trim()) errors.description = "La descripción es obligatoria.";
+        
         if (formData.images.length === 0) {
             errors.images = "Debes subir al menos una imagen.";
         }
+        
         if (formData.subFields.length === 0) {
             errors.subFields = "Debes agregar al menos una cancha.";
         } else {
@@ -355,18 +519,256 @@ const ComplexEditorModal: React.FC<{
 
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl m-4 flex flex-col" style={{maxHeight: '90vh'}} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl m-4 flex flex-col animate-slide-in-up" style={{maxHeight: '90vh'}} onClick={e => e.stopPropagation()}>
                 <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-bold">{complex ? 'Editar' : 'Crear'} Complejo</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{complex ? 'Editar' : 'Crear'} Complejo</h3>
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
                 </div>
-                <div className="p-5 overflow-y-auto space-y-4 text-sm">
-                   {/* ... form fields for complex details ... */}
+                <div className="p-6 overflow-y-auto space-y-6 text-sm">
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Complejo <span className="text-red-500">*</span></label>
+                            <input name="name" value={formData.name} onChange={handleInputChange} className={`w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ${formErrors.name ? 'border-red-500' : ''}`} placeholder="Ej. Complejo El Estadio" />
+                            {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
+                        </div>
+                        <div>
+                            <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">Ciudad <span className="text-red-500">*</span></label>
+                            <input name="city" value={formData.city} onChange={handleInputChange} className={`w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ${formErrors.city ? 'border-red-500' : ''}`} placeholder="Bogotá" />
+                            {formErrors.city && <p className="text-xs text-red-500 mt-1">{formErrors.city}</p>}
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">Dirección <span className="text-red-500">*</span></label>
+                            <div className="flex gap-2">
+                                <input name="address" value={formData.address} onChange={handleInputChange} className={`w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ${formErrors.address ? 'border-red-500' : ''}`} placeholder="Calle 123 #45-67" />
+                                <button onClick={findCoordinates} disabled={isLocating} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400" title="Autocompletar Coordenadas"><LocationIcon className={`w-5 h-5 ${isLocating ? 'animate-spin' : ''}`}/></button>
+                            </div>
+                            {formErrors.address && <p className="text-xs text-red-500 mt-1">{formErrors.address}</p>}
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción <span className="text-red-500">*</span></label>
+                            <textarea name="description" value={formData.description} onChange={handleInputChange} className={`w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ${formErrors.description ? 'border-red-500' : ''}`} rows={3} />
+                            {formErrors.description && <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>}
+                        </div>
+                    </div>
+
+                    {/* Images */}
+                    <div>
+                        <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">Imágenes <span className="text-red-500">*</span></label>
+                        <div className="flex flex-wrap gap-3">
+                            {formData.images.map((img, idx) => (
+                                <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden group">
+                                    <img src={img} className="w-full h-full object-cover" alt={`preview ${idx}`}/>
+                                    <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full hover:bg-red-500"><XIcon className="w-3 h-3"/></button>
+                                </div>
+                            ))}
+                            {formData.images.length < 5 && (
+                                <div onClick={() => !isUploadingImage && fileInputRef.current?.click()} className={`w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-[var(--color-primary-500)] ${isUploadingImage ? 'opacity-50 cursor-wait' : ''}`}>
+                                    {isUploadingImage ? <SpinnerIcon className="w-6 h-6 text-[var(--color-primary-600)]"/> : <PlusIcon className="w-6 h-6 text-gray-400"/>}
+                                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploadingImage} />
+                                </div>
+                            )}
+                        </div>
+                        {formErrors.images && <p className="text-xs text-red-500 mt-1">{formErrors.images}</p>}
+                    </div>
+
+                    {/* Services */}
+                    <div>
+                        <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">Amenidades / Servicios Incluidos</label>
+                        <div className="flex flex-wrap gap-2">
+                            {availableServices.map(service => (
+                                <button 
+                                    key={service.name} 
+                                    onClick={() => toggleService(service.name)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${formData.services.includes(service.name) ? 'bg-[var(--color-primary-100)] border-[var(--color-primary-500)] text-[var(--color-primary-800)] dark:bg-[var(--color-primary-900)]/50 dark:text-[var(--color-primary-300)]' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'}`}
+                                >
+                                    {service.icon} {service.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Extras / Billable Services */}
+                    <div className="border-t dark:border-gray-700 pt-4">
+                        <label className="block font-medium text-gray-700 dark:text-gray-300 mb-3">Servicios Adicionales (Extras de Pago)</label>
+                        
+                        {/* List of Added Extras */}
+                        <div className="space-y-2 mb-4">
+                            {formData.extras.map((extra) => (
+                                <div key={extra.id} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                                    <div className="flex items-center gap-3 flex-grow">
+                                        <span className="text-2xl">{extra.icon}</span>
+                                        <div className="flex-grow">
+                                            <p className="font-bold text-gray-800 dark:text-gray-100">{extra.name}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <label className="text-xs text-gray-500 dark:text-gray-400">Precio:</label>
+                                                <div className="relative w-24">
+                                                    <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-gray-500">$</span>
+                                                    <input 
+                                                        type="number" 
+                                                        value={extra.price} 
+                                                        onChange={(e) => handleUpdateExtra(extra.id, 'price', Number(e.target.value))}
+                                                        className="w-full pl-3 pr-1 py-0.5 text-xs border rounded dark:bg-gray-600 dark:border-gray-500 focus:ring-1 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                                <label className="text-xs text-gray-500 dark:text-gray-400 ml-2">Max:</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={extra.maxQuantity} 
+                                                    onChange={(e) => handleUpdateExtra(extra.id, 'maxQuantity', Number(e.target.value))}
+                                                    className="w-16 px-1 py-0.5 text-xs border rounded dark:bg-gray-600 dark:border-gray-500 focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => removeExtra(extra.id)} className="text-red-500 hover:bg-red-100 p-1.5 rounded-md ml-2"><TrashIcon className="w-4 h-4"/></button>
+                                </div>
+                            ))}
+                            {formData.extras.length === 0 && <p className="text-sm text-gray-500 italic">No hay servicios adicionales configurados.</p>}
+                        </div>
+
+                        {/* Add New Extra Form */}
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700">
+                            <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Agregar Nuevo Extra</p>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {availableExtrasPresets.map(preset => (
+                                    <button 
+                                        key={preset.name} 
+                                        onClick={() => addExtra(preset)}
+                                        className="text-xs bg-white dark:bg-gray-700 border dark:border-gray-600 px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                                    >
+                                        + {preset.name}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-4 gap-2 items-end">
+                                <div className="col-span-2">
+                                    <label className="text-xs block mb-1">Nombre</label>
+                                    <input 
+                                        type="text" 
+                                        value={newExtra.name} 
+                                        onChange={e => setNewExtra({...newExtra, name: e.target.value})} 
+                                        className="w-full p-1.5 text-sm border rounded dark:bg-gray-700 dark:border-gray-600" 
+                                        placeholder="Ej. Arbitraje"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs block mb-1">Precio</label>
+                                    <input 
+                                        type="number" 
+                                        value={newExtra.price} 
+                                        onChange={e => setNewExtra({...newExtra, price: Number(e.target.value)})} 
+                                        className="w-full p-1.5 text-sm border rounded dark:bg-gray-700 dark:border-gray-600" 
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
+                                    <button 
+                                        onClick={() => {
+                                            if(newExtra.name && newExtra.price !== undefined) addExtra(newExtra);
+                                        }}
+                                        disabled={!newExtra.name || newExtra.price === undefined}
+                                        className="w-full bg-blue-600 text-white p-1.5 rounded text-sm font-bold hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Sub-fields */}
+                    <div className="border-t dark:border-gray-700 pt-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100">Canchas <span className="text-red-500">*</span></h4>
+                            <button onClick={addSubField} className="flex items-center gap-1 text-sm font-bold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] hover:underline">
+                                <PlusIcon className="w-4 h-4"/> Agregar Cancha
+                            </button>
+                        </div>
+                        {formErrors.subFields && !formErrors.subFieldErrorField && <p className="text-xs text-red-500 mb-2">{formErrors.subFields}</p>}
+                        
+                        <div className="space-y-3">
+                            {formData.subFields.map((field, idx) => (
+                                <div key={field.id} className="border dark:border-gray-700 rounded-lg overflow-hidden">
+                                    <div 
+                                        className="p-3 bg-gray-50 dark:bg-gray-700/50 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        onClick={() => setOpenSubFieldIndex(openSubFieldIndex === idx ? null : idx)}
+                                    >
+                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{field.name || 'Nueva Cancha'} ({field.size})</span>
+                                        <div className="flex items-center gap-3">
+                                            <button onClick={(e) => {e.stopPropagation(); removeSubField(idx);}} className="text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 p-1 rounded"><TrashIcon className="w-4 h-4"/></button>
+                                            <ChevronDownIcon className={`w-5 h-5 transition-transform ${openSubFieldIndex === idx ? 'rotate-180' : ''}`}/>
+                                        </div>
+                                    </div>
+                                    
+                                    {openSubFieldIndex === idx && (
+                                        <div className="p-4 bg-white dark:bg-gray-800 space-y-6 border-t dark:border-gray-700">
+                                            {/* Info Básica de la Cancha */}
+                                            <div>
+                                                <h5 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Datos Básicos</h5>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Nombre (ej. Cancha 1) <span className="text-red-500">*</span></label>
+                                                        <input 
+                                                            name="name" 
+                                                            value={field.name} 
+                                                            onChange={(e) => handleSubFieldChange(idx, e)} 
+                                                            className={`w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-sm ${formErrors.subFieldErrorIndex === idx && formErrors.subFieldErrorField === 'name' ? 'border-red-500' : ''}`} 
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Tamaño</label>
+                                                        <select name="size" value={field.size} onChange={(e) => handleSubFieldChange(idx, e)} className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-sm">
+                                                            <option value="5v5">Fútbol 5</option>
+                                                            <option value="7v7">Fútbol 7</option>
+                                                            <option value="11v11">Fútbol 11</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Precio / Hora <span className="text-red-500">*</span></label>
+                                                        <input 
+                                                            type="number" 
+                                                            name="pricePerHour" 
+                                                            value={field.pricePerHour} 
+                                                            onChange={(e) => handleSubFieldChange(idx, e)} 
+                                                            className={`w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-sm ${formErrors.subFieldErrorIndex === idx && formErrors.subFieldErrorField === 'price' ? 'border-red-500' : ''}`} 
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-4 mt-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="checkbox" name="loyaltyEnabled" checked={field.loyaltyEnabled} onChange={(e) => handleSubFieldChange(idx, e)} id={`loyalty-${idx}`} className="rounded text-[var(--color-primary-600)]" />
+                                                            <label htmlFor={`loyalty-${idx}`} className="text-xs font-medium">Activar Fidelidad</label>
+                                                        </div>
+                                                        {field.loyaltyEnabled && (
+                                                            <div className="flex items-center gap-2">
+                                                                <label className="text-xs">Meta:</label>
+                                                                <input type="number" name="loyaltyGoal" value={field.loyaltyGoal} onChange={(e) => handleSubFieldChange(idx, e)} className="w-16 p-1 border rounded text-sm dark:bg-gray-700" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Horarios */}
+                                            <div>
+                                                <h5 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Disponibilidad y Horarios</h5>
+                                                <ScheduleManager 
+                                                    slots={field.availableSlots || { mañana: [], tarde: [], noche: [] }}
+                                                    onChange={(newSlots) => handleScheduleChange(idx, newSlots)}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700 flex justify-end gap-3">
-                    <button onClick={onClose} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">Cancelar</button>
-                    <button onClick={handleFormSubmit} disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm w-28 h-9 flex justify-center items-center">
+                    <button onClick={onClose} disabled={isSaving} className="py-2 px-4 rounded-lg font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50">Cancelar</button>
+                    <button onClick={handleFormSubmit} disabled={isSaving || isUploadingImage} className="py-2 px-4 rounded-lg font-semibold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] shadow-sm text-sm w-28 h-9 flex justify-center items-center disabled:bg-gray-400 disabled:cursor-not-allowed">
                         {isSaving ? <SpinnerIcon className="w-5 h-5"/> : 'Guardar'}
                     </button>
                 </div>
@@ -375,22 +777,271 @@ const ComplexEditorModal: React.FC<{
     );
 };
 
-// Placeholder for now
-const FieldsManager: React.FC<OwnerDashboardProps> = (props) => {
-    return <div>Fields Manager</div>
-}
-const BookingsManager: React.FC<OwnerDashboardProps> = (props) => {
-    return <div>Bookings Manager</div>
-}
-const AnnouncementsManager: React.FC<OwnerDashboardProps> = (props) => {
-    return <div>Announcements Manager</div>
+interface ManagerProps {
+    user: User;
+    allFields: SoccerField[];
+    fields: SoccerField[]; // User's fields
+    bookings?: ConfirmedBooking[];
+    announcements?: Announcement[];
+    onEdit?: (item: any) => void;
+    onDelete?: (id: string) => void;
+    onAdd?: (item: any) => void;
 }
 
+const FieldsManager: React.FC<ManagerProps> = ({ fields, onEdit, onDelete, onAdd }) => {
+    // Group fields by complexId to show as cards
+    const complexes = useMemo(() => {
+        const grouped: { [key: string]: { complexId: string; name: string; address: string; city: string; department?: string; description: string; image: string; images: string[]; services: any[]; count: number, fields: SoccerField[], extras: FieldExtra[] } } = {};
+        fields.forEach(f => {
+            const cId = f.complexId || f.id;
+            if (!grouped[cId]) {
+                grouped[cId] = {
+                    complexId: cId,
+                    name: f.name.split(' - ')[0],
+                    address: f.address,
+                    city: f.city,
+                    department: f.department,
+                    description: f.description,
+                    image: f.images[0],
+                    images: f.images,
+                    services: f.services,
+                    count: 0,
+                    fields: [],
+                    extras: f.extras || []
+                };
+            }
+            grouped[cId].count++;
+            grouped[cId].fields.push(f);
+        });
+        return Object.values(grouped);
+    }, [fields]);
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Mis Canchas</h2>
+                <button onClick={() => onAdd?.(null)} className="flex items-center gap-2 bg-[var(--color-primary-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                    <PlusIcon className="w-5 h-5" />
+                    <span>Nuevo Complejo</span>
+                </button>
+            </div>
+
+            {complexes.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {complexes.map(complex => (
+                        <div key={complex.complexId} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden group hover:shadow-md transition-shadow">
+                            <div className="h-40 overflow-hidden relative">
+                                <img src={complex.image} alt={complex.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
+                                <div className="absolute bottom-3 left-3 text-white">
+                                    <h3 className="font-bold text-lg leading-tight">{complex.name}</h3>
+                                    <p className="text-xs opacity-90">{complex.address}</p>
+                                </div>
+                            </div>
+                            <div className="p-4 flex justify-between items-center">
+                                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{complex.count} cancha{complex.count !== 1 ? 's' : ''}</span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => onEdit?.(complex)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Editar">
+                                        <PencilIcon className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={() => onDelete?.(complex.complexId)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Eliminar">
+                                        <TrashIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 border-dashed border-2">
+                    <PitchIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">No tienes complejos registrados.</p>
+                    <button onClick={() => onAdd?.(null)} className="mt-4 text-[var(--color-primary-600)] font-semibold hover:underline">Registrar mi primer complejo</button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const BookingsManager: React.FC<ManagerProps> = ({ bookings }) => {
+    const sortedBookings = useMemo(() => {
+        return [...(bookings || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [bookings]);
+
+    const getStatusColor = (status: ConfirmedBooking['status']) => {
+        switch (status) {
+            case 'confirmed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+            case 'completed': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+            case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const translateStatus = (status: ConfirmedBooking['status']) => {
+        switch (status) {
+            case 'confirmed': return 'Confirmada';
+            case 'completed': return 'Completada';
+            case 'cancelled': return 'Cancelada';
+            default: return status;
+        }
+    };
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Reservas</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 uppercase font-semibold">
+                            <tr>
+                                <th className="px-6 py-4">Fecha</th>
+                                <th className="px-6 py-4">Hora</th>
+                                <th className="px-6 py-4">Cancha</th>
+                                <th className="px-6 py-4">Cliente</th>
+                                <th className="px-6 py-4">Total</th>
+                                <th className="px-6 py-4">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {sortedBookings.length > 0 ? (
+                                sortedBookings.map(booking => (
+                                    <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td className="px-6 py-4 text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <CalendarIcon className="w-4 h-4 text-gray-400"/>
+                                                {new Date(booking.date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                             <div className="flex items-center gap-2">
+                                                <ClockIcon className="w-4 h-4 text-gray-400"/>
+                                                {booking.time}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-800 dark:text-gray-200">{booking.field.name}</td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-gray-800 dark:text-gray-200 font-medium">{booking.userName}</p>
+                                            <p className="text-xs text-gray-500">{booking.userPhone}</p>
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-gray-800 dark:text-gray-200">${booking.totalPrice.toLocaleString('es-CO')}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(booking.status)}`}>
+                                                {translateStatus(booking.status)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        No hay reservas registradas.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AnnouncementsManager: React.FC<ManagerProps> = ({ user, announcements, onAdd, onDelete }) => {
+    const [title, setTitle] = useState('');
+    const [message, setMessage] = useState('');
+    const [type, setType] = useState<'news' | 'promo' | 'warning'>('news');
+
+    const myAnnouncements = useMemo(() => {
+        return (announcements || []).filter(a => a.ownerId === user.id).sort((a,b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    }, [announcements, user.id]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!title.trim() || !message.trim()) return;
+        
+        onAdd?.({ title, message, type, ownerId: user.id });
+        setTitle('');
+        setMessage('');
+        setType('news');
+    };
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Create Form */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700 sticky top-24">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                            <PlusIcon className="w-5 h-5"/> Crear Anuncio
+                        </h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
+                                <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ej. Torneo Relámpago" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                                <select value={type} onChange={e => setType(e.target.value as any)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                                    <option value="news">Noticia</option>
+                                    <option value="promo">Promoción</option>
+                                    <option value="warning">Aviso</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje</label>
+                                <textarea value={message} onChange={e => setMessage(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows={4} placeholder="Escribe los detalles..." required />
+                            </div>
+                            <button type="submit" className="w-full py-2 px-4 bg-[var(--color-primary-600)] text-white font-bold rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                                Publicar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {/* List */}
+                <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">Mis Anuncios Activos</h3>
+                    {myAnnouncements.length > 0 ? (
+                        myAnnouncements.map(ann => (
+                            <div key={ann.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border dark:border-gray-700 relative group">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${ann.type === 'promo' ? 'bg-yellow-100 text-yellow-600' : ann.type === 'warning' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                            <MegaphoneIcon className="w-6 h-6"/>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800 dark:text-gray-100">{ann.title}</h4>
+                                            <span className="text-xs text-gray-500 uppercase font-semibold">{ann.type === 'promo' ? 'Promoción' : ann.type === 'warning' ? 'Aviso Importante' : 'Noticia'}</span>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => onDelete?.(ann.id!)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Eliminar Anuncio">
+                                        <TrashIcon className="w-5 h-5"/>
+                                    </button>
+                                </div>
+                                <p className="mt-3 text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{ann.message}</p>
+                                <p className="mt-3 text-xs text-gray-400 text-right">{ann.createdAt ? new Date(ann.createdAt).toLocaleDateString() : 'Reciente'}</p>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 border-dashed border-2">
+                            <MegaphoneIcon className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+                            <p className="text-gray-500 dark:text-gray-400">No has publicado anuncios todavía.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
-    const { user, onLogout, fields, bookings, announcements, addNotification } = props;
+    const { user, onLogout, fields, bookings, announcements, addNotification, setFields, setAnnouncements, allFields } = props;
     const [view, setView] = useState<OwnerView>('dashboard');
     const [isComplexModalOpen, setIsComplexModalOpen] = useState(false);
     const [editingComplex, setEditingComplex] = useState<any>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [deleteType, setDeleteType] = useState<'field' | 'announcement' | null>(null);
 
 
     const TABS: { id: OwnerView; label: string; icon: React.ReactNode }[] = [
@@ -402,11 +1053,127 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
     
     const currentTab = TABS.find(t => t.id === view);
 
+    // -- Handlers --
+
+    const handleSaveComplex = async (complexData: any) => {
+        try {
+            const { subFields, extras, ...complexInfo } = complexData;
+            
+            const promises = subFields.map((subField: any) => {
+                // Construct the payload for the DB
+                const fieldData = {
+                    ...subField, // includes id, name, size, price...
+                    complexId: complexInfo.complexId,
+                    ownerId: user.id,
+                    name: `${complexInfo.name} - ${subField.name}`, // Re-compose name
+                    address: complexInfo.address,
+                    city: complexInfo.city,
+                    department: complexInfo.department,
+                    description: complexInfo.description,
+                    images: complexInfo.images,
+                    services: complexInfo.services.map((s: string) => ({ name: s, icon: '✅' })), // Simplification
+                    extras: extras, // Save the extras to the field
+                    latitude: complexInfo.latitude || 0,
+                    longitude: complexInfo.longitude || 0,
+                    // Keep reviews and rating if they exist in subField, otherwise default
+                    rating: subField.rating !== undefined ? subField.rating : 0, 
+                    reviews: subField.reviews || [], 
+                };
+
+                // Determine Create vs Update
+                if (subField.id.startsWith('new-')) {
+                    // It's a new field. Remove the temp ID.
+                    const { id, ...newFieldData } = fieldData;
+                    return db.addField(newFieldData);
+                } else {
+                    // It's an existing field. Update it.
+                    return db.updateField(subField.id, fieldData);
+                }
+            });
+
+            await Promise.all(promises);
+            
+            // Refresh data
+            const updatedFields = await db.getFields();
+            setFields(updatedFields);
+            addNotification({ type: 'success', title: 'Guardado', message: 'La información del complejo ha sido actualizada.' });
+
+        } catch (error) {
+            console.error("Error saving complex:", error);
+            addNotification({ type: 'error', title: 'Error', message: 'No se pudieron guardar los cambios.' });
+        }
+    };
+
+    const handleDeleteComplex = async () => {
+        if (!confirmDeleteId || deleteType !== 'field') return;
+        
+        try {
+            // Find all fields with this complexId
+            const complexFields = fields.filter(f => (f.complexId || f.id) === confirmDeleteId);
+            const deletePromises = complexFields.map(f => db.deleteField(f.id));
+            await Promise.all(deletePromises);
+
+            setFields(prev => prev.filter(f => (f.complexId || f.id) !== confirmDeleteId));
+            addNotification({ type: 'info', title: 'Eliminado', message: 'El complejo y sus canchas han sido eliminados.' });
+        } catch (error) {
+             console.error("Error deleting complex:", error);
+             addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el complejo.' });
+        } finally {
+            setConfirmDeleteId(null);
+            setDeleteType(null);
+        }
+    };
+
+    const handleCreateAnnouncement = async (data: any) => {
+        try {
+            const newAnn = await db.addAnnouncement({
+                ...data,
+                complexName: fields[0]?.name.split(' - ')[0] || 'Mi Complejo' // Fallback name
+            });
+            setAnnouncements(prev => [newAnn, ...prev]);
+            addNotification({ type: 'success', title: 'Publicado', message: 'El anuncio está visible para los usuarios.' });
+        } catch (error) {
+             addNotification({ type: 'error', title: 'Error', message: 'No se pudo crear el anuncio.' });
+        }
+    };
+
+    const handleDeleteAnnouncement = async () => {
+        if (!confirmDeleteId || deleteType !== 'announcement') return;
+        try {
+            await db.deleteAnnouncement(confirmDeleteId);
+            setAnnouncements(prev => prev.filter(a => a.id !== confirmDeleteId));
+            addNotification({ type: 'info', title: 'Eliminado', message: 'El anuncio ha sido borrado.' });
+        } catch(error) {
+             addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el anuncio.' });
+        } finally {
+            setConfirmDeleteId(null);
+            setDeleteType(null);
+        }
+    }
+
+
     const renderContent = () => {
         switch (view) {
-            case 'fields': return <FieldsManager {...props} />;
-            case 'bookings': return <BookingsManager {...props} />;
-            case 'announcements': return <AnnouncementsManager {...props} />;
+            case 'fields': 
+                return <FieldsManager 
+                            user={user} 
+                            allFields={allFields} 
+                            fields={fields} 
+                            onAdd={() => { setEditingComplex(null); setIsComplexModalOpen(true); }}
+                            onEdit={(complex) => { setEditingComplex(complex); setIsComplexModalOpen(true); }}
+                            onDelete={(id) => { setConfirmDeleteId(id); setDeleteType('field'); }}
+                        />;
+            case 'bookings': 
+                return <BookingsManager user={user} allFields={allFields} fields={fields} bookings={bookings} />;
+            case 'announcements': 
+                return <AnnouncementsManager 
+                            user={user} 
+                            allFields={allFields} 
+                            fields={fields} 
+                            announcements={announcements}
+                            onAdd={handleCreateAnnouncement}
+                            onDelete={(id) => { setConfirmDeleteId(id); setDeleteType('announcement'); }}
+                        />;
             case 'dashboard':
             default:
                 return <DashboardHome bookings={bookings} fields={fields} />;
@@ -438,6 +1205,28 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                     </button>
                 ))}
             </nav>
+
+            {/* Modals */}
+            {isComplexModalOpen && (
+                <ComplexEditorModal
+                    complex={editingComplex}
+                    onClose={() => setIsComplexModalOpen(false)}
+                    onSave={handleSaveComplex}
+                    addNotification={addNotification}
+                />
+            )}
+
+            <ConfirmationModal 
+                isOpen={!!confirmDeleteId}
+                onClose={() => { setConfirmDeleteId(null); setDeleteType(null); }}
+                onConfirm={deleteType === 'field' ? handleDeleteComplex : handleDeleteAnnouncement}
+                title={deleteType === 'field' ? '¿Eliminar Complejo?' : '¿Eliminar Anuncio?'}
+                message={deleteType === 'field' 
+                    ? 'Esta acción eliminará el complejo y todas sus canchas asociadas. No se puede deshacer.' 
+                    : 'El anuncio dejará de ser visible para los usuarios.'}
+                confirmButtonText="Eliminar"
+                confirmButtonColor="bg-red-600 hover:bg-red-700"
+            />
         </div>
     );
 };

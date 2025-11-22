@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// FIX: Corrected type imports by fixing the types.ts file.
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage, AcceptedMatchInvite } from '../types';
 import { View } from '../types';
 import Header from '../components/Header';
@@ -29,7 +28,6 @@ import RatingModal from '../components/RatingModal';
 import OwnerRegisterView from '../views/OwnerRegisterView';
 import OwnerPendingVerificationView from '../views/OwnerPendingVerificationView';
 import SuperAdminDashboard from '../views/SuperAdminDashboard';
-// Fix: Corrected import path from './firebase' to './database' to resolve module not found error.
 import * as db from '../database';
 import { isFirebaseConfigured } from '../database';
 import { getCurrentPosition, calculateDistance } from '../utils/geolocation';
@@ -62,8 +60,7 @@ const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
     );
 }
 
-// Sonido de notificación en formato Base64 para ser auto-contenido
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -106,7 +103,6 @@ const App = () => {
     const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
     const [weatherError, setWeatherError] = useState<string | null>(null);
 
-    // FIX: Define memoized values for owner fields and bookings to be used in the OwnerDashboard.
     const ownerFields = useMemo(() => {
         if (!user || !user.isOwner) return [];
         return fields.filter(field => field.ownerId === user.id);
@@ -118,7 +114,6 @@ const App = () => {
         return allBookings.filter(booking => booking.field && ownerFieldIds.has(booking.field.id));
     }, [user, fields, allBookings]);
 
-    // Online status listener
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
         const handleOffline = () => setIsOnline(false);
@@ -132,7 +127,6 @@ const App = () => {
         };
     }, []);
 
-    // Centralized time management
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -140,8 +134,6 @@ const App = () => {
         return () => clearInterval(timer);
     }, []);
 
-
-    // Solicitar permiso para notificaciones al cargar la app
     useEffect(() => {
         if ('Notification' in window) {
             if (window.Notification.permission === 'default') {
@@ -156,7 +148,6 @@ const App = () => {
         }
     }, []);
     
-    // Load initial static data
     useEffect(() => {
         const loadInitialStaticData = async () => {
             setLoading(true);
@@ -179,7 +170,6 @@ const App = () => {
         loadInitialStaticData();
     }, []);
 
-    // Real-time data listeners for collections
     useEffect(() => {
         let unsubscribeUsers = () => {};
         let unsubscribeBookings = () => {};
@@ -202,7 +192,6 @@ const App = () => {
         };
     }, []);
 
-    // Keep logged-in user object in sync with the allUsers list
     useEffect(() => {
         if (user) {
             const latestUserData = allUsers.find(u => u.id === user.id);
@@ -212,7 +201,6 @@ const App = () => {
         }
     }, [allUsers, user]);
 
-    // Invitation listeners
     useEffect(() => {
         if (user && db.isFirebaseConfigured) {
             const unsubscribe = db.listenToInvitationsForUser(user.id, setReceivedInvitations);
@@ -239,6 +227,38 @@ const App = () => {
             setSentInvitations([]);
         }
     }, [user, allTeams]);
+
+    // Automatically clean up expired accepted match invites
+    useEffect(() => {
+        if (!user || !user.acceptedMatchInvites) return;
+
+        const cleanupExpiredInvites = async () => {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            const validInvites = user.acceptedMatchInvites!.filter(invite => {
+                const matchDate = new Date(invite.matchDate);
+                // Keep if match date is today or in the future
+                return matchDate >= todayStart;
+            });
+
+            if (validInvites.length !== user.acceptedMatchInvites!.length) {
+                try {
+                    await db.updateUser(user.id, { acceptedMatchInvites: validInvites });
+                    const updatedUser = { ...user, acceptedMatchInvites: validInvites };
+                    setUser(updatedUser);
+                    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+                } catch (error) {
+                    console.error("Error cleaning up expired invites:", String(error));
+                }
+            }
+        };
+
+        const intervalId = setInterval(cleanupExpiredInvites, 60 * 1000); // Check every minute
+        cleanupExpiredInvites(); // Check on mount
+
+        return () => clearInterval(intervalId);
+    }, [user]);
 
 
     const fetchWeather = useCallback(async () => {
@@ -272,7 +292,6 @@ const App = () => {
             const position = await getCurrentPosition({ timeout: 10000, maximumAge: 3600000 });
             const { latitude, longitude } = position.coords;
 
-            // Fetch location name
             let locationName: string | undefined;
             try {
                 const geoResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
@@ -302,7 +321,6 @@ const App = () => {
             const cachedData = localStorage.getItem('weatherCache');
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
-                // Asegúrate de que las cadenas de fecha se conviertan de nuevo en objetos Date
                 parsedData.lastUpdated = new Date(parsedData.lastUpdated);
                 parsedData.current.time = new Date(parsedData.current.time);
                 parsedData.hourly = parsedData.hourly.map((h: any) => ({...h, time: new Date(h.time)}));
@@ -317,29 +335,24 @@ const App = () => {
 
     useEffect(() => {
         fetchWeather();
-        // Configurar un intervalo para actualizar el clima cada 30 minutos
         const weatherInterval = setInterval(fetchWeather, 30 * 60 * 1000);
-
         return () => {
             clearInterval(weatherInterval);
         };
     }, [fetchWeather]);
 
-    // Load user-specific data when user logs in or allBookings change
     useEffect(() => {
         const loadUserData = async () => {
             if (user) {
                 const userBookings = allBookings.filter(b => b.userId === user.id);
                 setBookings(userBookings);
             } else {
-                setBookings([]); // Clear bookings on logout
+                setBookings([]);
             }
         };
         loadUserData();
     }, [user, allBookings]);
 
-
-    // Manage theme changes
     useEffect(() => {
         const root = window.document.documentElement;
         const isDark =
@@ -360,12 +373,9 @@ const App = () => {
         return () => mediaQuery.removeEventListener('change', handleChange);
     }, [theme]);
 
-    // Manage accent color changes
     useEffect(() => {
         const root = window.document.documentElement;
-        // Remove old theme classes if any
         ['theme-green', 'theme-blue', 'theme-orange', 'theme-purple'].forEach(cls => root.classList.remove(cls));
-        // Add the new one
         root.classList.add(`theme-${accentColor}`);
         localStorage.setItem('accentColor', accentColor);
     }, [accentColor]);
@@ -376,13 +386,11 @@ const App = () => {
             const audio = new Audio(notificationSound);
             audio.play();
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error al reproducir sonido de notificación:', String(error));
         }
     }, []);
 
     const addPersistentNotification = useCallback(async (notif: Omit<Notification, 'id' | 'timestamp'>) => {
-        // Mostrar notificación nativa si la app está en segundo plano
         if ('Notification' in window && window.Notification.permission === 'granted' && document.hidden) {
             new window.Notification(notif.title, {
                 body: notif.message,
@@ -411,7 +419,6 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert 'unknown' error to string for safe logging.
                 console.error('Error saving notification to database:', String(error));
             }
         }
@@ -426,20 +433,19 @@ const App = () => {
         setToasts(prev => [newToast, ...prev]);
     }, []);
     
-    // Simulate push notifications for favorite fields
     useEffect(() => {
         if (!user) return;
         const notificationSimulator = setInterval(() => {
             if (user.isOwner || !user.favoriteFields.length || !fields.length) return;
 
-            const shouldTrigger = Math.random() < 0.1; // 10% chance every 20 seconds
+            const shouldTrigger = Math.random() < 0.1;
             if (!shouldTrigger) return;
             
             const randomFavComplexId = user.favoriteFields[Math.floor(Math.random() * user.favoriteFields.length)];
             const field = fields.find(f => (f.complexId || f.id) === randomFavComplexId);
             if (!field) return;
 
-            const notificationType = Math.random(); // 0 to 1
+            const notificationType = Math.random();
 
             if (notificationType < 0.33 && user.notificationPreferences?.importantNews) {
                 addPersistentNotification({
@@ -461,7 +467,7 @@ const App = () => {
                 });
             }
 
-        }, 20000); // Check every 20 seconds
+        }, 20000);
 
         return () => clearInterval(notificationSimulator);
     }, [user, fields, addPersistentNotification]);
@@ -479,9 +485,7 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert 'unknown' error to string for safe logging.
                 console.error('Error deleting notification from database:', String(error));
-                // Revert state on failure
                 setNotifications(originalNotifications);
                 showToast({
                     type: 'error',
@@ -506,9 +510,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // FIX: In a catch block, 'error' is of type 'unknown'. Explicitly convert it to a string for safe logging.
                 console.error('Error marking notifications as read:', String(error));
-                setNotifications(originalNotifications); // Revert on error
+                setNotifications(originalNotifications);
             }
         }
     };
@@ -526,9 +529,8 @@ const App = () => {
                 setUser(updatedUser);
                 setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             } catch (error) {
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Error clearing notifications:', String(error));
-                setNotifications(originalNotifications); // Revert on error
+                setNotifications(originalNotifications);
             }
         }
     };
@@ -537,7 +539,6 @@ const App = () => {
         setToasts(prev => prev.filter(t => t.id !== id));
     };
     
-    // Reminder notification checker
     useEffect(() => {
         const checkBookingReminders = async () => {
             if (!bookings.length) return;
@@ -588,13 +589,12 @@ const App = () => {
             }
         };
     
-        const intervalId = setInterval(checkBookingReminders, 60000); // Check every minute
+        const intervalId = setInterval(checkBookingReminders, 60000);
         checkBookingReminders();
     
         return () => clearInterval(intervalId);
     }, [bookings, addPersistentNotification]);
     
-    // Automatically mark past bookings as 'completed'
     useEffect(() => {
         const completePastBookings = async () => {
             const now = new Date();
@@ -606,7 +606,6 @@ const App = () => {
                     const [hours, minutes] = booking.time.split(':').map(Number);
                     bookingDateTime.setHours(hours, minutes);
     
-                    // Mark as completed 2 hours after start time for scorekeeping flexibility
                     const twoHoursAfterStart = bookingDateTime.getTime() + 2 * 60 * 60 * 1000;
                     if (now.getTime() > twoHoursAfterStart) {
                         bookingsToComplete.push(booking);
@@ -629,13 +628,12 @@ const App = () => {
             }
         };
     
-        const intervalId = setInterval(completePastBookings, 60 * 1000); // Run every minute
-        completePastBookings(); // Run once on load
+        const intervalId = setInterval(completePastBookings, 60 * 1000);
+        completePastBookings();
     
         return () => clearInterval(intervalId);
     }, [allBookings]);
 
-    // Loyalty Program Check - now triggers on completed bookings
     useEffect(() => {
         if (!user || loading || rewardInfo || ratingInfo) return;
 
@@ -698,9 +696,8 @@ const App = () => {
         checkLoyaltyForCompletedGames();
     }, [user, allBookings, bookings, loading, addPersistentNotification, rewardInfo, ratingInfo]);
 
-    // Check for remembered user on app load
     useEffect(() => {
-        if (loading || user) return; // Don't run if data is loading or a user is already logged in
+        if (loading || user) return;
 
         const rememberedUserId = localStorage.getItem('rememberedUserId');
         if (rememberedUserId && allUsers.length > 0) {
@@ -714,7 +711,6 @@ const App = () => {
                     message: `¡Hola de nuevo, ${rememberedUser.name}!`
                 });
             } else {
-                // Clean up if the user ID is invalid
                 localStorage.removeItem('rememberedUserId');
             }
         }
@@ -730,18 +726,21 @@ const App = () => {
                 localStorage.removeItem('rememberedUserId');
             }
 
-            setUser(loggedInUser);
-            const sortedNotifications = (loggedInUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            // Admin Override for Testing: Always treat admins as Premium
+            const updatedUser = loggedInUser.isAdmin ? { ...loggedInUser, isPremium: true } : loggedInUser;
+
+            setUser(updatedUser);
+            const sortedNotifications = (updatedUser.notifications || []).filter(n => n.timestamp instanceof Date || !isNaN(new Date(n.timestamp).getTime())).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setNotifications(sortedNotifications);
             showToast({
                 type: 'success',
                 title: 'Inicio de sesión exitoso',
-                message: `¡Bienvenido, ${loggedInUser.name}!`
+                message: `¡Bienvenido, ${updatedUser.name}!`
             });
 
-            if (loggedInUser.isAdmin) {
+            if (updatedUser.isAdmin) {
                 handleNavigate(View.SUPER_ADMIN_DASHBOARD);
-            } else if (loggedInUser.isOwner && loggedInUser.ownerStatus === 'approved') {
+            } else if (updatedUser.isOwner && updatedUser.ownerStatus === 'approved') {
                 handleNavigate(View.OWNER_DASHBOARD);
             } else {
                 handleNavigate(View.HOME);
@@ -764,7 +763,7 @@ const App = () => {
                 isAdmin: false,
                 isPremium: false,
                 favoriteFields: [],
-                cancheoCoins: 100, // Starting bonus
+                cancheoCoins: 100,
             };
             const createdUser = await db.addUser(newUser);
             setUser(createdUser);
@@ -788,11 +787,6 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: The 'error' object is of type 'unknown' in a catch block.
-                // Accessing properties like 'message' directly is unsafe and causes a type error.
-                // We must first check if it's an instance of Error before accessing 'message',
-                // otherwise, we convert it to a string for safe logging.
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Registration error:', String(error));
             }
         } finally {
@@ -846,7 +840,6 @@ const App = () => {
                     title: 'Error Inesperado',
                     message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
                 });
-                // Fix: Explicitly convert error to string for consistent and safe logging.
                 console.error('Owner registration error:', String(error));
             }
         } finally {
@@ -871,12 +864,10 @@ const App = () => {
         }
         
         setView(newView);
-        setViewKey(prev => prev + 1); // Force re-render with new animation
+        setViewKey(prev => prev + 1);
         window.scrollTo(0, 0);
 
-        // Update active tab based on view
         if (options.isTab) {
-            // Tab is already handled by handleTabNavigate
         } else {
              if ([View.HOME, View.SEARCH_RESULTS, View.FIELD_DETAIL].includes(newView)) setActiveTab('explore');
             else if ([View.BOOKINGS, View.BOOKING_DETAIL].includes(newView)) setActiveTab('bookings');
@@ -971,7 +962,6 @@ const App = () => {
             handleNavigate(View.SEARCH_RESULTS);
             
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error getting location:', String(error));
             let message = 'No se pudo obtener tu ubicación. Asegúrate de que los permisos de ubicación están activados para la aplicación y que el GPS de tu celular está encendido.';
             if (error instanceof GeolocationPositionError) {
@@ -1035,11 +1025,9 @@ const App = () => {
             };
             const newBooking = await db.addBooking(bookingData);
             setConfirmedBooking(newBooking);
-            // setAllBookings no es necesario aquí si usamos listeners en tiempo real
             handleNavigate(View.BOOKING_CONFIRMATION);
             addPersistentNotification({type: 'success', title: '¡Reserva confirmada!', message: `Tu reserva en ${booking.field.name} está lista.`});
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Booking confirmation error:', String(error));
             showToast({
                 type: 'error',
@@ -1082,7 +1070,6 @@ const App = () => {
         const bookingToCancel = bookings.find(b => b.id === bookingId);
         if (bookingToCancel) {
             await db.updateBooking(bookingId, { status: 'cancelled' });
-            // El estado se actualizará automáticamente gracias al listener
             
             if (selectedBooking && selectedBooking.id === bookingId) {
                 setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
@@ -1099,7 +1086,6 @@ const App = () => {
 
     const handleUpdateScore = async (bookingId: string, scoreA: number, scoreB: number) => {
         await db.updateBooking(bookingId, { scoreA, scoreB });
-        // El estado se actualizará automáticamente gracias al listener
         if (selectedBooking && selectedBooking.id === bookingId) {
             setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB } : null);
         }
@@ -1107,7 +1093,6 @@ const App = () => {
 
     const handleFinalizeMatch = async (bookingId: string, scoreA: number, scoreB: number) => {
         await db.updateBooking(bookingId, { scoreA, scoreB, status: 'completed' });
-        // El estado se actualizará automáticamente gracias al listener
          if (selectedBooking && selectedBooking.id === bookingId) {
             setSelectedBooking(prev => prev ? { ...prev, scoreA, scoreB, status: 'completed' } : null);
         }
@@ -1152,7 +1137,6 @@ const App = () => {
         let updatedUser: User = restOfUser as User;
     
         if (updatedUser.playerProfile) {
-            // Create a new player profile object without the profilePicture
             const { profilePicture: playerPP, ...restOfPlayerProfile } = updatedUser.playerProfile;
             updatedUser = { ...updatedUser, playerProfile: restOfPlayerProfile as Player };
         }
@@ -1196,7 +1180,6 @@ const App = () => {
                 message: 'Tu contraseña ha sido cambiada exitosamente.'
             });
         } catch (error) {
-            // Fix: Explicitly convert error to string for consistent and safe logging.
             console.error('Error updating password:', String(error));
             showToast({
                 type: 'error',
@@ -1453,15 +1436,12 @@ const App = () => {
             return;
         }
 
-        // Add player to team
         const updatedPlayers = [...team.players, user.playerProfile];
         await handleUpdateTeam(team.id, { players: updatedPlayers });
 
-        // Add team to player's profile
         const updatedTeamIds = [...(user.teamIds || []), team.id];
         await handleUpdateUserTeams(updatedTeamIds);
 
-        // Notify the captain
         const captain = allUsers.find(u => u.id === invitation.fromUserId);
         if (captain) {
             const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
@@ -1475,28 +1455,23 @@ const App = () => {
             const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
             
             await db.updateUser(captain.id, { notifications: updatedNotifications });
-            // Update local state for consistency
             setAllUsers(prevUsers => prevUsers.map(u => 
                 u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
             ));
         }
 
-        // Enviar mensaje al chat del equipo
         const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
             type: 'system',
             text: `${invitation.toUserName} se ha unido al equipo. ¡Bienvenido!`,
         };
         await db.addChatMessage(invitation.teamId, systemMessageData);
 
-        // Delete the invitation
         await db.deleteInvitation(invitation.id);
         
-        // Show toast to the current user
         showToast({ type: 'success', title: '¡Te has unido!', message: `Ahora eres miembro de ${team.name}.` });
     };
 
     const handleRejectInvitation = async (invitation: Invitation) => {
-        // Notify the captain
         const captain = allUsers.find(u => u.id === invitation.fromUserId);
         if (captain) {
             const notificationForCaptain: Omit<Notification, 'id' | 'timestamp'> = {
@@ -1510,16 +1485,13 @@ const App = () => {
             const updatedNotifications = [newNotification, ...(captain.notifications || [])].slice(0, 50);
 
             await db.updateUser(captain.id, { notifications: updatedNotifications });
-            // Update local state for consistency
             setAllUsers(prevUsers => prevUsers.map(u =>
                 u.id === captain.id ? { ...u, notifications: updatedNotifications } : u
             ));
         }
         
-        // Delete the invitation
         await db.deleteInvitation(invitation.id);
 
-        // Show toast to the current user
         showToast({ type: 'info', title: 'Invitación Rechazada', message: `Has rechazado la invitación de ${invitation.teamName}.` });
     };
 
@@ -1553,7 +1525,6 @@ const App = () => {
             console.error("Error removing match invite notification:", String(error));
         }
 
-        // 1. Notify the inviter
         const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
             type: 'success',
             title: 'Invitación Aceptada',
@@ -1562,7 +1533,6 @@ const App = () => {
         };
         await sendNotificationToUser(notification.payload.fromUserId, notificationForInviter);
 
-        // 2. Add accepted match to user profile
         const inviter = allUsers.find(u => u.id === notification.payload!.fromUserId);
         const acceptedMatch: AcceptedMatchInvite = {
             id: notification.id.toString(),
@@ -1578,9 +1548,23 @@ const App = () => {
 
         const updatedAcceptedMatches = [...(user.acceptedMatchInvites || []), acceptedMatch];
         
+        let updatedPlayerProfile = user.playerProfile;
+        if (user.playerProfile) {
+            updatedPlayerProfile = { ...user.playerProfile, isAvailableToday: false };
+        }
+
         try {
-            await db.updateUser(user.id, { acceptedMatchInvites: updatedAcceptedMatches });
-            const updatedUser = { ...user, acceptedMatchInvites: updatedAcceptedMatches };
+            await db.updateUser(user.id, { 
+                acceptedMatchInvites: updatedAcceptedMatches,
+                ...(updatedPlayerProfile && { playerProfile: updatedPlayerProfile })
+            });
+            
+            const updatedUser = { 
+                ...user, 
+                acceptedMatchInvites: updatedAcceptedMatches,
+                playerProfile: updatedPlayerProfile 
+            };
+            
             setUser(updatedUser);
             setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
         } catch (error) {
@@ -1592,7 +1576,7 @@ const App = () => {
         showToast({
             type: 'success',
             title: 'Invitación Aceptada',
-            message: `Confirmaste tu asistencia al partido.`,
+            message: `Confirmaste tu asistencia. Tu estado 'Disponible hoy' se ha desactivado.`,
         });
     };
 
@@ -1622,7 +1606,7 @@ const App = () => {
         });
     };
     
-    const handleCancelMatchAttendance = async (acceptedInviteId: string) => {
+    const handleCancelMatchAttendance = async (acceptedInviteId: string, reason?: string) => {
         if (!user || !user.acceptedMatchInvites) return;
 
         const inviteToCancel = user.acceptedMatchInvites.find(inv => inv.id === acceptedInviteId);
@@ -1636,11 +1620,14 @@ const App = () => {
             setUser(updatedUser);
             setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
             
-            // Notify inviter
+            const message = reason 
+                ? `${user.name} ha cancelado su asistencia al partido en ${inviteToCancel.fieldName}. Motivo: ${reason}`
+                : `${user.name} ha cancelado su asistencia al partido en ${inviteToCancel.fieldName}.`;
+
             const notificationForInviter: Omit<Notification, 'id' | 'timestamp'> = {
                 type: 'error',
                 title: 'Asistencia Cancelada',
-                message: `${user.name} ha cancelado su asistencia al partido en ${inviteToCancel.fieldName}.`,
+                message: message,
                 read: false,
             };
             await sendNotificationToUser(inviteToCancel.inviterId, notificationForInviter);
@@ -1749,7 +1736,7 @@ const App = () => {
                             description: selectedField.description,
                             images: selectedField.images,
                             services: selectedField.services,
-                            fields: complexFields.length > 0 ? complexFields : [selectedField] // Fallback for fields without complexId
+                            fields: complexFields.length > 0 ? complexFields : [selectedField]
                         };
                         return <FieldDetail 
                                     complex={complexObject} 
@@ -1757,7 +1744,6 @@ const App = () => {
                                     onBookNow={handleBookNow} 
                                     onBack={() => handleNavigate(View.HOME, { isBack: true })} 
                                     favoriteFields={user?.favoriteFields || []} 
-                                    // FIX: Corrected a typo where 'onToggleFavorite' was passed instead of the handler 'handleToggleFavorite'.
                                     onToggleFavorite={handleToggleFavorite}
                                     allBookings={allBookings}
                                     weatherData={weatherData}
@@ -1812,6 +1798,7 @@ const App = () => {
                                 setOwnerApplications={setOwnerApplications}
                                 addNotification={showToast}
                                 onLogout={handleLogout}
+                                onNavigate={handleNavigate}
                             />;
                 case View.PROFILE:
                     if (user) {
@@ -1926,7 +1913,6 @@ const App = () => {
         );
     };
     
-    // FIX: Removed duplicated function and constant declarations.
     const isFullscreenView = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION].includes(view);
     
     const isSocialView = view === View.SOCIAL;

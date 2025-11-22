@@ -34,6 +34,14 @@ export interface Service {
     icon: string;
 }
 
+export interface FieldExtra {
+    id: string;
+    name: string;
+    price: number;
+    icon: string;
+    maxQuantity: number;
+}
+
 export interface Review {
     id: string;
     author: string;
@@ -57,6 +65,7 @@ export interface SoccerField {
     images: string[];
     description: string;
     services: Service[];
+    extras?: FieldExtra[];
     reviews: Review[];
     size: FieldSize;
     latitude: number;
@@ -180,10 +189,12 @@ export interface ConfirmedBooking {
     field: SoccerField;
     date: Date;
     time: string;
-    extras: {
-        balls: number;
-        vests: number;
-    };
+    selectedExtras: {
+        extraId: string;
+        name: string;
+        quantity: number;
+        price: number;
+    }[];
     totalPrice: number;
     paymentMethod: string;
     status: 'confirmed' | 'cancelled' | 'completed';
