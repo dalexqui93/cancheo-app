@@ -1,6 +1,6 @@
 
 // @ts-nocheck
-import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation } from './types';
+import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation, RecurringContract } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -78,7 +78,7 @@ const usersToSeed = [
     { id: adminId, name: 'Admin', email: 'admin@cancheo.com', password: 'admin123', isAdmin: true, isOwner: false, favoriteFields: [], isPremium: true, notifications: [], notificationPreferences: { newAvailability: true, specialDiscounts: true, importantNews: true }, cancheoCoins: 1000 },
     { id: owner1Id, name: 'Propietario Templo', email: 'owner1@cancheo.com', password: 'owner123', isOwner: true, ownerStatus: 'approved', isAdmin: false, favoriteFields: [], isPremium: false, notifications: [], notificationPreferences: { newAvailability: true, specialDiscounts: true, importantNews: true }, cancheoCoins: 100 },
     { id: owner2Id, name: 'Propietario Gol', email: 'owner2@cancheo.com', password: 'owner123', isOwner: true, ownerStatus: 'approved', isAdmin: false, favoriteFields: [], isPremium: false, notifications: [], notificationPreferences: { newAvailability: true, specialDiscounts: true, importantNews: true }, cancheoCoins: 100 },
-    ...playersToSeed.map(player => ({
+    ...playersToSeed.map((player, index) => ({
         id: player.id,
         name: player.name,
         email: `${player.name.split(' ')[0].toLowerCase()}@test.com`,
@@ -88,6 +88,7 @@ const usersToSeed = [
         favoriteFields: player.id === 'player-1' ? ['complex-1'] : [],
         profilePicture: player.profilePicture,
         phone: `300${Math.floor(1000000 + Math.random() * 9000000)}`,
+        identification: `1000${index}`, // Dummy identification
         notificationPreferences: { newAvailability: true, specialDiscounts: true, importantNews: true },
         isPremium: player.id === 'player-1',
         loyalty: player.id === 'player-1' ? { 'field-1': { progress: 3, freeTickets: 1 } } : {},
@@ -98,6 +99,7 @@ const usersToSeed = [
     }))
 ];
 
+// ... (Rest of seeded data remains the same)
 const fieldsToSeed = [
   {
     id: 'field-1', complexId: 'complex-1', ownerId: owner1Id, name: 'El Templo del Fútbol - Cancha 1', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 90000, rating: 4.5,
@@ -307,6 +309,7 @@ const demoData = {
     posts: [],
     chats: {},
     invitations: [],
+    recurringContracts: [],
 };
 
 const initializeDemoData = () => {
@@ -320,6 +323,7 @@ const initializeDemoData = () => {
         { id: 'msg2', senderId: 'player-1', senderName: 'Juan Perez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { messageId: 'msg1', senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' }, readBy: ['player-2'] },
     ];
     demoData.invitations = [];
+    demoData.recurringContracts = [];
 
     const nowForBooking = new Date();
     const liveStartTime = new Date(nowForBooking.getTime() - 30 * 60 * 1000); 
@@ -396,6 +400,16 @@ export const getFields = async () => {
 export const getUsers = async () => {
     if (isFirebaseConfigured) return getCollection('users');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.users)));
+};
+
+export const getUserByIdentification = async (identification: string): Promise<User | undefined> => {
+    if (isFirebaseConfigured) {
+        const snapshot = await db.collection('users').where('identification', '==', identification).limit(1).get();
+        if (snapshot.empty) return undefined;
+        return docToData(snapshot.docs[0]) as User;
+    }
+    const user = demoData.users.find(u => u.identification === identification);
+    return user ? JSON.parse(JSON.stringify(user)) : undefined;
 };
 
 export const getTeams = async (): Promise<Team[]> => {
@@ -508,7 +522,7 @@ export const addBooking = async (bookingData) => {
         const docRef = await db.collection('bookings').add(dataToSave);
         return { id: docRef.id, ...dataWithMatchDetails };
     }
-    const newBooking = { id: `booking-${Date.now()}`, ...dataWithMatchDetails };
+    const newBooking = { id: `booking-${Date.now()}-${Math.floor(Math.random()*1000)}`, ...dataWithMatchDetails };
     demoData.bookings.push(newBooking);
     return Promise.resolve(newBooking);
 };
@@ -631,6 +645,124 @@ export const addTeam = async (teamData: Omit<Team, 'id'>): Promise<Team> => {
     const newTeam: Team = { id: `t-${Date.now()}`, ...teamData };
     demoData.teams.push(newTeam);
     return Promise.resolve(newTeam);
+};
+
+
+// --- RECURRING CONTRACTS API ---
+
+export const getContractsByOwner = async (ownerId: string): Promise<RecurringContract[]> => {
+    if (isFirebaseConfigured) {
+        const snapshot = await db.collection('recurring_contracts').where('ownerId', '==', ownerId).get();
+        return snapshot.docs.map(docToData);
+    }
+    return Promise.resolve(JSON.parse(JSON.stringify(demoData.recurringContracts.filter(c => c.ownerId === ownerId))));
+};
+
+export const addRecurringContract = async (contractData: Omit<RecurringContract, 'id' | 'status' | 'generatedBookings'>, field: SoccerField, player: User): Promise<RecurringContract> => {
+    const { startDate, endDate, dayOfWeek, time } = contractData;
+    const generatedBookingsIds: string[] = [];
+    const bookingPromises: Promise<ConfirmedBooking>[] = [];
+
+    // Calculate dates
+    const dates: Date[] = [];
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        if (currentDate.getDay() === dayOfWeek) {
+            dates.push(new Date(currentDate));
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    if (dates.length === 0) {
+        throw new Error('No se encontraron fechas que coincidan con el día seleccionado en el rango dado.');
+    }
+
+    // Check for conflicts
+    const allExistingBookings = await getAllBookings(); // Optimize: could filter by fieldId
+    const conflict = dates.some(date => {
+        return allExistingBookings.some(b => {
+            if (b.field.id !== contractData.fieldId) return false;
+            const bDate = new Date(b.date);
+            return bDate.toDateString() === date.toDateString() && b.time === time && b.status !== 'cancelled';
+        });
+    });
+
+    if (conflict) {
+        throw new Error('Conflicto de horario: una o más fechas ya están reservadas.');
+    }
+
+    // Create Contract ID first
+    const contractId = isFirebaseConfigured ? (await db.collection('recurring_contracts').add({})).id : `contract-${Date.now()}`;
+
+    // Generate Bookings
+    for (const date of dates) {
+        const bookingData: Omit<ConfirmedBooking, 'id'> = {
+            userId: contractData.playerId,
+            userName: player.name,
+            userPhone: player.phone,
+            teamName: 'Reserva Frecuente',
+            field: field,
+            date: date,
+            time: time,
+            selectedExtras: [],
+            totalPrice: field.pricePerHour, // Assuming no extras for now
+            paymentMethod: 'cash', // Default to pay on site
+            status: 'confirmed', // Automatically confirmed slot
+            contractId: contractId,
+            isFree: false,
+            remindersSent: { twentyFourHour: false, oneHour: false }
+        };
+        bookingPromises.push(addBooking(bookingData));
+    }
+
+    const createdBookings = await Promise.all(bookingPromises);
+    const bookingIds = createdBookings.map(b => b.id);
+
+    const finalContractData: RecurringContract = {
+        id: contractId,
+        ...contractData,
+        status: 'active',
+        generatedBookings: bookingIds
+    };
+
+    if (isFirebaseConfigured) {
+        await db.collection('recurring_contracts').doc(contractId).set(finalContractData);
+    } else {
+        demoData.recurringContracts.push(finalContractData);
+    }
+
+    return finalContractData;
+};
+
+export const cancelContract = async (contractId: string): Promise<void> => {
+    if (isFirebaseConfigured) {
+        await db.collection('recurring_contracts').doc(contractId).update({ status: 'cancelled' });
+        
+        // Cancel future bookings associated with this contract
+        const snapshot = await db.collection('bookings').where('contractId', '==', contractId).get();
+        const now = new Date();
+        const batch = db.batch();
+        
+        snapshot.docs.forEach(doc => {
+            const data = docToData(doc);
+            if (new Date(data.date) > now && data.status !== 'completed') {
+                batch.update(doc.ref, { status: 'cancelled' });
+            }
+        });
+        await batch.commit();
+    } else {
+        const contractIndex = demoData.recurringContracts.findIndex(c => c.id === contractId);
+        if (contractIndex > -1) {
+            demoData.recurringContracts[contractIndex].status = 'cancelled';
+            const now = new Date();
+            demoData.bookings.forEach(b => {
+                if (b.contractId === contractId && new Date(b.date) > now && b.status !== 'completed') {
+                    b.status = 'cancelled';
+                }
+            });
+        }
+    }
+    return Promise.resolve();
 };
 
 

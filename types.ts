@@ -141,7 +141,6 @@ export interface RecurringContract {
     time: string; // "20:00"
     startDate: Date;
     endDate: Date;
-    confirmationDeadlineHours: number; // e.g., 4 hours before match
     status: 'active' | 'cancelled' | 'completed';
     generatedBookings: string[]; // IDs of bookings generated from this contract
 }
@@ -226,7 +225,6 @@ export interface ConfirmedBooking {
     scoreA?: number;
     scoreB?: number;
     contractId?: string; // Links to RecurringContract
-    confirmationStatus?: 'pending' | 'confirmed'; // Specific for contract bookings
 }
 
 export interface Announcement {

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus, FieldExtra } from '../types';
+import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus, FieldExtra, RecurringContract, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
 import { PitchIcon } from '../components/icons/PitchIcon';
 import { ListBulletIcon } from '../components/icons/ListBulletIcon';
@@ -25,6 +25,8 @@ import { CalendarIcon } from '../components/icons/CalendarIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
 import { SunIcon } from '../components/icons/SunIcon';
 import { MoonIcon } from '../components/icons/MoonIcon';
+import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
+import { SearchIcon } from '../components/icons/SearchIcon';
 
 
 interface OwnerDashboardProps {
@@ -41,7 +43,7 @@ interface OwnerDashboardProps {
     allFields: SoccerField[];
 }
 
-type OwnerView = 'dashboard' | 'fields' | 'bookings' | 'announcements';
+type OwnerView = 'dashboard' | 'fields' | 'bookings' | 'announcements' | 'contracts';
 
 const POSSIBLE_TIMES = {
     mañana: ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00'],
@@ -777,6 +779,340 @@ const ComplexEditorModal: React.FC<{
     );
 };
 
+const CreateContractModal: React.FC<{
+    fields: SoccerField[];
+    onClose: () => void;
+    onSave: (data: any) => void;
+    addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
+}> = ({ fields, onClose, onSave, addNotification }) => {
+    const [step, setStep] = useState(1);
+    const [searchId, setSearchId] = useState('');
+    const [foundPlayer, setFoundPlayer] = useState<User | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const [contractData, setContractData] = useState({
+        fieldId: fields[0]?.id || '',
+        dayOfWeek: 1, // Monday
+        time: '20:00',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+    });
+
+    const handleSearchPlayer = async () => {
+        if (!searchId.trim()) return;
+        setIsSearching(true);
+        try {
+            const user = await db.getUserByIdentification(searchId);
+            if (user) {
+                setFoundPlayer(user);
+                setStep(2);
+            } else {
+                addNotification({ type: 'error', title: 'No encontrado', message: 'No se encontró un jugador con esa identificación.' });
+            }
+        } catch (error) {
+            console.error(error);
+            addNotification({ type: 'error', title: 'Error', message: 'Hubo un error al buscar el usuario.' });
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleSaveContract = async () => {
+        if (!foundPlayer) return;
+        setIsSaving(true);
+        
+        // Basic validation
+        const start = new Date(contractData.startDate);
+        const end = new Date(contractData.endDate);
+        if (start >= end) {
+            addNotification({ type: 'error', title: 'Fechas inválidas', message: 'La fecha de fin debe ser posterior al inicio.' });
+            setIsSaving(false);
+            return;
+        }
+
+        const field = fields.find(f => f.id === contractData.fieldId);
+        if (!field) return;
+
+        try {
+            await onSave({
+                fieldId: contractData.fieldId,
+                fieldName: field.name,
+                dayOfWeek: contractData.dayOfWeek,
+                time: contractData.time,
+                startDate: new Date(contractData.startDate),
+                endDate: new Date(contractData.endDate),
+                player: foundPlayer // Pass the full player object
+            });
+            onClose();
+        } catch (error: any) {
+            addNotification({ type: 'error', title: 'Error al crear contrato', message: error.message || 'Conflicto de horarios o error de red.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const daysOfWeek = [
+        { value: 0, label: 'Domingo' },
+        { value: 1, label: 'Lunes' },
+        { value: 2, label: 'Martes' },
+        { value: 3, label: 'Miércoles' },
+        { value: 4, label: 'Jueves' },
+        { value: 5, label: 'Viernes' },
+        { value: 6, label: 'Sábado' },
+    ];
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg m-4 flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-bold">Nuevo Contrato Recurrente</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><XIcon className="w-6 h-6"/></button>
+                </div>
+                
+                <div className="p-6 space-y-6">
+                    {step === 1 && (
+                        <div className="space-y-4 animate-slide-in-from-right">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Busca al jugador por su número de documento para iniciar el contrato.</p>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Identificación (Cédula)</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={searchId} 
+                                        onChange={e => setSearchId(e.target.value)}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                        placeholder="Ej. 1020304050"
+                                    />
+                                    <button 
+                                        onClick={handleSearchPlayer} 
+                                        disabled={isSearching || !searchId}
+                                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 w-12 flex justify-center items-center"
+                                    >
+                                        {isSearching ? <SpinnerIcon className="w-5 h-5"/> : <SearchIcon className="w-5 h-5"/>}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 2 && foundPlayer && (
+                        <div className="space-y-4 animate-slide-in-from-right">
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border dark:border-gray-600">
+                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                    {foundPlayer.profilePicture ? <img src={foundPlayer.profilePicture} className="w-full h-full object-cover"/> : <UserIcon className="w-6 h-6 text-gray-500"/>}
+                                </div>
+                                <div>
+                                    <p className="font-bold">{foundPlayer.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{foundPlayer.email}</p>
+                                </div>
+                                <button onClick={() => setStep(1)} className="ml-auto text-xs text-blue-500 hover:underline">Cambiar</button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium mb-1">Cancha</label>
+                                    <select 
+                                        value={contractData.fieldId}
+                                        onChange={e => setContractData({...contractData, fieldId: e.target.value})}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                                    >
+                                        {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Día de la Semana</label>
+                                    <select 
+                                        value={contractData.dayOfWeek}
+                                        onChange={e => setContractData({...contractData, dayOfWeek: Number(e.target.value)})}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                                    >
+                                        {daysOfWeek.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Hora</label>
+                                    <input 
+                                        type="time" 
+                                        value={contractData.time}
+                                        onChange={e => setContractData({...contractData, time: e.target.value})}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Fecha Inicio</label>
+                                    <input 
+                                        type="date" 
+                                        value={contractData.startDate}
+                                        onChange={e => setContractData({...contractData, startDate: e.target.value})}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Fecha Fin</label>
+                                    <input 
+                                        type="date" 
+                                        value={contractData.endDate}
+                                        onChange={e => setContractData({...contractData, endDate: e.target.value})}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-3">
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Cancelar</button>
+                    {step === 2 && (
+                        <button 
+                            onClick={handleSaveContract} 
+                            disabled={isSaving}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 text-sm font-semibold"
+                        >
+                            {isSaving && <SpinnerIcon className="w-4 h-4"/>}
+                            Crear Contrato
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNotification: any }> = ({ ownerId, fields, addNotification }) => {
+    const [contracts, setContracts] = useState<RecurringContract[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [contractToCancel, setContractToCancel] = useState<string | null>(null);
+
+    useEffect(() => {
+        db.getContractsByOwner(ownerId).then(setContracts);
+    }, [ownerId]);
+
+    const handleAddContract = async (data: any) => {
+        const field = fields.find(f => f.id === data.fieldId);
+        const player = data.player; // Get full player object passed from modal
+        
+        if (!field || !player) {
+             addNotification({ type: 'error', title: 'Error', message: 'Faltan datos del jugador o cancha.' });
+             return;
+        }
+
+        const contractPayload = {
+            ownerId: ownerId,
+            playerId: player.id,
+            playerName: player.name,
+            fieldId: field.id,
+            fieldName: field.name,
+            dayOfWeek: data.dayOfWeek,
+            time: data.time,
+            startDate: data.startDate,
+            endDate: data.endDate,
+        };
+
+        try {
+            // Pass the player object as the third argument required by database function
+            const newContract = await db.addRecurringContract(contractPayload, field, player as User);
+            setContracts(prev => [...prev, newContract]);
+            addNotification({ type: 'success', title: 'Contrato Creado', message: 'Las reservas se han generado exitosamente.' });
+        } catch (e: any) {
+             addNotification({ type: 'error', title: 'Error', message: e.message });
+        }
+    };
+
+    const handleCancelContract = async () => {
+        if (!contractToCancel) return;
+        try {
+            await db.cancelContract(contractToCancel);
+            setContracts(prev => prev.map(c => c.id === contractToCancel ? { ...c, status: 'cancelled' } : c));
+            addNotification({ type: 'info', title: 'Contrato Cancelado', message: 'Las reservas futuras han sido eliminadas.' });
+        } catch (error) {
+            addNotification({ type: 'error', title: 'Error', message: 'No se pudo cancelar el contrato.' });
+        } finally {
+            setContractToCancel(null);
+        }
+    };
+
+    const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Contratos Recurrentes</h2>
+                <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-[var(--color-primary-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                    <PlusIcon className="w-5 h-5" />
+                    <span>Nuevo Contrato</span>
+                </button>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden">
+                {contracts.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 uppercase font-semibold">
+                                <tr>
+                                    <th className="px-6 py-4">Jugador</th>
+                                    <th className="px-6 py-4">Cancha</th>
+                                    <th className="px-6 py-4">Horario</th>
+                                    <th className="px-6 py-4">Duración</th>
+                                    <th className="px-6 py-4">Estado</th>
+                                    <th className="px-6 py-4">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {contracts.map(contract => (
+                                    <tr key={contract.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td className="px-6 py-4 font-medium">{contract.playerName}</td>
+                                        <td className="px-6 py-4">{contract.fieldName}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold">{daysMap[contract.dayOfWeek]}</span>
+                                                <span className="text-gray-500">{contract.time}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-xs text-gray-500">
+                                            {new Date(contract.startDate).toLocaleDateString()} - {new Date(contract.endDate).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${contract.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {contract.status === 'active' ? 'ACTIVO' : 'CANCELADO'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {contract.status === 'active' && (
+                                                <button onClick={() => setContractToCancel(contract.id)} className="text-red-500 hover:underline text-xs font-semibold">
+                                                    Cancelar
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="text-center py-12">
+                        <CheckBadgeIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">No hay contratos activos.</p>
+                    </div>
+                )}
+            </div>
+
+            {isModalOpen && <CreateContractModal fields={fields} onClose={() => setIsModalOpen(false)} onSave={handleAddContract} addNotification={addNotification} />}
+            
+            <ConfirmationModal 
+                isOpen={!!contractToCancel}
+                onClose={() => setContractToCancel(null)}
+                onConfirm={handleCancelContract}
+                title="¿Cancelar Contrato?"
+                message="Esta acción cancelará todas las reservas futuras asociadas a este contrato. El historial de partidos jugados se mantendrá."
+                confirmButtonText="Sí, cancelar contrato"
+                confirmButtonColor="bg-red-600 hover:bg-red-700"
+            />
+        </div>
+    );
+};
+
 interface ManagerProps {
     user: User;
     allFields: SoccerField[];
@@ -786,6 +1122,7 @@ interface ManagerProps {
     onEdit?: (item: any) => void;
     onDelete?: (id: string) => void;
     onAdd?: (item: any) => void;
+    addNotification?: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
 const FieldsManager: React.FC<ManagerProps> = ({ fields, onEdit, onDelete, onAdd }) => {
@@ -1049,6 +1386,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
         { id: 'fields', label: 'Canchas', icon: <PitchIcon className="w-6 h-6"/> },
         { id: 'bookings', label: 'Reservas', icon: <ListBulletIcon className="w-6 h-6"/> },
         { id: 'announcements', label: 'Anuncios', icon: <MegaphoneIcon className="w-6 h-6"/> },
+        { id: 'contracts', label: 'Contratos', icon: <CheckBadgeIcon className="w-6 h-6"/> },
     ];
     
     const currentTab = TABS.find(t => t.id === view);
@@ -1174,6 +1512,8 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                             onAdd={handleCreateAnnouncement}
                             onDelete={(id) => { setConfirmDeleteId(id); setDeleteType('announcement'); }}
                         />;
+            case 'contracts':
+                return <ContractsManager ownerId={user.id} fields={fields} addNotification={addNotification} />
             case 'dashboard':
             default:
                 return <DashboardHome bookings={bookings} fields={fields} />;
