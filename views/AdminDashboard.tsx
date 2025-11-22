@@ -980,6 +980,77 @@ const CreateContractModal: React.FC<{
     );
 };
 
+const ContractCard: React.FC<{
+    contract: RecurringContract;
+    onCancel: (id: string) => void;
+    daysMap: string[];
+}> = ({ contract, onCancel, daysMap }) => {
+    const isActive = contract.status === 'active';
+    const startDate = new Date(contract.startDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+    const endDate = new Date(contract.endDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-lg">
+            {/* Header */}
+            <div className="p-4 flex justify-between items-start border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/50 flex items-center justify-center text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]">
+                        <UserIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-1" title={contract.playerName}>
+                            {contract.playerName}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">ID: {contract.playerId.slice(0,6)}...</p>
+                    </div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isActive ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'}`}>
+                    {isActive ? 'Activo' : 'Cancelado'}
+                </span>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-3 text-sm">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <PitchIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="font-semibold truncate" title={contract.fieldName}>{contract.fieldName}</span>
+                </div>
+                
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <ClockIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div>
+                        <span className="font-bold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]">
+                            {daysMap[contract.dayOfWeek]}
+                        </span>
+                        <span className="mx-1 text-gray-400">|</span>
+                        <span>{contract.time}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                    <CalendarIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs">
+                        {startDate} - {endDate}
+                    </span>
+                </div>
+            </div>
+
+            {/* Footer / Actions */}
+            {isActive && (
+                <div className="mt-auto p-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <button 
+                        onClick={() => onCancel(contract.id)} 
+                        className="w-full py-2 px-4 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                        Cancelar Contrato
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNotification: any }> = ({ ownerId, fields, addNotification }) => {
     const [contracts, setContracts] = useState<RecurringContract[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1045,58 +1116,24 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden">
-                {contracts.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 uppercase font-semibold">
-                                <tr>
-                                    <th className="px-6 py-4">Jugador</th>
-                                    <th className="px-6 py-4">Cancha</th>
-                                    <th className="px-6 py-4">Horario</th>
-                                    <th className="px-6 py-4">Duración</th>
-                                    <th className="px-6 py-4">Estado</th>
-                                    <th className="px-6 py-4">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {contracts.map(contract => (
-                                    <tr key={contract.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                        <td className="px-6 py-4 font-medium">{contract.playerName}</td>
-                                        <td className="px-6 py-4">{contract.fieldName}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold">{daysMap[contract.dayOfWeek]}</span>
-                                                <span className="text-gray-500">{contract.time}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-xs text-gray-500">
-                                            {new Date(contract.startDate).toLocaleDateString()} - {new Date(contract.endDate).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${contract.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {contract.status === 'active' ? 'ACTIVO' : 'CANCELADO'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {contract.status === 'active' && (
-                                                <button onClick={() => setContractToCancel(contract.id)} className="text-red-500 hover:underline text-xs font-semibold">
-                                                    Cancelar
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="text-center py-12">
-                        <CheckBadgeIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">No hay contratos activos.</p>
-                    </div>
-                )}
-            </div>
+            {contracts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {contracts.map(contract => (
+                        <ContractCard 
+                            key={contract.id} 
+                            contract={contract} 
+                            onCancel={setContractToCancel} 
+                            daysMap={daysMap} 
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 border-dashed border-2">
+                    <CheckBadgeIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">No tienes contratos activos.</p>
+                    <p className="text-sm text-gray-400 mt-1">Crea uno para asegurar reservas semanales.</p>
+                </div>
+            )}
 
             {isModalOpen && <CreateContractModal fields={fields} onClose={() => setIsModalOpen(false)} onSave={handleAddContract} addNotification={addNotification} />}
             
