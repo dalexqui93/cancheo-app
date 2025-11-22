@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, WeatherData, Review } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
@@ -16,6 +14,8 @@ import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import ImageLightbox from '../components/ImageLightbox';
 import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
 import { GoogleGenAI, Type } from '@google/genai';
+import { SunIcon } from '../components/icons/SunIcon';
+import { MoonIcon } from '../components/icons/MoonIcon';
 
 
 const ThumbsUpIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -135,7 +135,6 @@ const BookingWidget: React.FC<{
     
     const availableTimes = field.availableSlots || defaultTimes;
 
-
     const handleTimeTabChange = (tab: 'mañana' | 'tarde' | 'noche') => {
         setActiveTimeTab(tab);
         onTimeSelect(null); // Reset time in parent
@@ -144,6 +143,27 @@ const BookingWidget: React.FC<{
     const now = new Date();
     const isToday = selectedDate.toDateString() === now.toDateString();
     const currentHour = now.getHours();
+
+    const periodConfig = {
+        mañana: { 
+            label: 'Mañana', 
+            icon: <SunIcon className="w-4 h-4"/>, 
+            baseClass: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-gray-600 dark:text-gray-300',
+            activeClass: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 ring-2 ring-yellow-500 border-transparent'
+        },
+        tarde: { 
+            label: 'Tarde', 
+            icon: <SunIcon className="w-4 h-4"/>, 
+            baseClass: 'hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-600 dark:text-gray-300',
+            activeClass: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500 border-transparent'
+        },
+        noche: { 
+            label: 'Noche', 
+            icon: <MoonIcon className="w-4 h-4"/>, 
+            baseClass: 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-600 dark:text-gray-300',
+            activeClass: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500 border-transparent'
+        }
+    };
 
     return (
         <div className="mt-6 space-y-4">
@@ -172,16 +192,25 @@ const BookingWidget: React.FC<{
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
                 />
-                <div className="flex space-x-1 rounded-lg bg-gray-200 dark:bg-gray-900/50 p-1 mb-3">
-                    {(['Mañana', 'Tarde', 'Noche'] as const).map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => handleTimeTabChange(tab.toLowerCase() as any)}
-                            className={`w-full rounded-md py-1.5 text-sm font-semibold leading-5 transition ${activeTimeTab === tab.toLowerCase() ? 'bg-white dark:bg-gray-700 shadow text-[var(--color-primary-700)] dark:text-[var(--color-primary-400)]' : 'text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-600/50'}`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
+                <div className="flex space-x-2 mb-3">
+                    {(['mañana', 'tarde', 'noche'] as const).map(periodKey => {
+                        const config = periodConfig[periodKey];
+                        const isActive = activeTimeTab === periodKey;
+                        return (
+                            <button
+                                key={periodKey}
+                                onClick={() => handleTimeTabChange(periodKey)}
+                                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all border border-transparent ${
+                                    isActive 
+                                        ? config.activeClass 
+                                        : `bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${config.baseClass}`
+                                }`}
+                            >
+                                {config.icon}
+                                <span>{config.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
                  <div className="min-h-[88px]"> {/* Prevents layout shift during loading */}
                     {isLoadingAvailability ? (
@@ -205,7 +234,7 @@ const BookingWidget: React.FC<{
                                             isUnavailable
                                                 ? 'bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 line-through cursor-not-allowed'
                                                 : selectedTime === time
-                                                ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                                                ? 'bg-[var(--color-primary-600)] text-white shadow-md ring-2 ring-[var(--color-primary-300)]'
                                                 : 'bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:ring-1 focus:ring-[var(--color-primary-500)]'
                                         }`}
                                     >
