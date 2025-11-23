@@ -1,12 +1,16 @@
-// Fix: Implemented the BookingsView component to display user bookings.
+
 import React, { useState } from 'react';
 import type { ConfirmedBooking } from '../types';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { BookingPassIcon } from '../components/icons/BookingPassIcon';
+import { RepeatIcon } from '../components/icons/RepeatIcon';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { ClockIcon } from '../components/icons/ClockIcon';
 
 interface BookingsViewProps {
     bookings: ConfirmedBooking[];
     onSelectBooking: (booking: ConfirmedBooking) => void;
+    onContractResponse?: (bookingId: string, action: 'confirm' | 'cancel') => void;
 }
 
 // Helper function to get the full Date object for the start of a booking
@@ -18,9 +22,20 @@ const getBookingStartDateTime = (booking: ConfirmedBooking): Date => {
 };
 
 
-const BookingCard: React.FC<{ booking: ConfirmedBooking; onClick: () => void }> = ({ booking, onClick }) => {
+const BookingCard: React.FC<{ 
+    booking: ConfirmedBooking; 
+    onClick: () => void;
+    onContractResponse?: (id: string, action: 'confirm' | 'cancel') => void;
+}> = ({ booking, onClick, onContractResponse }) => {
     const isCancelled = booking.status === 'cancelled';
+    const isContract = !!booking.contractId;
     
+    const bookingDate = new Date(booking.date);
+    const today = new Date();
+    const isMatchDay = bookingDate.getDate() === today.getDate() &&
+                       bookingDate.getMonth() === today.getMonth() &&
+                       bookingDate.getFullYear() === today.getFullYear();
+
     // A match lasts 1 hour. Calculate the end time.
     const bookingEndDateTime = new Date(getBookingStartDateTime(booking).getTime() + 60 * 60 * 1000);
     const now = new Date();
@@ -28,29 +43,91 @@ const BookingCard: React.FC<{ booking: ConfirmedBooking; onClick: () => void }> 
     // The match is upcoming if it has not ended yet and is not cancelled.
     const isUpcoming = bookingEndDateTime > now && !isCancelled;
     
+    const showContractActions = isContract && booking.confirmationStatus === 'pending' && !isCancelled;
+
     return (
-        <button 
-            onClick={onClick}
-            disabled={isCancelled}
-            className="w-full flex items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-            <img src={booking.field.images[0]} alt={booking.field.name} className="w-24 h-24 object-cover rounded-lg" />
-            <div className="flex-1 ml-4">
-                 {isCancelled ? (
-                    <p className="text-sm font-bold text-red-600 dark:text-red-500">Cancelada</p>
-                ) : (
-                    <p className={`text-sm font-bold ${isUpcoming ? 'text-green-600 dark:text-green-500' : 'text-gray-500 dark:text-gray-400'}`}>{isUpcoming ? 'Próxima' : 'Jugada'}</p>
-                )}
-                <p className={`font-bold text-lg text-gray-800 dark:text-gray-100 ${isCancelled ? 'line-through' : ''}`}>{booking.field.name}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{new Date(booking.date).toLocaleDateString('es-CO', { weekday: 'short', month: 'long', day: 'numeric' })} - {booking.time}</p>
+        <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden transition-all hover:shadow-md">
+            <div 
+                onClick={onClick}
+                className={`flex items-center p-4 cursor-pointer ${isCancelled ? 'opacity-70' : ''}`}
+            >
+                <img src={booking.field.images[0]} alt={booking.field.name} className={`w-24 h-24 object-cover rounded-lg ${isCancelled ? 'grayscale' : ''}`} />
+                <div className="flex-1 ml-4 overflow-hidden">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                        {isCancelled ? (
+                            <span className="text-xs font-bold text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded">Cancelada</span>
+                        ) : (
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${isUpcoming ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                {isUpcoming ? 'Próxima' : 'Jugada'}
+                            </span>
+                        )}
+                        
+                        {isContract && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
+                                <RepeatIcon className="w-3 h-3" />
+                                Contrato
+                            </span>
+                        )}
+                    </div>
+                    
+                    <p className={`font-bold text-lg text-gray-800 dark:text-gray-100 truncate ${isCancelled ? 'line-through decoration-red-500' : ''}`}>{booking.field.name}</p>
+                    
+                    <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                            <CalendarIcon className="w-4 h-4 text-gray-400" />
+                            {isMatchDay ? (
+                                <span className="font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-1.5 rounded uppercase text-xs tracking-wide">
+                                    Hoy
+                                </span>
+                            ) : (
+                                <span className="capitalize">
+                                    {bookingDate.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </span>
+                            )}
+                        </div>
+                        <div className="w-px h-3 bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="flex items-center gap-1.5">
+                            <ClockIcon className="w-4 h-4 text-gray-400" />
+                            <span>{booking.time}</span>
+                        </div>
+                    </div>
+                </div>
+                {!isCancelled && <ChevronRightIcon className="h-6 w-6 text-gray-400 flex-shrink-0" />}
             </div>
-            {!isCancelled && <ChevronRightIcon className="h-6 w-6 text-gray-400" />}
-        </button>
+
+            {/* Contract Confirmation Actions */}
+            {showContractActions && (
+                <div className="px-4 pb-4 pt-0 flex gap-3">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onContractResponse?.(booking.id, 'confirm'); }}
+                        disabled={!isMatchDay}
+                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${
+                            isMatchDay 
+                                ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm' 
+                                : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed'
+                        }`}
+                    >
+                        {isMatchDay ? 'Confirmar Asistencia' : 'Confirmar (Solo Hoy)'}
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onContractResponse?.(booking.id, 'cancel'); }}
+                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${
+                            isMatchDay
+                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                                : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed'
+                        }`}
+                        disabled={!isMatchDay}
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            )}
+        </div>
     );
 };
 
 
-const BookingsView: React.FC<BookingsViewProps> = ({ bookings, onSelectBooking }) => {
+const BookingsView: React.FC<BookingsViewProps> = ({ bookings, onSelectBooking, onContractResponse }) => {
     const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
 
     const now = new Date();
@@ -104,7 +181,12 @@ const BookingsView: React.FC<BookingsViewProps> = ({ bookings, onSelectBooking }
                 <div className="space-y-4 pb-[5.5rem] md:pb-4">
                     {bookingsToShow.length > 0 ? (
                         bookingsToShow.map(booking => (
-                            <BookingCard key={booking.id} booking={booking} onClick={() => onSelectBooking(booking)} />
+                            <BookingCard 
+                                key={booking.id} 
+                                booking={booking} 
+                                onClick={() => onSelectBooking(booking)}
+                                onContractResponse={onContractResponse}
+                            />
                         ))
                     ) : (
                         <div className="text-center py-16 px-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md dark:border dark:border-gray-700">
