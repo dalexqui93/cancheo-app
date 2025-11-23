@@ -213,7 +213,15 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                         )}
 
                        {canCancel && (
-                            <button onClick={() => setIsCancelModalOpen(true)} className="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-colors shadow-md">
+                            <button 
+                                onClick={() => setIsCancelModalOpen(true)} 
+                                disabled={!!booking.contractId}
+                                className={`w-full font-bold py-3 px-6 rounded-lg transition-colors shadow-md ${
+                                    !!booking.contractId
+                                        ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                                        : 'bg-red-600 text-white hover:bg-red-700'
+                                }`}
+                            >
                                 Cancelar Reserva
                             </button>
                        )}
