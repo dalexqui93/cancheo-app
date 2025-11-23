@@ -12,6 +12,7 @@ import ScorekeeperModal from '../components/ScorekeeperModal';
 import { ScoreboardIcon } from '../components/icons/ScoreboardIcon';
 import ScrollOnOverflow from '../components/ScrollOnOverflow';
 import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
+import { ExclamationTriangleIcon } from '../components/icons/ExclamationTriangleIcon';
 
 interface BookingDetailViewProps {
     booking: ConfirmedBooking;
@@ -25,6 +26,8 @@ interface BookingDetailViewProps {
     currentTime: Date;
     onContractResponse?: (bookingId: string, action: 'confirm' | 'cancel') => void;
 }
+
+const CANCELLATION_DEADLINE_HOURS = 6;
 
 const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ logo, name, size = 'w-16 h-16' }) => {
     const containerClasses = `${size} rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600 overflow-hidden`;
@@ -62,8 +65,16 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
     bookingStartDateTime.setHours(hours, minutes, 0, 0);
 
     const now = currentTime;
+    const diffInMs = bookingStartDateTime.getTime() - now.getTime();
+    const hoursUntilStart = diffInMs / (1000 * 60 * 60);
+    
     const isMatchStarted = now >= bookingStartDateTime;
-    const canCancel = now < bookingStartDateTime && booking.status === 'confirmed';
+    const isTooLateToCancel = hoursUntilStart < CANCELLATION_DEADLINE_HOURS;
+    const isContract = !!booking.contractId;
+
+    // Logic: Can cancel if match hasn't started AND it's confirmed
+    // Note: The button availability itself is further restricted by 'disableCancel' below
+    const showCancelButton = now < bookingStartDateTime && booking.status === 'confirmed';
 
     const teamNameA = booking.teamName || booking.userName;
     const teamNameB = booking.rivalName || 'Rival';
@@ -80,7 +91,16 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                     bookingDate.getMonth() === currentTime.getMonth() &&
                     bookingDate.getFullYear() === currentTime.getFullYear();
 
-    const showContractConfirmButton = !!booking.contractId && booking.confirmationStatus === 'pending';
+    const showContractConfirmButton = isContract && booking.confirmationStatus === 'pending';
+
+    // Determine if the cancel button should be visually disabled
+    const disableCancel = isContract || isTooLateToCancel;
+
+    const getCancelButtonText = () => {
+        if (isContract) return 'Gestionar en Mis Reservas';
+        if (isTooLateToCancel) return 'Cancelación no disponible';
+        return 'Cancelar Reserva';
+    };
 
     return (
         <div className="pb-24 md:pb-4">
@@ -212,18 +232,28 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                             </div>
                         )}
 
-                       {canCancel && (
-                            <button 
-                                onClick={() => setIsCancelModalOpen(true)} 
-                                disabled={!!booking.contractId}
-                                className={`w-full font-bold py-3 px-6 rounded-lg transition-colors shadow-md ${
-                                    !!booking.contractId
-                                        ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-                                        : 'bg-red-600 text-white hover:bg-red-700'
-                                }`}
-                            >
-                                Cancelar Reserva
-                            </button>
+                       {showCancelButton && (
+                           <>
+                                <button 
+                                    onClick={() => setIsCancelModalOpen(true)} 
+                                    disabled={disableCancel}
+                                    title={isTooLateToCancel && !isContract ? `Política: Cancelación permitida hasta ${CANCELLATION_DEADLINE_HOURS}h antes.` : ''}
+                                    className={`w-full font-bold py-3 px-6 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 ${
+                                        disableCancel
+                                            ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                                            : 'bg-red-600 text-white hover:bg-red-700'
+                                    }`}
+                                >
+                                    {getCancelButtonText()}
+                                </button>
+                                
+                                {isTooLateToCancel && !isContract && !isMatchStarted && (
+                                    <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-xs text-yellow-800 dark:text-yellow-200">
+                                        <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                        <p>Por políticas de la cancha, no es posible cancelar con menos de {CANCELLATION_DEADLINE_HOURS} horas de antelación.</p>
+                                    </div>
+                                )}
+                           </>
                        )}
                        {booking.status === 'cancelled' && (
                            <p className="text-center font-bold text-red-500 py-3 bg-red-100 dark:bg-red-900/50 rounded-lg">RESERVA CANCELADA</p>
