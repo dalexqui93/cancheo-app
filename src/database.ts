@@ -142,7 +142,7 @@ const fieldsToSeed = [
 const teamsToSeed: Team[] = [
     {
         id: 't1', name: 'Los Galácticos', captainId: 'player-1', players: playersToSeed,
-        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi4wOCwxMy4wMTRMNTAsNTMuNmwtMTEuOTEyLDcuMSAyLjUtMTMuMDE0LTkuNjg2LTguNzYgMTMuMjItLjk1NloiIGZpbGw9IiNGRkYiLz48L3N2Zz4=',
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi4wOCwxMy4wMTRMNTAsNTMuNmwtMTEuOTEyLDcuMSAyLjUtMTMuMDE0LTkuNjg2LDguNzYgMTMuMjItLjk1NloiIGZpbGw9IiNGRkYiLz48L3N2Zz4=',
         level: 'Competitivo', stats: { wins: 1, losses: 0, draws: 1 },
         formation: '4-3-3',
         playerPositions: {},
@@ -689,8 +689,11 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
 
     // Calculate dates
     const dates: Date[] = [];
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
+    // Use local time to prevent timezone shifts
+    let currentDate = new Date(startDate + 'T00:00:00');
+    const localEndDate = new Date(endDate + 'T23:59:59');
+
+    while (currentDate <= localEndDate) {
         if (currentDate.getDay() === dayOfWeek) {
             dates.push(new Date(currentDate));
         }

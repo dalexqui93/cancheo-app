@@ -1,4 +1,5 @@
 
+// ... (imports remain the same)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage, AcceptedMatchInvite } from '../types';
 import { View } from '../types';
@@ -32,6 +33,7 @@ import * as db from '../database';
 import { isFirebaseConfigured } from '../database';
 import { getCurrentPosition, calculateDistance } from '../utils/geolocation';
 
+// ... (FirebaseWarningBanner, OfflineBanner, notificationSound consts remain the same)
 const FirebaseWarningBanner: React.FC = () => {
     if (isFirebaseConfigured) {
         return null;
@@ -40,7 +42,7 @@ const FirebaseWarningBanner: React.FC = () => {
     return (
         <div className="bg-yellow-400 text-yellow-900 text-center p-2 font-semibold text-sm sticky top-0 z-[101]">
             <div className="container mx-auto">
-                Atención: Firebase no está configurado. La aplicación se ejecuta en modo de demostración. Edita <strong>database.ts</strong>.
+                Atención: Firebase no está configurado. La aplicación se ejecutará en modo de demostración. Edita <strong>database.ts</strong>.
             </div>
         </div>
     );
@@ -60,9 +62,10 @@ const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
     );
 }
 
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
+    // ... (state declarations remain the same)
     const [fields, setFields] = useState<SoccerField[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
@@ -103,6 +106,17 @@ const App = () => {
     const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
     const [weatherError, setWeatherError] = useState<string | null>(null);
 
+    // Sync selectedBooking with allBookings updates
+    useEffect(() => {
+        if (selectedBooking) {
+            const updatedBooking = allBookings.find(b => b.id === selectedBooking.id);
+            if (updatedBooking && JSON.stringify(updatedBooking) !== JSON.stringify(selectedBooking)) {
+                setSelectedBooking(updatedBooking);
+            }
+        }
+    }, [allBookings, selectedBooking]);
+
+    // ... (rest of effects and memos remain the same)
     const ownerFields = useMemo(() => {
         if (!user || !user.isOwner) return [];
         return fields.filter(field => field.ownerId === user.id);
@@ -262,6 +276,7 @@ const App = () => {
 
 
     const fetchWeather = useCallback(async () => {
+        // ... (weather logic remains the same)
         setIsWeatherLoading(true);
         setWeatherError(null);
 
@@ -353,6 +368,7 @@ const App = () => {
         loadUserData();
     }, [user, allBookings]);
 
+    // ... (theme effect remains the same)
     useEffect(() => {
         const root = window.document.documentElement;
         const isDark =
@@ -433,6 +449,7 @@ const App = () => {
         setToasts(prev => [newToast, ...prev]);
     }, []);
     
+    // ... (notification simulator effect)
     useEffect(() => {
         if (!user) return;
         const notificationSimulator = setInterval(() => {
@@ -651,11 +668,6 @@ const App = () => {
             
             setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, confirmationStatus: 'confirmed' } : b));
             
-            // Notify Owner
-            // In a real app, this would be a backend trigger or explicit notification call
-            // const owner = allUsers.find(u => u.id === booking.field.ownerId);
-            // if (owner) sendNotificationToUser(owner.id, ...);
-
             showToast({ type: 'success', title: 'Asistencia Confirmada', message: 'Has confirmado tu asistencia para el partido de hoy.' });
 
         } else if (action === 'cancel') {
@@ -663,9 +675,6 @@ const App = () => {
             
             setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' } : b));
             
-            // Notify Owner
-             // if (owner) sendNotificationToUser(owner.id, ...);
-
             showToast({ type: 'info', title: 'Reserva Cancelada', message: 'Has liberado tu cupo para el partido de hoy.' });
         }
     };
@@ -828,6 +837,10 @@ const App = () => {
             });
         }
     };
+
+    // ... (handleRegister, handleOwnerRegister, handleLogout, handleNavigate, handleTabNavigate, handleSearch, handleSearchByLocation, handleSelectField, handleBookNow, handleConfirmBooking, handleToggleFavorite, handleSelectBooking, handleCancelBooking, handleUpdateScore, handleFinalizeMatch, handleUpdateProfilePicture, handleRemoveProfilePicture, handleUpdateUserInfo, handleChangePassword, handleUpdateNotificationPreferences, handleUpdateTheme, handleUpdateAccentColor, handleAddPaymentMethod, handleDeletePaymentMethod, handleSetDefaultPaymentMethod, handleUpdatePlayerProfile, handleUpdateUserTeams, handleUpdateTeam, handleRemovePlayerFromTeam, handleLeaveTeam, handleRewardAnimationEnd, handleRatingSubmit, handleSendInvitation, handleCancelInvitation, handleAcceptInvitation, handleRejectInvitation, sendNotificationToUser, handleAcceptMatchInvite, handleRejectMatchInvite, handleCancelMatchAttendance, handleSetAvailability remain the same)
+    // Note: To save space, assume unchanged functions are included here.
+    // Specifically copying the rest of the file from here down:
 
     const handleRegister = async (newUserData: Omit<User, 'id' | 'favoriteFields' | 'isPremium' | 'playerProfile' | 'isAdmin'>) => {
         setIsRegisterLoading(true);
@@ -1770,6 +1783,7 @@ const App = () => {
     };
 
 
+    // ... (renderView function remains the same)
     const renderView = () => {
         const homeComponent = <Home 
             onSearch={handleSearch} 

@@ -6,6 +6,7 @@ import { BookingPassIcon } from '../components/icons/BookingPassIcon';
 import { RepeatIcon } from '../components/icons/RepeatIcon';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
+import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
 
 interface BookingsViewProps {
     bookings: ConfirmedBooking[];
@@ -43,10 +44,10 @@ const BookingCard: React.FC<{
     // The match is upcoming if it has not ended yet and is not cancelled.
     const isUpcoming = bookingEndDateTime > now && !isCancelled;
     
-    const showContractActions = isContract && booking.confirmationStatus === 'pending' && !isCancelled;
+    const showContractActions = isContract && booking.confirmationStatus !== 'confirmed' && !isCancelled;
 
     return (
-        <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden transition-all hover:shadow-md">
+        <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden transition-all hover:shadow-md flex flex-col">
             <div 
                 onClick={onClick}
                 className={`flex items-center p-4 cursor-pointer ${isCancelled ? 'opacity-70' : ''}`}
@@ -76,8 +77,8 @@ const BookingCard: React.FC<{
                         <div className="flex items-center gap-1.5">
                             <CalendarIcon className="w-4 h-4 text-gray-400" />
                             {isMatchDay ? (
-                                <span className="font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-1.5 rounded uppercase text-xs tracking-wide">
-                                    Hoy
+                                <span className="font-black text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded uppercase text-xs tracking-wider border border-green-300 dark:border-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]">
+                                    HOY
                                 </span>
                             ) : (
                                 <span className="capitalize">
@@ -97,26 +98,30 @@ const BookingCard: React.FC<{
 
             {/* Contract Confirmation Actions */}
             {showContractActions && (
-                <div className="px-4 pb-4 pt-0 flex gap-3">
+                <div className="px-4 pb-4 pt-0 flex gap-3 mt-auto border-t border-gray-100 dark:border-gray-700/50 pt-3">
                     <button 
-                        onClick={(e) => { e.stopPropagation(); onContractResponse?.(booking.id, 'confirm'); }}
-                        disabled={!isMatchDay}
-                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${
+                        onClick={(e) => { e.stopPropagation(); if (isMatchDay) onContractResponse?.(booking.id, 'confirm'); }}
+                        className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-sm ${
                             isMatchDay 
-                                ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm' 
-                                : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed'
+                                ? 'bg-green-600 text-white hover:bg-green-700' 
+                                : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed opacity-70'
                         }`}
+                        disabled={!isMatchDay}
+                        title={!isMatchDay ? "Solo disponible el día del partido" : "Confirmar asistencia"}
                     >
+                        <CheckBadgeIcon className="w-4 h-4" />
                         {isMatchDay ? 'Confirmar Asistencia' : 'Confirmar (Solo Hoy)'}
                     </button>
+                    
                     <button 
-                        onClick={(e) => { e.stopPropagation(); onContractResponse?.(booking.id, 'cancel'); }}
-                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${
+                        onClick={(e) => { e.stopPropagation(); if (isMatchDay) onContractResponse?.(booking.id, 'cancel'); }}
+                        className={`py-2.5 px-4 rounded-lg font-bold text-sm transition-colors ${
                             isMatchDay
                                 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                                : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed'
+                                : 'bg-gray-100 text-gray-400 dark:bg-gray-700/50 dark:text-gray-500 cursor-not-allowed'
                         }`}
                         disabled={!isMatchDay}
+                        title={!isMatchDay ? "Solo disponible el día del partido" : "Cancelar asistencia"}
                     >
                         Cancelar
                     </button>

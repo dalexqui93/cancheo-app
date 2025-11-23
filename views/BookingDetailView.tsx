@@ -80,7 +80,7 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                     bookingDate.getMonth() === currentTime.getMonth() &&
                     bookingDate.getFullYear() === currentTime.getFullYear();
 
-    const showContractConfirmButton = booking.contractId && booking.confirmationStatus === 'pending' && isToday;
+    const showContractConfirmButton = !!booking.contractId && booking.confirmationStatus === 'pending';
 
     return (
         <div className="pb-24 md:pb-4">
@@ -195,13 +195,21 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                         )}
 
                         {showContractConfirmButton && (
-                            <button
-                                onClick={() => onContractResponse?.(booking.id, 'confirm')}
-                                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors shadow-md"
-                            >
-                                <CheckBadgeIcon className="w-5 h-5"/>
-                                Confirmar Asistencia (Contrato)
-                            </button>
+                            <div className="mb-3">
+                                <button
+                                    onClick={() => onContractResponse?.(booking.id, 'confirm')}
+                                    disabled={!isToday}
+                                    title={!isToday ? "Solo puedes confirmar la asistencia el día del partido." : ""}
+                                    className={`w-full flex items-center justify-center gap-2 font-bold py-3 px-6 rounded-lg transition-colors shadow-md ${
+                                        isToday 
+                                            ? 'bg-green-600 text-white hover:bg-green-700' 
+                                            : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed opacity-60'
+                                    }`}
+                                >
+                                    <CheckBadgeIcon className="w-5 h-5"/>
+                                    {isToday ? 'Confirmar Asistencia' : 'Confirmar (Solo el día del partido)'}
+                                </button>
+                            </div>
                         )}
 
                        {canCancel && (
