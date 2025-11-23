@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation, RecurringContract } from './types';
 
@@ -651,11 +650,35 @@ export const addTeam = async (teamData: Omit<Team, 'id'>): Promise<Team> => {
 // --- RECURRING CONTRACTS API ---
 
 export const getContractsByOwner = async (ownerId: string): Promise<RecurringContract[]> => {
+    let contracts: RecurringContract[] = [];
     if (isFirebaseConfigured) {
         const snapshot = await db.collection('recurring_contracts').where('ownerId', '==', ownerId).get();
-        return snapshot.docs.map(docToData);
+        contracts = snapshot.docs.map(docToData);
+    } else {
+        contracts = JSON.parse(JSON.stringify(demoData.recurringContracts.filter(c => c.ownerId === ownerId)));
     }
-    return Promise.resolve(JSON.parse(JSON.stringify(demoData.recurringContracts.filter(c => c.ownerId === ownerId))));
+
+    // Check for expiration and auto-complete
+    const now = new Date();
+    now.setHours(0,0,0,0); // Normalize to start of day
+
+    const updates = contracts.map(async (contract) => {
+        const endDate = new Date(contract.endDate);
+        if (contract.status === 'active' && endDate < now) {
+            contract.status = 'completed';
+            if (isFirebaseConfigured) {
+                await db.collection('recurring_contracts').doc(contract.id).update({ status: 'completed' });
+            } else {
+                // Update demo data reference
+                const index = demoData.recurringContracts.findIndex(c => c.id === contract.id);
+                if (index > -1) demoData.recurringContracts[index].status = 'completed';
+            }
+        }
+        return contract;
+    });
+
+    await Promise.all(updates);
+    return contracts;
 };
 
 export const addRecurringContract = async (contractData: Omit<RecurringContract, 'id' | 'status' | 'generatedBookings'>, field: SoccerField, player: User): Promise<RecurringContract> => {
@@ -1053,7 +1076,7 @@ export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessa
     return Promise.resolve(newMessage);
 };
 
-export const markMessageAsRead = async (teamId, messageId, userId) => {
+export const markMessageAsRead = async (teamId: string, messageId, userId) => {
     if (isFirebaseConfigured) {
         const messageRef = db.collection('teams').doc(teamId).collection('chat').doc(messageId);
         return messageRef.update({

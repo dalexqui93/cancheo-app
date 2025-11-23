@@ -797,6 +797,7 @@ const CreateContractModal: React.FC<{
         time: '20:00',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+        autoCancelHours: 0,
     });
 
     const handleSearchPlayer = async () => {
@@ -842,7 +843,8 @@ const CreateContractModal: React.FC<{
                 time: contractData.time,
                 startDate: new Date(contractData.startDate),
                 endDate: new Date(contractData.endDate),
-                player: foundPlayer // Pass the full player object
+                player: foundPlayer, // Pass the full player object
+                autoCancelHours: contractData.autoCancelHours,
             });
             onClose();
         } catch (error: any) {
@@ -852,7 +854,7 @@ const CreateContractModal: React.FC<{
         }
     };
 
-    const daysOfWeek = [
+    const daysMap = [
         { value: 0, label: 'Domingo' },
         { value: 1, label: 'Lunes' },
         { value: 2, label: 'Martes' },
@@ -927,7 +929,7 @@ const CreateContractModal: React.FC<{
                                         onChange={e => setContractData({...contractData, dayOfWeek: Number(e.target.value)})}
                                         className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
                                     >
-                                        {daysOfWeek.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                                        {daysMap.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -957,6 +959,20 @@ const CreateContractModal: React.FC<{
                                         className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
                                     />
                                 </div>
+                                 <div className="col-span-2">
+                                    <label className="block text-xs font-medium mb-1">
+                                        Cancelación automática (horas antes)
+                                        <span className="text-gray-400 ml-1 font-normal">- 0 para desactivar</span>
+                                    </label>
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        max="48"
+                                        value={contractData.autoCancelHours}
+                                        onChange={e => setContractData({...contractData, autoCancelHours: Number(e.target.value)})}
+                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -983,11 +999,30 @@ const CreateContractModal: React.FC<{
 const ContractCard: React.FC<{
     contract: RecurringContract;
     onCancel: (id: string) => void;
+    onDelete: (id: string) => void;
     daysMap: string[];
-}> = ({ contract, onCancel, daysMap }) => {
+}> = ({ contract, onCancel, onDelete, daysMap }) => {
     const isActive = contract.status === 'active';
+    const isCompleted = contract.status === 'completed';
+    const isCancelled = contract.status === 'cancelled';
+    
     const startDate = new Date(contract.startDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
     const endDate = new Date(contract.endDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    // Status Badge Logic
+    let badgeClass = '';
+    let badgeText = '';
+
+    if (isActive) {
+        badgeClass = 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800';
+        badgeText = 'Activo';
+    } else if (isCompleted) {
+        badgeClass = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
+        badgeText = 'Completado';
+    } else {
+        badgeClass = 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
+        badgeText = 'Cancelado';
+    }
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 flex flex-col overflow-hidden transition-all hover:shadow-lg">
@@ -1004,8 +1039,8 @@ const ContractCard: React.FC<{
                         <p className="text-xs text-gray-500 dark:text-gray-400">ID: {contract.playerId.slice(0,6)}...</p>
                     </div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isActive ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'}`}>
-                    {isActive ? 'Activo' : 'Cancelado'}
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${badgeClass}`}>
+                    {badgeText}
                 </span>
             </div>
 
@@ -1033,20 +1068,37 @@ const ContractCard: React.FC<{
                         {startDate} - {endDate}
                     </span>
                 </div>
+                
+                {contract.autoCancelHours > 0 && (
+                    <div className="flex items-center gap-3 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-2 rounded-md mt-2">
+                        <ClockIcon className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-xs font-semibold">
+                            Auto-cancela si no confirma {contract.autoCancelHours}h antes.
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Footer / Actions */}
-            {isActive && (
-                <div className="mt-auto p-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div className="mt-auto p-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                {isActive ? (
                     <button 
                         onClick={() => onCancel(contract.id)} 
                         className="w-full py-2 px-4 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
                     >
-                        <TrashIcon className="w-4 h-4" />
+                        <XIcon className="w-4 h-4" />
                         Cancelar Contrato
                     </button>
-                </div>
-            )}
+                ) : (
+                    <button 
+                        onClick={() => onDelete(contract.id)} 
+                        className="w-full py-2 px-4 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                        Eliminar Historial
+                    </button>
+                )}
+            </div>
         </div>
     );
 };
@@ -1055,6 +1107,7 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
     const [contracts, setContracts] = useState<RecurringContract[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [contractToCancel, setContractToCancel] = useState<string | null>(null);
+    const [contractToDelete, setContractToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         db.getContractsByOwner(ownerId).then(setContracts);
@@ -1079,6 +1132,7 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
             time: data.time,
             startDate: data.startDate,
             endDate: data.endDate,
+            autoCancelHours: data.autoCancelHours || 0,
         };
 
         try {
@@ -1104,6 +1158,19 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
         }
     };
 
+    const handleDeleteContract = async () => {
+        if (!contractToDelete) return;
+        try {
+            await db.deleteContract(contractToDelete);
+            setContracts(prev => prev.filter(c => c.id !== contractToDelete));
+            addNotification({ type: 'info', title: 'Contrato Eliminado', message: 'El registro del contrato ha sido borrado.' });
+        } catch (error) {
+            addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el contrato.' });
+        } finally {
+            setContractToDelete(null);
+        }
+    };
+
     const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
     return (
@@ -1122,7 +1189,8 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
                         <ContractCard 
                             key={contract.id} 
                             contract={contract} 
-                            onCancel={setContractToCancel} 
+                            onCancel={setContractToCancel}
+                            onDelete={setContractToDelete}
                             daysMap={daysMap} 
                         />
                     ))}
@@ -1145,6 +1213,16 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
                 message="Esta acción cancelará todas las reservas futuras asociadas a este contrato. El historial de partidos jugados se mantendrá."
                 confirmButtonText="Sí, cancelar contrato"
                 confirmButtonColor="bg-red-600 hover:bg-red-700"
+            />
+
+            <ConfirmationModal 
+                isOpen={!!contractToDelete}
+                onClose={() => setContractToDelete(null)}
+                onConfirm={handleDeleteContract}
+                title="¿Eliminar Historial?"
+                message="Esta acción eliminará el registro de este contrato de tu lista. El historial de partidos jugados se mantendrá en la base de datos."
+                confirmButtonText="Sí, eliminar"
+                confirmButtonColor="bg-gray-600 hover:bg-gray-700"
             />
         </div>
     );
