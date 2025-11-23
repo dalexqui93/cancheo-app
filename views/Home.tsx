@@ -16,6 +16,7 @@ import { ClockIcon } from '../components/icons/ClockIcon';
 import { PhoneIcon } from '../components/icons/PhoneIcon';
 import { XIcon } from '../components/icons/XIcon';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
 
 
 interface HomeProps {
@@ -39,6 +40,7 @@ interface HomeProps {
     currentTime: Date;
     acceptedMatches?: AcceptedMatchInvite[];
     onCancelMatchAttendance?: (id: string, reason?: string) => void;
+    onContractResponse?: (bookingId: string, action: 'confirm' | 'cancel') => void;
 }
 
 const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
@@ -84,10 +86,49 @@ const getMatchTimestamps = (match: ConfirmedBooking, timezone: string): { startT
 };
 
 
-const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: SoccerField) => void; allTeams: Team[], currentTime: Date; timezone?: string }> = ({ match, onSelectField, allTeams, currentTime, timezone }) => {
+const MatchCard: React.FC<{ 
+    match: ConfirmedBooking; 
+    onSelectField: (field: SoccerField) => void; 
+    allTeams: Team[], 
+    currentTime: Date; 
+    timezone?: string;
+    onContractResponse?: (id: string, action: 'confirm' | 'cancel') => void;
+}> = ({ match, onSelectField, allTeams, currentTime, timezone, onContractResponse }) => {
     const [displayScore, setDisplayScore] = useState({ a: match.scoreA ?? 0, b: match.scoreB ?? 0 });
     const [goalAnimation, setGoalAnimation] = useState<{ team: 'A' | 'B' | null }>({ team: null });
     
+    // Contract confirmation logic
+    const isPendingContract = !!match.contractId && match.confirmationStatus === 'pending';
+    const [timeLeft, setTimeLeft] = useState<string>('');
+    
+    useEffect(() => {
+        if (!isPendingContract || !match.autoCancelHours) return;
+
+        const updateTimer = () => {
+            const matchTime = new Date(match.date);
+            const [h, m] = match.time.split(':');
+            matchTime.setHours(parseInt(h), parseInt(m), 0, 0);
+            
+            // Deadline is X hours before match
+            const deadline = new Date(matchTime.getTime() - (match.autoCancelHours! * 60 * 60 * 1000));
+            const diff = deadline.getTime() - new Date().getTime();
+
+            if (diff <= 0) {
+                setTimeLeft('Tiempo agotado');
+            } else {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+            }
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [match, isPendingContract]);
+
+
     useEffect(() => {
         const currentScoreA = match.scoreA ?? 0;
         const currentScoreB = match.scoreB ?? 0;
@@ -251,12 +292,30 @@ const MatchCard: React.FC<{ match: ConfirmedBooking; onSelectField: (field: Socc
                     </div>
                 </div>
                 
-                <button 
-                    onClick={() => onSelectField(match.field)}
-                    className="w-full text-center bg-white/10 hover:bg-white/20 transition-colors font-semibold py-2 px-4 rounded-lg text-sm mt-auto"
-                >
-                    Ver Cancha
-                </button>
+                {isPendingContract ? (
+                    <div className="mt-auto w-full bg-black/60 backdrop-blur-md rounded-lg p-2 border border-amber-500/30">
+                        <div className="flex justify-between items-center mb-2 text-xs">
+                            <span className="text-amber-400 font-bold flex items-center gap-1">
+                                <ClockIcon className="w-3 h-3" /> Tiempo límite:
+                            </span>
+                            <span className="font-mono text-white">{timeLeft}</span>
+                        </div>
+                        <button 
+                            onClick={() => onContractResponse?.(match.id, 'confirm')}
+                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-3 rounded-md transition-colors animate-pulse"
+                        >
+                            <CheckBadgeIcon className="w-3 h-3" />
+                            Confirmar Ahora
+                        </button>
+                    </div>
+                ) : (
+                    <button 
+                        onClick={() => onSelectField(match.field)}
+                        className="w-full text-center bg-white/10 hover:bg-white/20 transition-colors font-semibold py-2 px-4 rounded-lg text-sm mt-auto"
+                    >
+                        Ver Cancha
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -332,7 +391,7 @@ const AcceptedMatchCard: React.FC<{
     );
 };
 
-const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime, acceptedMatches, onCancelMatchAttendance }) => {
+const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, theme, announcements, user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, onRefreshWeather, onSearchResults, allBookings, allTeams, currentTime, acceptedMatches, onCancelMatchAttendance, onContractResponse }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAiSearching, setIsAiSearching] = useState(false);
 
@@ -443,6 +502,12 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             
             const distance = calculateDistance(userLat, userLon, booking.field.latitude, booking.field.longitude);
             if (distance > CITY_RADIUS_KM || booking.status === 'cancelled') {
+                return false;
+            }
+
+            // FILTER: Only show contract bookings if they are CONFIRMED.
+            // If it's a contract and still pending, don't show it in the public/active "Today" list.
+            if (booking.contractId && booking.confirmationStatus !== 'confirmed') {
                 return false;
             }
 
@@ -614,7 +679,15 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
                 ) : (matchesInUserCity.length > 0) ? (
                     <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
                         {matchesInUserCity.map(match => (
-                            <MatchCard key={match.id} match={match} onSelectField={onSelectField} allTeams={allTeams} currentTime={currentTime} timezone={weatherData?.timezone} />
+                            <MatchCard 
+                                key={match.id} 
+                                match={match} 
+                                onSelectField={onSelectField} 
+                                allTeams={allTeams} 
+                                currentTime={currentTime} 
+                                timezone={weatherData?.timezone}
+                                onContractResponse={onContractResponse}
+                            />
                         ))}
                     </div>
                 ) : (
