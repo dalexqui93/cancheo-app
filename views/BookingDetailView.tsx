@@ -11,6 +11,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import ScorekeeperModal from '../components/ScorekeeperModal';
 import { ScoreboardIcon } from '../components/icons/ScoreboardIcon';
 import ScrollOnOverflow from '../components/ScrollOnOverflow';
+import { CheckBadgeIcon } from '../components/icons/CheckBadgeIcon';
 
 interface BookingDetailViewProps {
     booking: ConfirmedBooking;
@@ -22,6 +23,7 @@ interface BookingDetailViewProps {
     onUpdateScore: (bookingId: string, scoreA: number, scoreB: number) => void;
     onFinalizeMatch: (bookingId: string, scoreA: number, scoreB: number) => void;
     currentTime: Date;
+    onContractResponse?: (bookingId: string, action: 'confirm' | 'cancel') => void;
 }
 
 const TeamLogo: React.FC<{ logo?: string; name: string; size?: string }> = ({ logo, name, size = 'w-16 h-16' }) => {
@@ -50,6 +52,7 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
     onUpdateScore,
     onFinalizeMatch,
     currentTime,
+    onContractResponse,
 }) => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isScorekeeperOpen, setIsScorekeeperOpen] = useState(false);
@@ -71,6 +74,13 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
     const canManageScore = isAuthorized && booking.status === 'confirmed';
 
     const hasScore = typeof booking.scoreA === 'number' && typeof booking.scoreB === 'number';
+
+    const bookingDate = new Date(booking.date);
+    const isToday = bookingDate.getDate() === currentTime.getDate() &&
+                    bookingDate.getMonth() === currentTime.getMonth() &&
+                    bookingDate.getFullYear() === currentTime.getFullYear();
+
+    const showContractConfirmButton = booking.contractId && booking.confirmationStatus === 'pending' && isToday;
 
     return (
         <div className="pb-24 md:pb-4">
@@ -183,6 +193,17 @@ const BookingDetailView: React.FC<BookingDetailViewProps> = ({
                                 )}
                             </div>
                         )}
+
+                        {showContractConfirmButton && (
+                            <button
+                                onClick={() => onContractResponse?.(booking.id, 'confirm')}
+                                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors shadow-md"
+                            >
+                                <CheckBadgeIcon className="w-5 h-5"/>
+                                Confirmar Asistencia (Contrato)
+                            </button>
+                        )}
+
                        {canCancel && (
                             <button onClick={() => setIsCancelModalOpen(true)} className="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-colors shadow-md">
                                 Cancelar Reserva
