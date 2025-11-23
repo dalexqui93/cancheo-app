@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation, RecurringContract } from './types';
 
@@ -731,7 +732,9 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
             totalPrice: field.pricePerHour, // Assuming no extras for now
             paymentMethod: 'cash', // Default to pay on site
             status: 'confirmed', // Automatically confirmed slot
+            confirmationStatus: 'pending',
             contractId: contractId,
+            autoCancelHours: contractData.autoCancelHours,
             isFree: false,
             remindersSent: { twentyFourHour: false, oneHour: false }
         };
@@ -771,9 +774,35 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
 
     await Promise.all(notificationPromises);
 
+    // --- ADD SUMMARY NOTIFICATION FOR THE CONTRACT ---
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const dayName = days[dayOfWeek];
+    const contractSummaryNotification: Omit<Notification, 'id' | 'timestamp'> = {
+        type: 'info',
+        title: 'Nuevo Contrato de Cancha',
+        message: `Se ha formalizado un contrato en ${field.name}. Horario: ${dayName}s a las ${time}. Vigencia: ${new Date(startDate).toLocaleDateString('es-CO')} hasta ${new Date(endDate).toLocaleDateString('es-CO')}.`,
+        read: false
+    };
+
+    // Fetch user again to ensure we have the latest notifications (including the ones just added from bookings)
+    let latestPlayerState = player;
+    if (isFirebaseConfigured) {
+         const userDoc = await db.collection('users').doc(player.id).get();
+         latestPlayerState = docToData(userDoc);
+    } else {
+         latestPlayerState = demoData.users.find(u => u.id === player.id) || player;
+    }
+
+    const summaryNotifObj = { ...contractSummaryNotification, id: Date.now() + 1, timestamp: new Date() };
+    const finalNotifications = [summaryNotifObj, ...(latestPlayerState.notifications || [])].slice(0, 50);
+
+    await updateUser(player.id, { notifications: finalNotifications });
+    // --------------------------------------------------
+
     const finalContractData: RecurringContract = {
         id: contractId,
         ...contractData,
+        playerIdentification: player.identification,
         status: 'active',
         generatedBookings: bookingIds
     };

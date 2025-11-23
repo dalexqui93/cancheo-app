@@ -1036,7 +1036,7 @@ const ContractCard: React.FC<{
                         <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-1" title={contract.playerName}>
                             {contract.playerName}
                         </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">ID: {contract.playerId.slice(0,6)}...</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">ID: {contract.playerIdentification || contract.playerId.slice(0,6) + '...'}</p>
                     </div>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${badgeClass}`}>

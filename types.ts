@@ -134,6 +134,7 @@ export interface RecurringContract {
     id: string;
     ownerId: string;
     playerId: string;
+    playerIdentification?: string;
     playerName: string; // Cached for display
     fieldId: string;
     fieldName: string; // Cached for display
@@ -143,6 +144,7 @@ export interface RecurringContract {
     endDate: Date;
     status: 'active' | 'cancelled' | 'completed';
     generatedBookings: string[]; // IDs of bookings generated from this contract
+    autoCancelHours: number;
 }
 
 export interface User {
@@ -216,6 +218,7 @@ export interface ConfirmedBooking {
     totalPrice: number;
     paymentMethod: string;
     status: 'confirmed' | 'cancelled' | 'completed';
+    confirmationStatus?: 'pending' | 'confirmed';
     remindersSent?: {
         twentyFourHour: boolean;
         oneHour: boolean;
@@ -225,6 +228,7 @@ export interface ConfirmedBooking {
     scoreA?: number;
     scoreB?: number;
     contractId?: string; // Links to RecurringContract
+    autoCancelHours?: number;
 }
 
 export interface Announcement {
