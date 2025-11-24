@@ -25,7 +25,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [identification, setIdentification] = useState('');
-    const [age, setAge] = useState('');
+    const [birthdate, setBirthdate] = useState('');
     const [gender, setGender] = useState('Masculino');
     
     const [error, setError] = useState('');
@@ -37,7 +37,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
         setError('');
 
         // Validate all fields are mandatory
-        if (!name || !email || !phone || !password || !confirmPassword || !identification || !age || !gender) {
+        if (!name || !email || !phone || !password || !confirmPassword || !identification || !birthdate || !gender) {
             setError('Por favor completa todos los campos obligatorios.');
             return;
         }
@@ -57,13 +57,27 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
             return;
         }
 
+        // Calculate age from birthdate
+        const birthDateObj = new Date(birthdate);
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDateObj.getFullYear();
+        const m = today.getMonth() - birthDateObj.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+            calculatedAge--;
+        }
+
+        if (calculatedAge < 12) {
+             setError('Debes tener al menos 12 años para registrarte.');
+             return;
+        }
+
         const newUser = {
             name,
             email,
             phone,
             password,
             identification,
-            age: parseInt(age),
+            age: calculatedAge,
             gender,
             isOwner: false,
             notificationPreferences: {
@@ -141,10 +155,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate, isRegisterL
 
                             <div className="flex gap-4">
                                 <div className="w-1/2">
-                                    <label htmlFor="age" className="block text-sm font-medium text-gray-100">Edad</label>
+                                    <label htmlFor="birthdate" className="block text-sm font-medium text-gray-100">Fecha de Nacimiento</label>
                                     <div className="mt-1 relative">
                                         <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
-                                        <input id="age" name="age" type="number" required value={age} onChange={(e) => setAge(e.target.value)} min="12" max="100"
+                                        <input id="birthdate" name="birthdate" type="date" required value={birthdate} onChange={(e) => setBirthdate(e.target.value)}
                                             className="block w-full appearance-none rounded-md border border-white/30 py-2 px-3 pl-10 placeholder-gray-300 shadow-sm focus:border-[var(--color-primary-400)] focus:outline-none focus:ring-[var(--color-primary-400)] sm:text-sm bg-white/10 text-white" />
                                     </div>
                                 </div>
