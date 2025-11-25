@@ -29,6 +29,7 @@ import RatingModal from '../components/RatingModal';
 import OwnerRegisterView from '../views/OwnerRegisterView';
 import OwnerPendingVerificationView from '../views/OwnerPendingVerificationView';
 import SuperAdminDashboard from '../views/SuperAdminDashboard';
+import MatchSetupModal from '../components/MatchSetupModal';
 import * as db from '../database';
 import { isFirebaseConfigured } from '../database';
 import { getCurrentPosition, calculateDistance } from '../utils/geolocation';
@@ -100,6 +101,7 @@ const App = () => {
     const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [matchSetupBooking, setMatchSetupBooking] = useState<ConfirmedBooking | null>(null);
 
     // Weather State
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -127,6 +129,11 @@ const App = () => {
         const ownerFieldIds = new Set(fields.filter(field => field.ownerId === user.id).map(f => f.id));
         return allBookings.filter(booking => booking.field && ownerFieldIds.has(booking.field.id));
     }, [user, fields, allBookings]);
+
+    const userTeams = useMemo(() => {
+        if (!user || !user.teamIds) return [];
+        return allTeams.filter(team => user.teamIds?.includes(team.id));
+    }, [user, allTeams]);
 
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -664,12 +671,8 @@ const App = () => {
         if (!booking) return;
 
         if (action === 'confirm') {
-            await db.updateBooking(bookingId, { confirmationStatus: 'confirmed' });
-            
-            setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, confirmationStatus: 'confirmed' } : b));
-            
-            showToast({ type: 'success', title: 'Asistencia Confirmada', message: 'Has confirmado tu asistencia para el partido de hoy.' });
-
+            setMatchSetupBooking(booking);
+            return; // Open modal instead of immediate update
         } else if (action === 'cancel') {
             await db.updateBooking(bookingId, { status: 'cancelled' });
             
@@ -677,6 +680,39 @@ const App = () => {
             
             showToast({ type: 'info', title: 'Reserva Cancelada', message: 'Has liberado tu cupo para el partido de hoy.' });
         }
+    };
+
+    const handleFinalizeMatchSetup = async (identityId: string, rivalName: string) => {
+        if (!matchSetupBooking || !user) return;
+
+        let teamName = user.name;
+        // Check if selected ID belongs to a team
+        const selectedTeam = allTeams.find(t => t.id === identityId);
+        if (selectedTeam) {
+            teamName = selectedTeam.name;
+        }
+
+        let finalRivalName = rivalName.trim();
+        if (!finalRivalName) {
+            const opponentNames = ['Los Titanes', 'Atlético Barrial', 'Furia Roja FC', 'Deportivo Amigos', 'Guerreros FC', 'Leyendas Urbanas'];
+            finalRivalName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
+        }
+
+        await db.updateBooking(matchSetupBooking.id, { 
+            confirmationStatus: 'confirmed',
+            teamName: teamName,
+            rivalName: finalRivalName
+        });
+        
+        setAllBookings(prev => prev.map(b => b.id === matchSetupBooking.id ? { 
+            ...b, 
+            confirmationStatus: 'confirmed',
+            teamName: teamName,
+            rivalName: finalRivalName
+        } : b));
+        
+        setMatchSetupBooking(null);
+        showToast({ type: 'success', title: 'Asistencia Confirmada', message: `Jugarás como ${teamName} vs ${finalRivalName}.` });
     };
 
     useEffect(() => {
@@ -2052,6 +2088,16 @@ const App = () => {
                         field={ratingInfo.field}
                         onClose={() => setRatingInfo(null)}
                         onSubmit={handleRatingSubmit}
+                    />
+                )}
+                {matchSetupBooking && user && (
+                    <MatchSetupModal 
+                        isOpen={!!matchSetupBooking}
+                        onClose={() => setMatchSetupBooking(null)}
+                        onConfirm={handleFinalizeMatchSetup}
+                        booking={matchSetupBooking}
+                        user={user}
+                        userTeams={userTeams}
                     />
                 )}
             </div>
