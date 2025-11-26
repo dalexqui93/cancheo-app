@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation, RecurringContract } from './types';
 
@@ -116,6 +115,11 @@ const fieldsToSeed = [
         { id: 'r2', author: 'Maria Rodriguez', rating: 4, comment: 'Muy buenas instalaciones, aunque a veces es difícil conseguir reserva. Recomiendo planificar con tiempo.', timestamp: new Date('2024-07-18T15:30:00Z') },
     ],
     size: '5v5', latitude: 4.648283, longitude: -74.088951, loyaltyEnabled: true, loyaltyGoal: 7,
+    availableSlots: {
+        mañana: ['08:00', '09:00', '10:00', '11:00'],
+        tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+        noche: ['19:00', '20:00', '21:00', '22:00'],
+    }
   },
   {
     id: 'field-2', complexId: 'complex-1', ownerId: owner1Id, name: 'El Templo del Fútbol - Cancha 2', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 120000, rating: 4.8,
@@ -127,6 +131,11 @@ const fieldsToSeed = [
         { id: 'ext-2', name: 'Balón Profesional', price: 5000, icon: '⚽', maxQuantity: 5 }
     ],
     reviews: [], size: '7v7', latitude: 4.648283, longitude: -74.088951, loyaltyEnabled: true, loyaltyGoal: 7,
+    availableSlots: {
+        mañana: ['08:00', '09:00', '10:00', '11:00'],
+        tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+        noche: ['19:00', '20:00', '21:00', '22:00'],
+    }
   },
   {
     id: 'field-3', complexId: 'complex-2', ownerId: owner2Id, name: 'Gol Center - Cancha A', address: 'Avenida 68 #90-12', city: 'Medellín', department: 'Antioquia', pricePerHour: 75000, rating: 4.5,
@@ -136,6 +145,11 @@ const fieldsToSeed = [
     extras: [],
     reviews: [ { id: 'r3', author: 'Carlos Diaz', rating: 4, comment: 'Buen precio y la cancha está bien.', timestamp: new Date() } ],
     size: '5v5', latitude: 6.25184, longitude: -75.56359, loyaltyEnabled: true, loyaltyGoal: 10,
+    availableSlots: {
+        mañana: ['08:00', '09:00', '10:00', '11:00'],
+        tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+        noche: ['19:00', '20:00', '21:00', '22:00'],
+    }
   }
 ];
 
@@ -601,11 +615,38 @@ export const updateField = async (fieldId, updates) => {
     return Promise.resolve();
 };
 
-export const deleteField = async (fieldId) => {
+export const deleteField = async (fieldId: string): Promise<void> => {
     if (isFirebaseConfigured) {
-        return db.collection('fields').doc(fieldId).delete();
+        const batch = db.batch();
+
+        // 1. Delete Field Document
+        const fieldRef = db.collection('fields').doc(fieldId);
+        batch.delete(fieldRef);
+
+        // 2. Find and Delete Bookings associated with this field
+        const bookingsSnapshot = await db.collection('bookings').where('fieldId', '==', fieldId).get();
+        bookingsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // 3. Find and Delete Recurring Contracts associated with this field
+        const contractsSnapshot = await db.collection('recurring_contracts').where('fieldId', '==', fieldId).get();
+        contractsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Commit all deletions
+        await batch.commit();
+        return;
     }
+
+    // Demo Mode: Filter out field, bookings, and contracts
     demoData.fields = demoData.fields.filter(f => f.id !== fieldId);
+    // Filter bookings where booking.field.id is the deleted field
+    demoData.bookings = demoData.bookings.filter(b => b.field.id !== fieldId);
+    // Filter contracts where contract.fieldId is the deleted field
+    demoData.recurringContracts = demoData.recurringContracts.filter(c => c.fieldId !== fieldId);
+
     return Promise.resolve();
 };
 

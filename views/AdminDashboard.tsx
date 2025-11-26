@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus, FieldExtra, RecurringContract, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -460,11 +459,36 @@ const ComplexEditorModal: React.FC<{
     const findCoordinates = async () => {
         setIsLocating(true);
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.address + ', ' + formData.city)}&format=json&limit=1`);
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.address + ', ' + formData.city)}&format=json&limit=1&addressdetails=1`);
             const data = await response.json();
             if (data && data.length > 0) {
-                setFormData(prev => ({ ...prev, latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) }));
-                addNotification({type: 'success', title: 'Ubicación Encontrada', message: 'Coordenadas actualizadas.'});
+                const result = data[0];
+                const lat = parseFloat(result.lat);
+                const lon = parseFloat(result.lon);
+
+                // Logic to extract address
+                let formattedAddress = formData.address;
+                if (result.address) {
+                    const { road, house_number, neighbourhood, suburb } = result.address;
+                    const street = road || '';
+                    const number = house_number || '';
+                    const area = neighbourhood || suburb || '';
+
+                    if (street) {
+                         formattedAddress = `${street}${number ? ` #${number}` : ''}${area ? `, ${area}` : ''}`;
+                    } else {
+                        // Fallback to first part of display name if structure is missing
+                         formattedAddress = result.display_name.split(',')[0];
+                    }
+                }
+
+                setFormData(prev => ({ 
+                    ...prev, 
+                    latitude: lat, 
+                    longitude: lon,
+                    address: formattedAddress
+                }));
+                addNotification({type: 'success', title: 'Ubicación Encontrada', message: 'Coordenadas y dirección actualizadas.'});
             } else {
                 addNotification({type: 'error', title: 'Ubicación no Encontrada', message: 'No se pudo encontrar las coordenadas. Por favor, ingrésalas manualmente.'});
             }
@@ -1733,9 +1757,9 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                 onConfirm={deleteType === 'field' ? handleDeleteComplex : handleDeleteAnnouncement}
                 title={deleteType === 'field' ? '¿Eliminar Complejo?' : '¿Eliminar Anuncio?'}
                 message={deleteType === 'field' 
-                    ? 'Esta acción eliminará el complejo y todas sus canchas asociadas. No se puede deshacer.' 
+                    ? 'ADVERTENCIA: Esta acción eliminará permanentemente el complejo, todas sus canchas, el historial completo de reservas y todos los contratos recurrentes asociados. No se puede deshacer.' 
                     : 'El anuncio dejará de ser visible para los usuarios.'}
-                confirmButtonText="Eliminar"
+                confirmButtonText={deleteType === 'field' ? 'Eliminar TODO' : 'Eliminar'}
                 confirmButtonColor="bg-red-600 hover:bg-red-700"
             />
         </div>
