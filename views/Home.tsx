@@ -496,7 +496,7 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
         const todayString = now.toLocaleDateString('en-CA', { timeZone: targetTimezone });
     
         const todayMatchesInCity = allBookings.filter(booking => {
-            if (!booking.date || !booking.status || booking.field.latitude == null || booking.field.longitude == null) {
+            if (!booking.date || !booking.status || !booking.field || booking.field.latitude == null || booking.field.longitude == null) {
                 return false;
             }
             

@@ -47,8 +47,8 @@ type OwnerView = 'dashboard' | 'fields' | 'bookings' | 'announcements' | 'contra
 
 const POSSIBLE_TIMES = {
     mañana: ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00'],
-    tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
-    noche: ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00']
+    tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+    noche: ['19:00', '20:00', '21:00', '22:00', '23:00']
 };
 
 // Helper function to compress images
@@ -784,7 +784,8 @@ const CreateContractModal: React.FC<{
     onClose: () => void;
     onSave: (data: any) => void;
     addNotification: (notif: Omit<Notification, 'id' | 'timestamp'>) => void;
-}> = ({ fields, onClose, onSave, addNotification }) => {
+    bookings: ConfirmedBooking[];
+}> = ({ fields, onClose, onSave, addNotification, bookings }) => {
     const [step, setStep] = useState(1);
     const [searchId, setSearchId] = useState('');
     const [foundPlayer, setFoundPlayer] = useState<User | null>(null);
@@ -799,6 +800,40 @@ const CreateContractModal: React.FC<{
         endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
         autoCancelHours: 0,
     });
+
+    const conflicts = useMemo(() => {
+        if (!bookings) return [];
+        
+        const startDate = new Date(contractData.startDate);
+        const endDate = new Date(contractData.endDate);
+        const dayOfWeek = contractData.dayOfWeek;
+        const time = contractData.time;
+        const fieldId = contractData.fieldId;
+
+        const dates: Date[] = [];
+        let current = new Date(startDate);
+        
+        // Generate theoretical contract dates
+        while (current <= endDate) {
+            if (current.getDay() === dayOfWeek) {
+                dates.push(new Date(current));
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        // Find conflicting dates
+        const conflictingDates = dates.filter(date => {
+             const dateStr = date.toISOString().split('T')[0];
+             // Check existing bookings for same date, time, and field
+             return bookings.some(b => {
+                 if (b.status === 'cancelled') return false;
+                 const bDateStr = new Date(b.date).toISOString().split('T')[0];
+                 return b.field.id === fieldId && b.time === time && bDateStr === dateStr;
+             });
+        });
+
+        return conflictingDates;
+    }, [contractData, bookings]);
 
     const handleSearchPlayer = async () => {
         if (!searchId.trim()) return;
@@ -828,6 +863,12 @@ const CreateContractModal: React.FC<{
         const end = new Date(contractData.endDate);
         if (start >= end) {
             addNotification({ type: 'error', title: 'Fechas inválidas', message: 'La fecha de fin debe ser posterior al inicio.' });
+            setIsSaving(false);
+            return;
+        }
+
+        if (conflicts.length > 0) {
+            addNotification({ type: 'error', title: 'Conflicto de Horario', message: 'Hay fechas ocupadas en el rango seleccionado.' });
             setIsSaving(false);
             return;
         }
@@ -974,6 +1015,21 @@ const CreateContractModal: React.FC<{
                                     />
                                 </div>
                             </div>
+                            
+                            {conflicts.length > 0 && (
+                                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+                                    <p className="font-bold mb-1 flex items-center gap-2">
+                                        <XIcon className="w-4 h-4" /> Conflictos de Horario
+                                    </p>
+                                    <p>Las siguientes fechas ya están ocupadas:</p>
+                                    <ul className="list-disc list-inside mt-1 max-h-24 overflow-y-auto text-xs">
+                                        {conflicts.map((d, i) => (
+                                            <li key={i}>{d.toLocaleDateString()}</li>
+                                        ))}
+                                    </ul>
+                                    <p className="mt-2 text-xs">Por favor selecciona otro día u hora.</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -983,8 +1039,8 @@ const CreateContractModal: React.FC<{
                     {step === 2 && (
                         <button 
                             onClick={handleSaveContract} 
-                            disabled={isSaving}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 text-sm font-semibold"
+                            disabled={isSaving || conflicts.length > 0}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 text-sm font-semibold disabled:cursor-not-allowed"
                         >
                             {isSaving && <SpinnerIcon className="w-4 h-4"/>}
                             Crear Contrato
@@ -1103,7 +1159,7 @@ const ContractCard: React.FC<{
     );
 };
 
-const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNotification: any }> = ({ ownerId, fields, addNotification }) => {
+const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNotification: any, bookings?: ConfirmedBooking[] }> = ({ ownerId, fields, addNotification, bookings = [] }) => {
     const [contracts, setContracts] = useState<RecurringContract[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [contractToCancel, setContractToCancel] = useState<string | null>(null);
@@ -1203,7 +1259,7 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
                 </div>
             )}
 
-            {isModalOpen && <CreateContractModal fields={fields} onClose={() => setIsModalOpen(false)} onSave={handleAddContract} addNotification={addNotification} />}
+            {isModalOpen && <CreateContractModal fields={fields} onClose={() => setIsModalOpen(false)} onSave={handleAddContract} addNotification={addNotification} bookings={bookings} />}
             
             <ConfirmationModal 
                 isOpen={!!contractToCancel}
@@ -1628,7 +1684,7 @@ const OwnerDashboard: React.FC<OwnerDashboardProps> = (props) => {
                             onDelete={(id) => { setConfirmDeleteId(id); setDeleteType('announcement'); }}
                         />;
             case 'contracts':
-                return <ContractsManager ownerId={user.id} fields={fields} addNotification={addNotification} />
+                return <ContractsManager ownerId={user.id} fields={fields} addNotification={addNotification} bookings={bookings} />
             case 'dashboard':
             default:
                 return <DashboardHome bookings={bookings} fields={fields} />;
