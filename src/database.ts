@@ -156,7 +156,7 @@ const fieldsToSeed = [
 const teamsToSeed: Team[] = [
     {
         id: 't1', name: 'Los Galácticos', captainId: 'player-1', players: playersToSeed,
-        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi4wOCwxMy4wMTRMNTAsNTMuNmwtMTEuOTEyLDcuMSAyLjUtMTMuMDE0LTkuNjg2LDguNzYgMTMuMjItLjk1NloiIGZpbGw9IiNGRkYiLz48L3N2Zz4=',
+        logo: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzAzM0E2MyIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAsMjVsNS44NzgsMTEuOTcgMTMuMjIuOTU2LTkuNjg2LDguNzYgMi4wOCwxMy4wMTRMNTAsNTMuNmwtMTEuOTEyLDcuMSAyLjUtMTMuMDE0LTkuNjg2LTguNzYgMTMuMjItLjk1NloiIGZpbGw9IiNGRkYiLz48L3N2Zz4=',
         level: 'Competitivo', stats: { wins: 1, losses: 0, draws: 1 },
         formation: '4-3-3',
         playerPositions: {},
@@ -702,11 +702,24 @@ export const getContractsByOwner = async (ownerId: string): Promise<RecurringCon
 
     // Check for expiration and auto-complete
     const now = new Date();
-    now.setHours(0,0,0,0); // Normalize to start of day
 
     const updates = contracts.map(async (contract) => {
-        const endDate = new Date(contract.endDate);
-        if (contract.status === 'active' && endDate < now) {
+        // Ensure accurate date comparison by setting contract expiration to the VERY END of the end date (23:59:59)
+        // This handles cases where "today" is the end date, keeping it active until the day is over.
+        let contractEndTimestamp: number;
+
+        if (typeof contract.endDate === 'string') {
+            // Parse "YYYY-MM-DD" manually to avoid timezone shifts
+            const [y, m, d] = contract.endDate.split('-').map(Number);
+            // Month is 0-indexed in JS Date
+            contractEndTimestamp = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+        } else {
+            // Fallback if it's already a Date object
+            const d = new Date(contract.endDate);
+            contractEndTimestamp = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+        }
+
+        if (contract.status === 'active' && contractEndTimestamp < now.getTime()) {
             contract.status = 'completed';
             if (isFirebaseConfigured) {
                 await db.collection('recurring_contracts').doc(contract.id).update({ status: 'completed' });

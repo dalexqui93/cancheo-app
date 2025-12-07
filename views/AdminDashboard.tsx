@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { SoccerField, ConfirmedBooking, Announcement, Notification, Service, User, FieldSize, OwnerApplication, OwnerStatus, FieldExtra, RecurringContract, Player } from '../types';
 import { DashboardIcon } from '../components/icons/DashboardIcon';
@@ -1085,8 +1086,15 @@ const ContractCard: React.FC<{
     const isActive = contract.status === 'active';
     const isCompleted = contract.status === 'completed';
     
-    const startDate = new Date(contract.startDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
-    const endDate = new Date(contract.endDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Parse the string date to avoid timezone issues when displaying
+    const parseLocalDate = (dateStr: string | Date) => {
+        if (dateStr instanceof Date) return dateStr;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    };
+
+    const startDate = parseLocalDate(contract.startDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+    const endDate = parseLocalDate(contract.endDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
 
     // Status Badge Logic
     let badgeClass = '';
