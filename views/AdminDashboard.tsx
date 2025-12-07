@@ -1084,7 +1084,6 @@ const ContractCard: React.FC<{
 }> = ({ contract, onCancel, onDelete, daysMap }) => {
     const isActive = contract.status === 'active';
     const isCompleted = contract.status === 'completed';
-    const isCancelled = contract.status === 'cancelled';
     
     const startDate = new Date(contract.startDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
     const endDate = new Date(contract.endDate).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -1188,6 +1187,7 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [contractToCancel, setContractToCancel] = useState<string | null>(null);
     const [contractToDelete, setContractToDelete] = useState<string | null>(null);
+    const [filter, setFilter] = useState<'active' | 'history'>('active');
 
     useEffect(() => {
         db.getContractsByOwner(ownerId).then(setContracts);
@@ -1253,19 +1253,41 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
 
     const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
+    const displayedContracts = contracts.filter(c => {
+        if (filter === 'active') return c.status === 'active';
+        return c.status === 'completed' || c.status === 'cancelled';
+    });
+
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Contratos Recurrentes</h2>
-                <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-[var(--color-primary-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
-                    <PlusIcon className="w-5 h-5" />
-                    <span>Nuevo Contrato</span>
+                <div className="flex gap-2">
+                    <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-[var(--color-primary-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-sm">
+                        <PlusIcon className="w-5 h-5" />
+                        <span className="hidden sm:inline">Nuevo Contrato</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex space-x-2 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg w-fit">
+                <button 
+                    onClick={() => setFilter('active')}
+                    className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${filter === 'active' ? 'bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                >
+                    Activos
+                </button>
+                <button 
+                    onClick={() => setFilter('history')}
+                    className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${filter === 'history' ? 'bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                >
+                    Historial
                 </button>
             </div>
 
-            {contracts.length > 0 ? (
+            {displayedContracts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {contracts.map(contract => (
+                    {displayedContracts.map(contract => (
                         <ContractCard 
                             key={contract.id} 
                             contract={contract} 
@@ -1278,8 +1300,8 @@ const ContractsManager: React.FC<{ ownerId: string, fields: SoccerField[], addNo
             ) : (
                 <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 border-dashed border-2">
                     <CheckBadgeIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">No tienes contratos activos.</p>
-                    <p className="text-sm text-gray-400 mt-1">Crea uno para asegurar reservas semanales.</p>
+                    <p className="text-gray-500 dark:text-gray-400">No hay contratos {filter === 'active' ? 'activos' : 'en el historial'}.</p>
+                    {filter === 'active' && <p className="text-sm text-gray-400 mt-1">Crea uno para asegurar reservas semanales.</p>}
                 </div>
             )}
 
