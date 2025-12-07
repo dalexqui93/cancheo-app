@@ -665,53 +665,17 @@ const App = () => {
             finalRivalName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
         }
 
-        // --- START LOYALTY LOGIC ---
-        let loyaltyUpdated = false;
-        let newUserLoyalty = { ...user.loyalty };
-        
-        if (matchSetupBooking.field.loyaltyEnabled) {
-             const loyaltyId = matchSetupBooking.field.complexId || matchSetupBooking.field.id;
-             const loyaltyGoal = matchSetupBooking.field.loyaltyGoal || 7;
-
-             if (!newUserLoyalty[loyaltyId]) {
-                 newUserLoyalty[loyaltyId] = { progress: 0, freeTickets: 0 };
-             }
-
-             newUserLoyalty[loyaltyId].progress++;
-             loyaltyUpdated = true;
-
-             // Check for reward
-             if (newUserLoyalty[loyaltyId].progress >= loyaltyGoal) {
-                 newUserLoyalty[loyaltyId].progress = 0;
-                 newUserLoyalty[loyaltyId].freeTickets++;
-                 setRewardInfo({ field: matchSetupBooking.field });
-                 addPersistentNotification({
-                    type: 'success',
-                    title: '¡Cancha Gratis!',
-                    message: `¡Completaste ${loyaltyGoal} partidos! Has ganado un ticket.`
-                 });
-             }
-        }
-        // --- END LOYALTY LOGIC ---
+        // NOTE: Loyalty logic removed from here. 
+        // Points will be awarded automatically when the match status changes to 'completed' 
+        // via the completePastBookings and checkLoyaltyForCompletedGames effects.
 
         const bookingUpdates: Partial<ConfirmedBooking> = { 
             confirmationStatus: 'confirmed',
             teamName: teamName,
             rivalName: finalRivalName,
             status: 'confirmed',
+            // loyaltyApplied remains undefined/false until the match finishes
         };
-
-        if (loyaltyUpdated) {
-            bookingUpdates.loyaltyApplied = true;
-            try {
-                await db.updateUser(user.id, { loyalty: newUserLoyalty });
-                const updatedUser = { ...user, loyalty: newUserLoyalty };
-                setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-            } catch (e) {
-                console.error("Error updating loyalty on contract confirm", e);
-            }
-        }
 
         await db.updateBooking(matchSetupBooking.id, bookingUpdates);
         
@@ -767,6 +731,7 @@ const App = () => {
         if (!user || loading || rewardInfo || ratingInfo) return;
 
         const checkLoyaltyForCompletedGames = async () => {
+            // Checks for ANY booking (contract or regular) that is completed but hasn't applied loyalty yet
             const completedBookings = bookings.filter(b =>
                 b.userId === user.id &&
                 b.status === 'completed' &&
@@ -2069,7 +2034,7 @@ const App = () => {
                 {rewardInfo && (
                     <RewardAnimation 
                         field={rewardInfo.field}
-                        onAnimationEnd={() => handleRewardAnimationEnd()}
+                        onAnimationEnd={handleRewardAnimationEnd}
                     />
                 )}
                 {ratingInfo && (
