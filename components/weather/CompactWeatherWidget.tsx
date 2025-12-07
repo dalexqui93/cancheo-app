@@ -13,6 +13,16 @@ interface CompactWeatherWidgetProps {
     onRefresh: () => void;
 }
 
+const conditionTranslations: Record<string, string> = {
+    'sunny': 'Soleado',
+    'partly-cloudy': 'Parcialmente nublado',
+    'cloudy': 'Nublado',
+    'rainy': 'Lluvioso',
+    'stormy': 'Tormenta',
+    'foggy': 'Niebla',
+    'unknown': 'Desconocido'
+};
+
 const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData, isLoading, onRefresh }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -33,6 +43,7 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
 
     const { current, locationName } = weatherData;
     const condition = mapWmoCodeToIcon(current.weatherCode);
+    const translatedCondition = conditionTranslations[condition] || condition;
 
     return (
         <div className="w-full max-w-[320px] mx-auto mt-6 transition-all duration-300">
@@ -53,8 +64,8 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
                             <div className="text-4xl font-light leading-none tracking-tighter">
                                 {Math.round(current.temperature)}°
                             </div>
-                            <div className="text-xs font-medium text-white/80 capitalize mt-1 tracking-wide">
-                                {condition.replace('-', ' ')}
+                            <div className="text-xs font-medium text-white/80 capitalize mt-1 tracking-wide truncate max-w-[120px]">
+                                {translatedCondition}
                             </div>
                         </div>
                     </div>
@@ -67,8 +78,8 @@ const CompactWeatherWidget: React.FC<CompactWeatherWidgetProps> = ({ weatherData
                             </div>
                         )}
                         <div className="text-[11px] font-medium text-white/70 mt-1 flex justify-end gap-2">
-                            <span>H:{Math.round(current.temperature + 4)}°</span>
-                            <span>L:{Math.round(current.temperature - 3)}°</span>
+                            <span>Max:{Math.round(current.temperature + 4)}°</span>
+                            <span>Min:{Math.round(current.temperature - 3)}°</span>
                         </div>
                     </div>
                 </div>
