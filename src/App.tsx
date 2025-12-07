@@ -118,6 +118,66 @@ const App = () => {
         }
     }, [allBookings, selectedBooking]);
 
+    // NEW: Sync Announcements to Notifications History
+    useEffect(() => {
+        if (!user || announcements.length === 0) return;
+
+        const syncAnnouncements = async () => {
+            const currentNotifications = user.notifications || [];
+            const newNotificationsToAdd: Notification[] = [];
+            let hasNew = false;
+
+            announcements.forEach(ann => {
+                // Check if this announcement is already in notifications based on title and message content
+                const exists = currentNotifications.some(n => 
+                    n.title === ann.title && n.message === ann.message
+                );
+
+                if (!exists) {
+                    // Map announcement types to notification types
+                    const typeMap: Record<string, 'info' | 'success' | 'error'> = {
+                        'news': 'info',
+                        'promo': 'success', 
+                        'warning': 'error'
+                    };
+
+                    newNotificationsToAdd.push({
+                        id: Date.now() + Math.random(), // Generate a unique ID
+                        type: typeMap[ann.type] || 'info',
+                        title: ann.title,
+                        message: ann.message,
+                        timestamp: ann.createdAt || new Date(),
+                        read: false
+                    });
+                    hasNew = true;
+                }
+            });
+
+            if (hasNew) {
+                // Combine new announcements with existing notifications
+                const updatedNotifications = [...newNotificationsToAdd, ...currentNotifications];
+                
+                // Optimistic update to UI
+                setUser(prev => prev ? ({ ...prev, notifications: updatedNotifications }) : null);
+                setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, notifications: updatedNotifications } : u));
+                setNotifications(updatedNotifications); // Update the local state used by Header
+
+                // Persist to DB
+                if (isFirebaseConfigured) {
+                    try {
+                        // We only store the last 50 to keep the document size manageable
+                        await db.updateUser(user.id, { notifications: updatedNotifications.slice(0, 50) });
+                    } catch (e) {
+                        console.error("Error syncing announcements to notifications", e);
+                    }
+                }
+            }
+        };
+
+        syncAnnouncements();
+    }, [announcements, user?.id]); // Only re-run if announcements change or the user changes
+
+
     // ... (rest of effects and memos remain the same)
     const ownerFields = useMemo(() => {
         if (!user || !user.isOwner) return [];

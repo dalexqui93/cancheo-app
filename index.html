@@ -232,6 +232,24 @@
                 transform: translateY(-4px);
             }
         }
+        /* New Animation for Unread Announcements */
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); border-color: rgba(59, 130, 246, 0.8); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); border-color: rgba(59, 130, 246, 0.3); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); border-color: rgba(59, 130, 246, 0.8); }
+        }
+        @keyframes bounce-small {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .animate-pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+        .animate-bounce-small {
+            animation: bounce-small 2s infinite;
+        }
+
         .typing-dot {
             animation: typing-dot-bounce 1.4s infinite ease-in-out both;
         }

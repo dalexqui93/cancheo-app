@@ -566,6 +566,18 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
     }, [acceptedMatches]);
 
+    const latestAnnouncement = announcements[0];
+    const hasUnreadAnnouncement = useMemo(() => {
+        if (!user || !latestAnnouncement || !user.notifications) return false;
+        
+        // Find if this announcement exists in notifications and is unread
+        return user.notifications.some(n => 
+            n.title === latestAnnouncement.title && 
+            n.message === latestAnnouncement.message && 
+            !n.read
+        );
+    }, [user, latestAnnouncement]);
+
     return (
         <div className="space-y-8 pb-[5.5rem] md:pb-4">
             {/* Header and Search */}
@@ -700,7 +712,12 @@ const Home: React.FC<HomeProps> = ({ onSearch, onSelectField, fields, loading, f
             {/* Announcements */}
             {announcements && announcements.length > 0 && (
                 <section>
-                    <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <div className={`relative bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border transition-all duration-500 ${hasUnreadAnnouncement ? 'animate-pulse-ring border-blue-500 shadow-blue-500/20 shadow-lg' : 'border-blue-200 dark:border-blue-800'}`}>
+                        {hasUnreadAnnouncement && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-bounce-small shadow-md z-10">
+                                NUEVO
+                            </span>
+                        )}
                         <h2 className="text-lg font-bold text-blue-800 dark:text-blue-300 mb-2">Anuncios Recientes</h2>
                         <p className="text-blue-700 dark:text-blue-400">{announcements[0].message}</p>
                     </div>
