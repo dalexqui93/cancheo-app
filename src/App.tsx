@@ -2091,7 +2091,7 @@ const App = () => {
     const isChatView = isSocialView && socialSection === 'chat';
     
     const showHeader = !isChatView && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR, View.OWNER_DASHBOARD, View.SUPER_ADMIN_DASHBOARD, View.OWNER_REGISTER, View.OWNER_PENDING_VERIFICATION, View.SOCIAL].includes(view);
-    const showBottomNav = !isChatView && user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
+    const showBottomNav = !isChatView && user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL, View.FIELD_DETAIL].includes(view);
     
     return (
         <div className={`bg-white min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
@@ -2108,7 +2108,7 @@ const App = () => {
                                 invitations={receivedInvitations}
                                 onDismiss={dismissNotification} 
                                 onMarkAllAsRead={handleMarkAllNotificationsAsRead} 
-                                onClearAll={handleClearNotifications} 
+                                on開ClearAll={handleClearNotifications} 
                                 onAcceptInvitation={handleAcceptInvitation}
                                 onRejectInvitation={handleRejectInvitation}
                                 onAcceptMatchInvite={handleAcceptMatchInvite}
