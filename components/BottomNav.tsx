@@ -8,23 +8,6 @@ interface BottomNavProps {
 
 // --- ICON FAMILY: PREMIUM SEMI-FILLED ---
 
-const ExploreIcon = ({ active }: { active: boolean }) => (
-    <svg viewBox="0 0 24 24" className={`w-6 h-6 transition-all duration-300 ${active ? 'text-brand' : 'text-slate-400'}`}>
-        <path 
-            fill={active ? 'currentColor' : 'none'} 
-            stroke="currentColor" 
-            strokeWidth="1.5" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-            d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" 
-        />
-        <path 
-            fill={active ? 'white' : 'currentColor'} 
-            d="M14.5 9.5L13 13l-3.5 1.5L11 11l3.5-1.5z" 
-        />
-    </svg>
-);
-
 const BookingsIcon = ({ active }: { active: boolean }) => (
     <svg viewBox="0 0 24 24" className={`w-6 h-6 transition-all duration-300 ${active ? 'text-brand' : 'text-slate-400'}`}>
         <rect 
@@ -69,20 +52,10 @@ const DaviPlayIcon = () => (
 const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate }) => {
     return (
         <div className="fixed bottom-0 left-0 right-0 z-[100] px-4 pb-6 pt-2 pointer-events-none">
-            <nav className="container mx-auto max-w-md h-[84px] glass-nav rounded-[38px] flex justify-between items-center px-8 shadow-premium shadow-nav-glow pointer-events-auto relative border border-white/10">
+            <nav className="container mx-auto max-w-md h-[84px] glass-nav rounded-[38px] flex justify-between items-center px-10 shadow-premium shadow-nav-glow pointer-events-auto relative border border-white/10">
                 
-                {/* Left Group */}
-                <div className="flex justify-between items-center w-[35%]">
-                    <button
-                        onClick={() => onNavigate('explore')}
-                        className="flex flex-col items-center justify-center gap-1.5 active:scale-90 transition-all duration-200"
-                    >
-                        <div className={`${activeTab === 'explore' ? 'active-icon-anim' : ''}`}>
-                            <ExploreIcon active={activeTab === 'explore'} />
-                        </div>
-                        <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${activeTab === 'explore' ? 'text-brand' : 'text-slate-500'}`}>Mapa</span>
-                    </button>
-
+                {/* Left Group - Citas */}
+                <div className="flex justify-center items-center w-[30%]">
                     <button
                         onClick={() => onNavigate('bookings')}
                         className="flex flex-col items-center justify-center gap-1.5 active:scale-90 transition-all duration-200"
@@ -107,8 +80,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate }) => {
                     </span>
                 </div>
 
-                {/* Right Group */}
-                <div className="flex justify-end items-center w-[35%]">
+                {/* Right Group - Perfil */}
+                <div className="flex justify-center items-center w-[30%]">
                     <button
                         onClick={() => onNavigate('profile')}
                         className="flex flex-col items-center justify-center gap-1.5 active:scale-90 transition-all duration-200"
