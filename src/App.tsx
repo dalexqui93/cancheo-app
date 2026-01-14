@@ -1,5 +1,3 @@
-
-// ... (imports remain the same)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { SoccerField, User, Notification, BookingDetails, ConfirmedBooking, Tab, Theme, AccentColor, PaymentMethod, CardPaymentMethod, Player, Announcement, Loyalty, UserLoyalty, Review, OwnerApplication, WeatherData, SocialSection, Team, Invitation, ChatMessage, SystemMessage, AcceptedMatchInvite } from '../types';
 import { View } from '../types';
@@ -34,7 +32,6 @@ import * as db from '../database';
 import { isFirebaseConfigured } from '../database';
 import { getCurrentPosition, calculateDistance } from '../utils/geolocation';
 
-// ... (FirebaseWarningBanner, OfflineBanner, notificationSound consts remain the same)
 const FirebaseWarningBanner: React.FC = () => {
     if (isFirebaseConfigured) {
         return null;
@@ -63,10 +60,9 @@ const OfflineBanner: React.FC<{ isOnline: boolean }> = ({ isOnline }) => {
     );
 }
 
-const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
+const notificationSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAB3amZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZm';
 
 const App = () => {
-    // ... (state declarations remain the same)
     const [fields, setFields] = useState<SoccerField[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [ownerApplications, setOwnerApplications] = useState<OwnerApplication[]>([]);
@@ -118,17 +114,51 @@ const App = () => {
         }
     }, [allBookings, selectedBooking]);
 
-    // NEW: Sync Announcements to Notifications History
+    // Sync Announcements to Notifications History
     useEffect(() => {
         if (!user || announcements.length === 0) return;
 
         const syncAnnouncements = async () => {
+            // Load synced IDs from local storage to prevent re-adding deleted notifications
+            const storedSyncedIds = localStorage.getItem(`synced_announcements_${user.id}`);
+            const syncedIds: string[] = storedSyncedIds ? JSON.parse(storedSyncedIds) : [];
+            const newSyncedIds = [...syncedIds];
+
             const currentNotifications = user.notifications || [];
             const newNotificationsToAdd: Notification[] = [];
             let hasNew = false;
+            let updatedSyncList = false;
 
             announcements.forEach(ann => {
-                // Check if this announcement is already in notifications based on title and message content
+                // If we already synced this announcement ID, skip it
+                if (ann.id && newSyncedIds.includes(ann.id)) {
+                    return;
+                }
+
+                // FILTER LOGIC: Only show owner announcements to interested users
+                if (ann.ownerId) {
+                    // 1. Find all fields/complexes owned by the announcement creator
+                    const ownerFields = fields.filter(f => f.ownerId === ann.ownerId);
+                    
+                    // 2. Get the IDs of those complexes/fields
+                    const ownerComplexIds = ownerFields.map(f => f.complexId || f.id);
+                    
+                    // 3. Check if the current user has favorited ANY of these complexes
+                    const isInterested = user.favoriteFields.some(favId => ownerComplexIds.includes(favId));
+
+                    // 4. If the user doesn't have this complex as favorite, skip this announcement
+                    if (!isInterested) {
+                        // Mark as "synced" so we don't check it again unnecessarily, 
+                        // but don't add it to notifications.
+                        if (ann.id) {
+                            newSyncedIds.push(ann.id);
+                            updatedSyncList = true;
+                        }
+                        return; 
+                    }
+                }
+
+                // Double check if it exists in current notifications (e.g. from another device sync)
                 const exists = currentNotifications.some(n => 
                     n.title === ann.title && n.message === ann.message
                 );
@@ -149,9 +179,23 @@ const App = () => {
                         timestamp: ann.createdAt || new Date(),
                         read: false
                     });
+                    
+                    if (ann.id) {
+                        newSyncedIds.push(ann.id);
+                        updatedSyncList = true;
+                    }
                     hasNew = true;
+                } else if (ann.id && !newSyncedIds.includes(ann.id)) {
+                    // It exists in notifications but not in our local sync list (maybe added on another device)
+                    // Mark as synced locally so we don't try to add it again if the user deletes it.
+                    newSyncedIds.push(ann.id);
+                    updatedSyncList = true;
                 }
             });
+
+            if (updatedSyncList) {
+                 localStorage.setItem(`synced_announcements_${user.id}`, JSON.stringify(newSyncedIds));
+            }
 
             if (hasNew) {
                 // Combine new announcements with existing notifications
@@ -162,23 +206,20 @@ const App = () => {
                 setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, notifications: updatedNotifications } : u));
                 setNotifications(updatedNotifications); // Update the local state used by Header
 
-                // Persist to DB
-                if (isFirebaseConfigured) {
-                    try {
-                        // We only store the last 50 to keep the document size manageable
-                        await db.updateUser(user.id, { notifications: updatedNotifications.slice(0, 50) });
-                    } catch (e) {
-                        console.error("Error syncing announcements to notifications", e);
-                    }
+                // Persist to DB (Updated: Always call, db handles whether to use Firebase or local Demo data)
+                try {
+                    // We only store the last 50 to keep the document size manageable
+                    await db.updateUser(user.id, { notifications: updatedNotifications.slice(0, 50) });
+                } catch (e) {
+                    console.error("Error syncing announcements to notifications", e);
                 }
             }
         };
 
         syncAnnouncements();
-    }, [announcements, user?.id]); // Only re-run if announcements change or the user changes
+    }, [announcements, user?.id, fields]); // Only re-run if announcements change or the user changes
 
 
-    // ... (rest of effects and memos remain the same)
     const ownerFields = useMemo(() => {
         if (!user || !user.isOwner) return [];
         return fields.filter(field => field.ownerId === user.id);
@@ -195,7 +236,6 @@ const App = () => {
         return allTeams.filter(team => user.teamIds?.includes(team.id));
     }, [user, allTeams]);
 
-    // ... (Effects for online/offline, time, notifications permission, initial data load)
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
         const handleOffline = () => setIsOnline(false);
@@ -488,7 +528,8 @@ const App = () => {
         
         setNotifications(prev => [newNotification, ...prev]);
     
-        if (user && isFirebaseConfigured) {
+        // Updated: Always save to DB/DemoData (removed check for firebase config only)
+        if (user) {
             try {
                 const updatedNotifications = [newNotification, ...(user.notifications || [])];
                 const notificationsToSave = updatedNotifications.slice(0, 50);
@@ -557,7 +598,8 @@ const App = () => {
         const updatedNotifications = originalNotifications.filter(n => n.id !== id);
         setNotifications(updatedNotifications);
     
-        if (user && isFirebaseConfigured) {
+        // Updated: Always save to DB/DemoData
+        if (user) {
             try {
                 await db.updateUser(user.id, { notifications: updatedNotifications });
                 
@@ -583,16 +625,15 @@ const App = () => {
         const updatedNotifications = originalNotifications.map(n => ({ ...n, read: true }));
         setNotifications(updatedNotifications);
     
-        if (isFirebaseConfigured) {
-            try {
-                await db.updateUser(user.id, { notifications: updatedNotifications });
-                const updatedUser = { ...user, notifications: updatedNotifications };
-                setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-            } catch (error) {
-                console.error('Error marking notifications as read:', String(error));
-                setNotifications(originalNotifications);
-            }
+        // Updated: Always save to DB/DemoData
+        try {
+            await db.updateUser(user.id, { notifications: updatedNotifications });
+            const updatedUser = { ...user, notifications: updatedNotifications };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        } catch (error) {
+            console.error('Error marking notifications as read:', String(error));
+            setNotifications(originalNotifications);
         }
     };
     
@@ -602,16 +643,15 @@ const App = () => {
         const originalNotifications = notifications;
         setNotifications([]);
     
-        if (isFirebaseConfigured) {
-            try {
-                await db.updateUser(user.id, { notifications: [] });
-                const updatedUser = { ...user, notifications: [] };
-                setUser(updatedUser);
-                setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-            } catch (error) {
-                console.error('Error clearing notifications:', String(error));
-                setNotifications(originalNotifications);
-            }
+        // Updated: Always save to DB/DemoData
+        try {
+            await db.updateUser(user.id, { notifications: [] });
+            const updatedUser = { ...user, notifications: [] };
+            setUser(updatedUser);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+        } catch (error) {
+            console.error('Error clearing notifications:', String(error));
+            setNotifications(originalNotifications);
         }
     };
 
@@ -725,16 +765,11 @@ const App = () => {
             finalRivalName = opponentNames[Math.floor(Math.random() * opponentNames.length)];
         }
 
-        // NOTE: Loyalty logic removed from here. 
-        // Points will be awarded automatically when the match status changes to 'completed' 
-        // via the completePastBookings and checkLoyaltyForCompletedGames effects.
-
         const bookingUpdates: Partial<ConfirmedBooking> = { 
             confirmationStatus: 'confirmed',
             teamName: teamName,
             rivalName: finalRivalName,
             status: 'confirmed',
-            // loyaltyApplied remains undefined/false until the match finishes
         };
 
         await db.updateBooking(matchSetupBooking.id, bookingUpdates);
@@ -850,10 +885,6 @@ const App = () => {
         checkLoyaltyForCompletedGames();
     }, [user, allBookings, bookings, loading, addPersistentNotification, rewardInfo, ratingInfo]);
 
-    // ... (handleLogin, handleRegister, handleOwnerRegister, handleLogout, etc. remain the same)
-    
-    // The rest of the file (handlers) is unchanged but omitted for brevity in the diff, 
-    // assuming the key changes are in handleFinalizeMatchSetup and useEffects
     const handleLogin = (email: string, password: string, rememberMe: boolean) => {
         const loggedInUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     
@@ -1832,8 +1863,6 @@ const App = () => {
         }
     };
 
-
-    // ... (renderView function remains the same)
     const renderView = () => {
         const homeComponent = <Home 
             onSearch={handleSearch} 

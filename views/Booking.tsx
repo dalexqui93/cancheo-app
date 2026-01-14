@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
 import type { SoccerField, User, PaymentMethod, ConfirmedBooking, CardPaymentMethod, WalletPaymentMethod, PsePaymentMethod, Team, FieldExtra } from '../types';
@@ -24,37 +23,28 @@ interface BookingProps {
 
 const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, selected: boolean, onSelect: () => void }> = ({ method, selected, onSelect }) => {
     const renderIcon = () => {
-        if (!('type' in method)) { // Handles { id: 'cash' }
-            return <CashIcon className="h-8 w-8 text-gray-600 dark:text-gray-300" />;
+        if (!('type' in method)) {
+            return <CashIcon className="h-8 w-8 text-textMuted" />;
         }
         switch (method.type) {
-            case 'card':
-                return <CardBrandIcon brand={method.brand} className="h-8 w-auto" />;
-            case 'nequi':
-                return <NequiIcon className="h-8 w-8" />;
-            case 'daviplata':
-                return <DaviplataIcon className="h-8 w-8" />;
-            case 'pse':
-                return <PseIcon className="h-8 w-8" />;
-            default:
-                return <CreditCardIcon className="h-8 w-8 text-gray-600 dark:text-gray-300" />;
+            case 'card': return <CardBrandIcon brand={method.brand} className="h-8 w-auto" />;
+            case 'nequi': return <NequiIcon className="h-8 w-8" />;
+            case 'daviplata': return <DaviplataIcon className="h-8 w-8" />;
+            case 'pse': return <PseIcon className="h-8 w-8" />;
+            default: return <CreditCardIcon className="h-8 w-8 text-textMuted" />;
         }
     };
 
     const renderLabel = () => {
-        if (!('type' in method)) { // Handles { id: 'cash' }
-            return { title: 'Pagar en el sitio', subtitle: 'Paga al llegar a la cancha' };
+        if (!('type' in method)) {
+            return { title: 'Pagar en el sitio', subtitle: 'Efectivo o datáfono local' };
         }
         switch (method.type) {
-            case 'card':
-                return { title: `${method.brand} **** ${method.last4}`, subtitle: `Vence ${method.expiryMonth}/${method.expiryYear}` };
+            case 'card': return { title: `${method.brand} •••• ${method.last4}`, subtitle: `Vence ${method.expiryMonth}/${method.expiryYear}` };
             case 'nequi':
-            case 'daviplata':
-                return { title: method.type.charAt(0).toUpperCase() + method.type.slice(1), subtitle: `Celular ***${method.phoneNumber.slice(-4)}` };
-            case 'pse':
-                return { title: 'PSE', subtitle: method.accountHolderName };
-            default:
-                return { title: 'Método desconocido', subtitle: '' };
+            case 'daviplata': return { title: method.type.charAt(0).toUpperCase() + method.type.slice(1), subtitle: `Cel: ***${method.phoneNumber.slice(-4)}` };
+            case 'pse': return { title: 'PSE', subtitle: method.accountHolderName };
+            default: return { title: 'Método desconocido', subtitle: '' };
         }
     };
 
@@ -63,15 +53,19 @@ const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, sele
     return (
         <div 
             onClick={onSelect}
-            className={`p-4 rounded-xl border-2 flex items-center gap-4 cursor-pointer transition-all ${selected ? 'border-[var(--color-primary-500)] bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/50' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+            className={`p-5 rounded-3xl border-2 flex items-center gap-4 cursor-pointer transition-all active:scale-[0.98] ${
+                selected 
+                ? 'border-brand bg-primary-50 shadow-sm' 
+                : 'border-bgMain bg-white hover:border-brand/20'
+            }`}
         >
             <div className="flex-shrink-0">{renderIcon()}</div>
-            <div className="flex-grow">
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{title}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
+            <div className="flex-grow min-w-0">
+                <p className={`font-bold text-sm truncate ${selected ? 'text-textMain' : 'text-textMain'}`}>{title}</p>
+                <p className="text-xs text-textMuted truncate">{subtitle}</p>
             </div>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected ? 'border-[var(--color-primary-600)]' : 'border-gray-300 dark:border-gray-500'}`}>
-                {selected && <div className="w-2.5 h-2.5 bg-[var(--color-primary-600)] rounded-full"></div>}
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selected ? 'border-brand bg-brand' : 'border-gray-200'}`}>
+                {selected && <div className="w-2 h-2 bg-white rounded-full"></div>}
             </div>
         </div>
     );
@@ -98,48 +92,16 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
     const freeTicketsForField = user.loyalty?.[fieldId]?.freeTickets || 0;
     const availableExtras = details.field.extras || [];
 
-    const isCardFormValid = useMemo(() => {
-        return paymentInfo.name.trim() !== '' &&
-               paymentInfo.cardNumber.replace(/\s/g, '').length >= 14 &&
-               paymentInfo.expiry.trim().match(/^(0[1-9]|1[0-2])\s?\/\s?\d{2}$/) &&
-               paymentInfo.cvc.trim().length >= 3;
-    }, [paymentInfo]);
-
-    const handleExtraChange = (extraId: string, delta: number, max: number) => {
-        setSelectedExtras(prev => {
-            const current = prev[extraId] || 0;
-            const newValue = Math.max(0, Math.min(max, current + delta));
-            if (newValue === 0) {
-                const { [extraId]: _, ...rest } = prev;
-                return rest;
-            }
-            return { ...prev, [extraId]: newValue };
-        });
-    };
-
     const extrasCost = availableExtras.reduce((sum, extra) => {
         const quantity = selectedExtras[extra.id] || 0;
         return sum + (quantity * extra.price);
     }, 0);
 
     const totalPrice = useFreeTicket ? 0 : details.field.pricePerHour + extrasCost;
-    
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        if (name === 'cardNumber' || name === 'cvc') {
-            const sanitizedValue = value.replace(/[^\d]/g, "");
-            setPaymentInfo(prev => ({ ...prev, [name]: sanitizedValue }));
-        } else {
-            setPaymentInfo(prev => ({ ...prev, [name]: value }));
-        }
-    };
-    
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const effectivePaymentMethod = useFreeTicket ? 'ticket' : selectedPaymentMethod;
-        const isNewCardPayment = effectivePaymentMethod === 'new_card';
-
-        if (!policiesAccepted || (isNewCardPayment && !isCardFormValid)) return;
+        if (!policiesAccepted) return;
         
         const finalExtras = availableExtras
             .filter(extra => selectedExtras[extra.id] && selectedExtras[extra.id] > 0)
@@ -150,233 +112,118 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
                 quantity: selectedExtras[extra.id]
             }));
 
-        const confirmedDetails: Omit<ConfirmedBooking, 'id' | 'status' | 'userId' | 'userName' | 'userPhone'> = {
+        onConfirm({
             ...details,
             selectedExtras: finalExtras,
             totalPrice,
-            paymentMethod: effectivePaymentMethod,
+            paymentMethod: useFreeTicket ? 'ticket' : selectedPaymentMethod,
             isFree: useFreeTicket,
             loyaltyApplied: !!useFreeTicket,
             ...(teamName.trim() && { teamName: teamName.trim() }),
             ...(rivalName.trim() && { rivalName: rivalName.trim() }),
-        };
-        onConfirm(confirmedDetails);
+        });
     };
 
-    const isConfirmButtonDisabled = !policiesAccepted || (!useFreeTicket && selectedPaymentMethod === 'new_card' && !isCardFormValid) || isBookingLoading;
-
     return (
-        <div>
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-6 hover:underline">
-                <ChevronLeftIcon className="h-5 w-5" />
-                Cambiar Selección
-            </button>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Confirmar Reserva</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-                {/* Payment & Extras */}
-                <div className="lg:col-span-3">
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                         {availableExtras.length > 0 && (
-                             <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
-                                <h3 className="text-xl font-bold mb-4">Servicios Adicionales</h3>
-                                <div className="space-y-4">
-                                    {availableExtras.map(extra => (
-                                        <div key={extra.id} className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-2xl">{extra.icon}</span>
-                                                <div>
-                                                    <p className="font-semibold">{extra.name}</p>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400">${extra.price.toLocaleString('es-CO')} c/u</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <button type="button" onClick={() => handleExtraChange(extra.id, -1, extra.maxQuantity)} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">-</button>
-                                                <span className="w-8 text-center font-semibold">{selectedExtras[extra.id] || 0}</span>
-                                                <button type="button" onClick={() => handleExtraChange(extra.id, 1, extra.maxQuantity)} className="w-8 h-8 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">+</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                         )}
+        <div className="bg-bgMain min-h-screen pb-40 animate-reveal">
+            <div className="px-4 py-6">
+                <button onClick={onBack} className="flex items-center gap-2 text-textMuted font-bold mb-6 active:scale-95 transition-transform">
+                    <ChevronLeftIcon className="h-5 w-5" />
+                    Volver
+                </button>
+                
+                <h1 className="text-3xl font-black text-textMain tracking-tighter mb-8 px-1">Confirmación</h1>
 
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
-                            <h3 className="text-xl font-bold mb-4">Detalles del Partido (Opcional)</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                                Ingresa los nombres de los equipos para que aparezcan en la sección "Partidos de Hoy".
+                <div className="space-y-6">
+                    {/* Summary Item Card */}
+                    <div className="bg-white rounded-4xl p-5 shadow-premium border border-white flex gap-4 items-center">
+                        <div className="w-20 h-20 rounded-3xl overflow-hidden flex-shrink-0">
+                            <img src={details.field.images[0]} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-grow min-w-0">
+                            <h3 className="font-bold text-textMain truncate">{details.field.name}</h3>
+                            <p className="text-xs text-textMuted font-medium mt-1">
+                                {details.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })} • {details.time}
                             </p>
-                            <div className="space-y-4">
-                                <div>
-                                    <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tu Equipo</label>
-                                    <input
-                                        type="text"
-                                        id="teamName"
-                                        value={teamName}
-                                        onChange={(e) => setTeamName(e.target.value)}
-                                        placeholder="Ej: Los Galácticos"
-                                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="rivalName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Equipo Rival</label>
-                                    <input
-                                        type="text"
-                                        id="rivalName"
-                                        value={rivalName}
-                                        onChange={(e) => setRivalName(e.target.value)}
-                                        placeholder="Ej: Atlético Panas"
-                                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700"
-                                    />
-                                </div>
-                            </div>
+                            <p className="text-brand font-black mt-1 text-sm">${details.field.pricePerHour.toLocaleString()}</p>
                         </div>
+                    </div>
 
-                        {freeTicketsForField > 0 && details.field.loyaltyEnabled && (
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400">
-                                            <span className="text-2xl">🎟️</span>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold">Tienes {freeTicketsForField} cancha{freeTicketsForField > 1 ? 's' : ''} gratis para {details.field.name}</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">¿Quieres usar un ticket para esta reserva?</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className={`${
-                                            useFreeTicket ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-600'
-                                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
-                                        role="switch"
-                                        aria-checked={useFreeTicket}
-                                        onClick={() => setUseFreeTicket(!useFreeTicket)}
-                                    >
-                                        <span className={`${
-                                            useFreeTicket ? 'translate-x-5' : 'translate-x-0'
-                                        } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                                        />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {!useFreeTicket && (
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg dark:border dark:border-gray-700">
-                                <h3 className="text-xl font-bold mb-4">Método de Pago</h3>
-                                <div className="space-y-3">
-                                    {user.paymentMethods?.map(method => (
-                                        <PaymentMethodItem key={method.id} method={method} selected={selectedPaymentMethod === method.id} onSelect={() => setSelectedPaymentMethod(method.id)} />
-                                    ))}
-                                    <PaymentMethodItem method={{id: 'cash'}} selected={selectedPaymentMethod === 'cash'} onSelect={() => setSelectedPaymentMethod('cash')} />
-                                    <div onClick={() => setSelectedPaymentMethod('new_card')} className={`p-4 rounded-xl border-2 flex items-center gap-4 cursor-pointer transition-all ${selectedPaymentMethod === 'new_card' ? 'border-[var(--color-primary-500)] bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/50' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-                                        <div className="flex-shrink-0"><CreditCardIcon className="h-8 w-8 text-gray-600 dark:text-gray-300" /></div>
-                                        <div className="flex-grow"><p className="font-semibold text-gray-800 dark:text-gray-200">Pagar con nueva tarjeta</p></div>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === 'new_card' ? 'border-[var(--color-primary-600)]' : 'border-gray-300 dark:border-gray-500'}`}>
-                                            {selectedPaymentMethod === 'new_card' && <div className="w-2.5 h-2.5 bg-[var(--color-primary-600)] rounded-full"></div>}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {selectedPaymentMethod === 'new_card' && (
-                                    <div className="mt-6 space-y-4 border-t dark:border-gray-700 pt-6">
-                                        <h4 className="font-semibold">Información de la nueva tarjeta</h4>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre en la tarjeta</label>
-                                            <input type="text" name="name" value={paymentInfo.name} onChange={handleInputChange} className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700" required/>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Número de la tarjeta</label>
-                                            <input type="text" name="cardNumber" value={paymentInfo.cardNumber} onChange={handleInputChange} placeholder="0000 0000 0000 0000" className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700" required/>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <div className="flex-1">
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Vencimiento</label>
-                                                <input type="text" name="expiry" value={paymentInfo.expiry} onChange={handleInputChange} placeholder="MM / AA" className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700" required/>
-                                            </div>
-                                            <div className="flex-1">
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">CVC</label>
-                                                <input type="text" name="cvc" value={paymentInfo.cvc} onChange={handleInputChange} placeholder="123" className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700" required/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-
-                        <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                            <div className="flex items-start">
-                                <div className="flex h-5 items-center">
-                                    <input id="policies" name="policies" type="checkbox" checked={policiesAccepted} onChange={(e) => setPoliciesAccepted(e.target.checked)} className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] bg-white dark:bg-gray-700" />
-                                </div>
-                                <div className="ml-3 text-sm">
-                                    <label htmlFor="policies" className="font-medium text-gray-700 dark:text-gray-300">He leído y acepto las políticas de cancelación y pago.</label>
-                                    <p className="text-gray-500 dark:text-gray-400 mt-1">Solo puedes cancelar la reserva si faltan más de 6 horas para empezar.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" disabled={isConfirmButtonDisabled} className="w-full bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 mt-8 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none shadow-md hover:shadow-lg flex items-center justify-center">
-                            {isBookingLoading ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Procesando...
-                                </>
-                            ) : (
-                                useFreeTicket ? 'Confirmar con Ticket Gratis' : (selectedPaymentMethod === 'cash' ? 'Confirmar Reserva' : `Pagar ${totalPrice.toLocaleString('es-CO', {style: 'currency', currency: 'COP', minimumFractionDigits: 0})}`)
-                            )}
-                        </button>
-                    </form>
-                </div>
-                {/* Order Summary */}
-                <div className="lg:col-span-2">
-                     <div className="sticky top-24 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg dark:border dark:border-gray-700">
-                        <h2 className="text-2xl font-bold border-b dark:border-gray-700 pb-4 mb-4">Resumen de tu Reserva</h2>
+                    {/* Team Details (Optional) */}
+                    <div className="bg-white rounded-4xl p-6 shadow-premium border border-white">
+                        <h3 className="font-black text-sm uppercase tracking-widest text-textMuted mb-4">Ajustes del partido</h3>
                         <div className="space-y-4">
-                            <img src={details.field.images[0]} alt={details.field.name} className="rounded-lg w-full h-40 object-cover mb-4"/>
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Cancha</p>
-                                <p className="font-semibold text-lg">{details.field.name}</p>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-textMain ml-1">Tu equipo</label>
+                                <input
+                                    type="text"
+                                    value={teamName}
+                                    onChange={(e) => setTeamName(e.target.value)}
+                                    placeholder="Ej: Los Galácticos"
+                                    className="ios-input text-sm font-semibold"
+                                />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Fecha y Hora</p>
-                                <p className="font-semibold text-lg">{details.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })} a las {details.time}</p>
-                            </div>
-                            <div className="border-t dark:border-gray-700 pt-4 space-y-2">
-                                <div className="flex justify-between">
-                                    <p>Reserva de cancha (1 hora)</p>
-                                    <p className={`font-medium ${useFreeTicket ? 'line-through' : ''}`}>${details.field.pricePerHour.toLocaleString('es-CO')}</p>
-                                </div>
-                                
-                                {/* Dynamic Extras Summary */}
-                                {availableExtras.map(extra => {
-                                    const qty = selectedExtras[extra.id];
-                                    if (!qty) return null;
-                                    return (
-                                        <div key={extra.id} className="flex justify-between text-gray-600 dark:text-gray-300">
-                                            <p>{extra.name} ({qty})</p>
-                                            <p className="font-medium">${(qty * extra.price).toLocaleString('es-CO')}</p>
-                                        </div>
-                                    );
-                                })}
-
-                                {useFreeTicket && (
-                                    <div className="flex justify-between text-green-600 dark:text-green-400">
-                                        <p>Ticket de Fidelidad</p>
-                                        <p className="font-medium">-${details.field.pricePerHour.toLocaleString('es-CO')}</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="border-t-2 border-dashed dark:border-gray-600 pt-4 flex justify-between items-center">
-                                <p className="text-xl font-bold">Total</p>
-                                <p className="text-2xl font-bold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)]">${totalPrice.toLocaleString('es-CO')}</p>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-textMain ml-1">Equipo Rival</label>
+                                <input
+                                    type="text"
+                                    value={rivalName}
+                                    onChange={(e) => setRivalName(e.target.value)}
+                                    placeholder="Ej: Retadores FC"
+                                    className="ios-input text-sm font-semibold"
+                                />
                             </div>
                         </div>
                     </div>
+
+                    {/* Payment Methods */}
+                    <div className="bg-white rounded-4xl p-6 shadow-premium border border-white">
+                        <h3 className="font-black text-sm uppercase tracking-widest text-textMuted mb-4">Método de pago</h3>
+                        <div className="space-y-3">
+                            {user.paymentMethods?.map(method => (
+                                <PaymentMethodItem key={method.id} method={method} selected={selectedPaymentMethod === method.id} onSelect={() => setSelectedPaymentMethod(method.id)} />
+                            ))}
+                            <PaymentMethodItem method={{id: 'cash'}} selected={selectedPaymentMethod === 'cash'} onSelect={() => setSelectedPaymentMethod('cash')} />
+                        </div>
+                    </div>
+
+                    {/* Policy Acceptance */}
+                    <div className="px-2">
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input 
+                                type="checkbox" 
+                                checked={policiesAccepted} 
+                                onChange={(e) => setPoliciesAccepted(e.target.checked)}
+                                className="w-5 h-5 rounded-lg border-gray-300 text-brand focus:ring-brand mt-0.5"
+                            />
+                            <span className="text-xs text-textMuted leading-snug group-active:opacity-70 transition-opacity">
+                                Acepto las políticas de cancelación (hasta 6h antes del evento para reembolso completo).
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Final CTA Bar */}
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
+                <div className="container mx-auto max-w-md glass-footer p-5 rounded-5xl shadow-2xl space-y-4">
+                    <div className="flex justify-between items-end px-2">
+                        <span className="text-xs font-bold text-textMuted uppercase tracking-widest">Total a pagar</span>
+                        <span className="text-3xl font-black text-textMain tracking-tighter">${totalPrice.toLocaleString()}</span>
+                    </div>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={!policiesAccepted || isBookingLoading}
+                        className={`w-full py-5 rounded-3xl font-black text-sm uppercase tracking-widest transition-all shadow-button active:scale-95 flex items-center justify-center gap-3 ${
+                            policiesAccepted && !isBookingLoading
+                            ? 'bg-brand text-white' 
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                        }`}
+                    >
+                        {isBookingLoading ? (
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        ) : 'PAGAR Y FINALIZAR'}
+                    </button>
                 </div>
             </div>
         </div>

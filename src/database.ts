@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ChatMessage, Invitation, RecurringContract } from './types';
+import type { SoccerField, User, ConfirmedBooking, OwnerApplication, Review, Announcement, Player, Team, TeamEvent, Match, ForumPost, ForumComment, SportsEmoji, ForumReaction, ChatMessage, Invitation, RecurringContract } from './types';
 
 // DECLARACIÓN GLOBAL PARA FIREBASE
 declare const firebase: any;
@@ -33,7 +33,6 @@ if (isFirebaseConfigured) {
             db = firebase.firestore();
         }
     } catch (e) {
-        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error('Error al inicializar Firebase. Revisa tus credenciales en database.ts:', String(e));
     }
 } else {
@@ -98,7 +97,6 @@ const usersToSeed = [
     }))
 ];
 
-// ... (Rest of seeded data remains the same)
 const fieldsToSeed = [
   {
     id: 'field-1', complexId: 'complex-1', ownerId: owner1Id, name: 'El Templo del Fútbol - Cancha 1', address: 'Calle 123 #45-67', city: 'Bogotá', department: 'Cundinamarca', pricePerHour: 90000, rating: 4.5,
@@ -216,20 +214,18 @@ export const seedDatabase = async () => {
     const adminQuery = await usersCollection.where('email', '==', 'admin@cancheo.com').limit(1).get();
 
     if (!adminQuery.empty) {
-        return; // La base de datos ya parece tener datos
+        return; 
     }
 
     console.log("Base de datos vacía, poblando con datos de ejemplo...");
     const batch = db.batch();
 
-    // Añadir usuarios
     usersToSeed.forEach(user => {
         const { id, ...data } = user;
         const userRef = usersCollection.doc(id);
         batch.set(userRef, data);
     });
 
-    // Añadir canchas
     const fieldsCollection = db.collection('fields');
     fieldsToSeed.forEach(field => {
         const { id, ...data } = field;
@@ -237,7 +233,6 @@ export const seedDatabase = async () => {
         batch.set(fieldRef, {...data, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
     });
 
-    // Añadir equipos
     const teamsCollection = db.collection('teams');
     teamsToSeed.forEach(team => {
         const { id, ...data } = team;
@@ -245,7 +240,6 @@ export const seedDatabase = async () => {
         batch.set(teamRef, data);
     });
     
-    // Añadir posts
     const postsCollection = db.collection('posts');
     postsToSeed.forEach(post => {
         const { id, ...data } = post;
@@ -263,7 +257,6 @@ export const seedDatabase = async () => {
         batch.set(postRef, dataToSave);
     });
 
-    // Añadir anuncios
     const announcementsCollection = db.collection('announcements');
     announcementsToSeed.forEach(announcementData => {
         const announcementRef = announcementsCollection.doc();
@@ -274,17 +267,14 @@ export const seedDatabase = async () => {
         await batch.commit();
         console.log("Base de datos poblada exitosamente.");
     } catch (error) {
-        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error("Error al poblar la base de datos:", String(error));
     }
 };
 
 // --- API DE LA BASE DE DATOS ---
 
-// -- Helpers ---
 const docToData = (doc) => {
     const data = doc.data();
-    // Convierte Timestamps de Firestore a objetos Date de JS de forma recursiva
     const convertTimestamps = (obj) => {
         if (!obj) return;
         for (const key in obj) {
@@ -305,7 +295,6 @@ const getCollection = async (collectionName) => {
         const snapshot = await db.collection(collectionName).get();
         return snapshot.docs.map(docToData);
     } catch (error) {
-        // FIX: Explicitly convert 'unknown' error to string for safe logging.
         console.error(`Error obteniendo la colección ${collectionName}:`, String(error));
         return [];
     }
@@ -374,7 +363,7 @@ if (!isFirebaseConfigured) {
 // --- FUNCIONES DE LA API ---
 
 export const listenToAllBookings = (callback) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('bookings').onSnapshot(async (snapshot) => {
             const bookings = snapshot.docs.map(docToData);
             const fieldsSnapshot = await db.collection('fields').get();
@@ -387,7 +376,7 @@ export const listenToAllBookings = (callback) => {
 };
 
 export const listenToAllTeams = (callback) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('teams').onSnapshot(snapshot => {
             callback(snapshot.docs.map(docToData));
         });
@@ -396,28 +385,27 @@ export const listenToAllTeams = (callback) => {
 }
 
 export const listenToAllUsers = (callback: (users: User[]) => void): (() => void) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('users').onSnapshot(snapshot => {
             callback(snapshot.docs.map(docToData));
         });
     }
-    // For demo mode, no real-time listener is possible. Just return initial data.
     callback(demoData.users);
-    return () => {}; // Return a dummy unsubscribe function
+    return () => {}; 
 };
 
 export const getFields = async () => {
-    if (isFirebaseConfigured) return getCollection('fields');
+    if (db) return getCollection('fields');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.fields)));
 };
 
 export const getUsers = async () => {
-    if (isFirebaseConfigured) return getCollection('users');
+    if (db) return getCollection('users');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.users)));
 };
 
 export const getUserByIdentification = async (identification: string): Promise<User | undefined> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const snapshot = await db.collection('users').where('identification', '==', identification).limit(1).get();
         if (snapshot.empty) return undefined;
         return docToData(snapshot.docs[0]) as User;
@@ -427,7 +415,7 @@ export const getUserByIdentification = async (identification: string): Promise<U
 };
 
 export const getTeams = async (): Promise<Team[]> => {
-    if (isFirebaseConfigured) return getCollection('teams');
+    if (db) return getCollection('teams');
     const reviver = (key, value) => {
         if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
             return new Date(value);
@@ -438,7 +426,7 @@ export const getTeams = async (): Promise<Team[]> => {
 };
 
 export const getAllBookings = async () => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const bookings = await getCollection('bookings');
         const fields = await getCollection('fields');
         const fieldMap = new Map(fields.map(f => [f.id, f]));
@@ -451,17 +439,17 @@ export const getAllBookings = async () => {
 };
 
 export const getOwnerApplications = async () => {
-    if (isFirebaseConfigured) return getCollection('owner_applications');
+    if (db) return getCollection('owner_applications');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.ownerApplications)));
 };
 
 export const getAnnouncements = async () => {
-    if (isFirebaseConfigured) return getCollection('announcements');
+    if (db) return getCollection('announcements');
     return Promise.resolve(JSON.parse(JSON.stringify(demoData.announcements)));
 };
 
 export const addUser = async (userData) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const usersRef = db.collection('users');
         const existing = await usersRef.where('email', '==', userData.email).limit(1).get();
         if (!existing.empty) {
@@ -479,7 +467,7 @@ export const addUser = async (userData) => {
 };
 
 export const updateUser = async (userId, updates) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('users').doc(userId).update(updates);
     }
     const userIndex = demoData.users.findIndex(u => u.id === userId);
@@ -497,7 +485,7 @@ export const updateUser = async (userId, updates) => {
 };
 
 export const removeUserField = async (userId, fieldsToRemove) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const updates = {};
         fieldsToRemove.forEach(field => {
             updates[field] = firebase.firestore.FieldValue.delete();
@@ -532,7 +520,7 @@ export const addBooking = async (bookingData) => {
     const dataToSave = { ...dataWithMatchDetails, fieldId: dataWithMatchDetails.field.id };
     delete dataToSave.field;
 
-    if (isFirebaseConfigured) {
+    if (db) {
         const docRef = await db.collection('bookings').add(dataToSave);
         return { id: docRef.id, ...dataWithMatchDetails };
     }
@@ -542,7 +530,7 @@ export const addBooking = async (bookingData) => {
 };
 
 export const updateBooking = async (bookingId, updates) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('bookings').doc(bookingId).update(updates);
     }
     const bookingIndex = demoData.bookings.findIndex(b => b.id === bookingId);
@@ -553,7 +541,7 @@ export const updateBooking = async (bookingId, updates) => {
 };
 
 export const addOwnerApplication = async (appData) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const docRef = await db.collection('owner_applications').add(appData);
         return { id: docRef.id, ...appData };
     }
@@ -563,7 +551,7 @@ export const addOwnerApplication = async (appData) => {
 };
 
 export const addReviewToField = async (fieldId, review) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const fieldRef = db.collection('fields').doc(fieldId);
         return fieldRef.update({
             reviews: firebase.firestore.FieldValue.arrayUnion(review)
@@ -577,7 +565,7 @@ export const addReviewToField = async (fieldId, review) => {
 };
 
 export const addAnnouncement = async (announcementData) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const docRef = await db.collection('announcements').add({ ...announcementData, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         return { id: docRef.id, ...announcementData, createdAt: new Date() };
     }
@@ -587,7 +575,7 @@ export const addAnnouncement = async (announcementData) => {
 };
 
 export const deleteAnnouncement = async (announcementId) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('announcements').doc(announcementId).delete();
     }
     demoData.announcements = demoData.announcements.filter(a => a.id !== announcementId);
@@ -595,7 +583,7 @@ export const deleteAnnouncement = async (announcementId) => {
 };
 
 export const addField = async (fieldData) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const docRef = await db.collection('fields').add(fieldData);
         return { id: docRef.id, ...fieldData };
     }
@@ -605,7 +593,7 @@ export const addField = async (fieldData) => {
 };
 
 export const updateField = async (fieldId, updates) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('fields').doc(fieldId).update(updates);
     }
     const fieldIndex = demoData.fields.findIndex(f => f.id === fieldId);
@@ -616,42 +604,35 @@ export const updateField = async (fieldId, updates) => {
 };
 
 export const deleteField = async (fieldId: string): Promise<void> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const batch = db.batch();
 
-        // 1. Delete Field Document
         const fieldRef = db.collection('fields').doc(fieldId);
         batch.delete(fieldRef);
 
-        // 2. Find and Delete Bookings associated with this field
         const bookingsSnapshot = await db.collection('bookings').where('fieldId', '==', fieldId).get();
         bookingsSnapshot.docs.forEach(doc => {
             batch.delete(doc.ref);
         });
 
-        // 3. Find and Delete Recurring Contracts associated with this field
         const contractsSnapshot = await db.collection('recurring_contracts').where('fieldId', '==', fieldId).get();
         contractsSnapshot.docs.forEach(doc => {
             batch.delete(doc.ref);
         });
 
-        // Commit all deletions
         await batch.commit();
         return;
     }
 
-    // Demo Mode: Filter out field, bookings, and contracts
     demoData.fields = demoData.fields.filter(f => f.id !== fieldId);
-    // Filter bookings where booking.field.id is the deleted field
     demoData.bookings = demoData.bookings.filter(b => b.field.id !== fieldId);
-    // Filter contracts where contract.fieldId is the deleted field
     demoData.recurringContracts = demoData.recurringContracts.filter(c => c.fieldId !== fieldId);
 
     return Promise.resolve();
 };
 
 export const updateTeam = async (teamId, updates) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('teams').doc(teamId).update(updates);
     }
     const teamIndex = demoData.teams.findIndex(t => t.id === teamId);
@@ -659,7 +640,6 @@ export const updateTeam = async (teamId, updates) => {
         const currentTeam = demoData.teams[teamIndex];
         const newTeam = { ...currentTeam };
 
-        // Deep merge for nested objects like 'stats'
         for (const key in updates) {
             if (updates.hasOwnProperty(key)) {
                 if (typeof updates[key] === 'object' && !Array.isArray(updates[key]) && updates[key] !== null && currentTeam[key]) {
@@ -675,7 +655,7 @@ export const updateTeam = async (teamId, updates) => {
 };
 
 export const addTeam = async (teamData: Omit<Team, 'id'>): Promise<Team> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const dataToSave = {
             ...teamData,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -693,38 +673,31 @@ export const addTeam = async (teamData: Omit<Team, 'id'>): Promise<Team> => {
 
 export const getContractsByOwner = async (ownerId: string): Promise<RecurringContract[]> => {
     let contracts: RecurringContract[] = [];
-    if (isFirebaseConfigured) {
+    if (db) {
         const snapshot = await db.collection('recurring_contracts').where('ownerId', '==', ownerId).get();
         contracts = snapshot.docs.map(docToData);
     } else {
         contracts = JSON.parse(JSON.stringify(demoData.recurringContracts.filter(c => c.ownerId === ownerId)));
     }
 
-    // Check for expiration and auto-complete
     const now = new Date();
 
     const updates = contracts.map(async (contract) => {
-        // Ensure accurate date comparison by setting contract expiration to the VERY END of the end date (23:59:59)
-        // This handles cases where "today" is the end date, keeping it active until the day is over.
         let contractEndTimestamp: number;
 
         if (typeof contract.endDate === 'string') {
-            // Parse "YYYY-MM-DD" manually to avoid timezone shifts
             const [y, m, d] = contract.endDate.split('-').map(Number);
-            // Month is 0-indexed in JS Date
             contractEndTimestamp = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
         } else {
-            // Fallback if it's already a Date object
             const d = new Date(contract.endDate);
             contractEndTimestamp = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
         }
 
         if (contract.status === 'active' && contractEndTimestamp < now.getTime()) {
             contract.status = 'completed';
-            if (isFirebaseConfigured) {
+            if (db) {
                 await db.collection('recurring_contracts').doc(contract.id).update({ status: 'completed' });
             } else {
-                // Update demo data reference
                 const index = demoData.recurringContracts.findIndex(c => c.id === contract.id);
                 if (index > -1) demoData.recurringContracts[index].status = 'completed';
             }
@@ -738,12 +711,9 @@ export const getContractsByOwner = async (ownerId: string): Promise<RecurringCon
 
 export const addRecurringContract = async (contractData: Omit<RecurringContract, 'id' | 'status' | 'generatedBookings'>, field: SoccerField, player: User): Promise<RecurringContract> => {
     const { startDate, endDate, dayOfWeek, time } = contractData;
-    const generatedBookingsIds: string[] = [];
     const bookingPromises: Promise<ConfirmedBooking>[] = [];
 
-    // Calculate dates
     const dates: Date[] = [];
-    // Use local time to prevent timezone shifts
     let currentDate = new Date(startDate + 'T00:00:00');
     const localEndDate = new Date(endDate + 'T23:59:59');
 
@@ -758,8 +728,7 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
         throw new Error('No se encontraron fechas que coincidan con el día seleccionado en el rango dado.');
     }
 
-    // Check for conflicts
-    const allExistingBookings = await getAllBookings(); // Optimize: could filter by fieldId
+    const allExistingBookings = await getAllBookings(); 
     const conflict = dates.some(date => {
         return allExistingBookings.some(b => {
             if (b.field.id !== contractData.fieldId) return false;
@@ -772,10 +741,8 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
         throw new Error('Conflicto de horario: una o más fechas ya están reservadas.');
     }
 
-    // Create Contract ID first
-    const contractId = isFirebaseConfigured ? (await db.collection('recurring_contracts').add({})).id : `contract-${Date.now()}`;
+    const contractId = db ? (await db.collection('recurring_contracts').add({})).id : `contract-${Date.now()}`;
 
-    // Generate Bookings
     for (const date of dates) {
         const bookingData: Omit<ConfirmedBooking, 'id'> = {
             userId: contractData.playerId,
@@ -786,9 +753,9 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
             date: date,
             time: time,
             selectedExtras: [],
-            totalPrice: field.pricePerHour, // Assuming no extras for now
-            paymentMethod: 'cash', // Default to pay on site
-            status: 'confirmed', // Automatically confirmed slot
+            totalPrice: field.pricePerHour, 
+            paymentMethod: 'cash', 
+            status: 'confirmed', 
             confirmationStatus: 'pending',
             contractId: contractId,
             autoCancelHours: contractData.autoCancelHours,
@@ -801,7 +768,6 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
     const createdBookings = await Promise.all(bookingPromises);
     const bookingIds = createdBookings.map(b => b.id);
 
-    // Enviar notificaciones individuales por cada reserva generada
     const notificationPromises = createdBookings.map(booking => {
         const notificationForPlayer: Omit<Notification, 'id' | 'timestamp'> = {
             type: 'info',
@@ -810,13 +776,9 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
             read: false
         };
         
-        // Necesitamos el usuario actualizado para añadir la notificación
-        // En un entorno real, esto se haría en el backend/cloud function
-        // Aquí simulamos la actualización
         return (async () => {
-             // Obtener usuario actualizado para no sobrescribir notificaciones
              let currentUserState = player;
-             if (isFirebaseConfigured) {
+             if (db) {
                  const userDoc = await db.collection('users').doc(player.id).get();
                  currentUserState = docToData(userDoc);
              } else {
@@ -839,7 +801,7 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
         generatedBookings: bookingIds
     };
 
-    if (isFirebaseConfigured) {
+    if (db) {
         await db.collection('recurring_contracts').doc(contractId).set(finalContractData);
     } else {
         demoData.recurringContracts.push(finalContractData);
@@ -849,10 +811,9 @@ export const addRecurringContract = async (contractData: Omit<RecurringContract,
 };
 
 export const cancelContract = async (contractId: string): Promise<void> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         await db.collection('recurring_contracts').doc(contractId).update({ status: 'cancelled' });
         
-        // Cancel future bookings associated with this contract
         const snapshot = await db.collection('bookings').where('contractId', '==', contractId).get();
         const now = new Date();
         const batch = db.batch();
@@ -880,7 +841,7 @@ export const cancelContract = async (contractId: string): Promise<void> => {
 };
 
 export const deleteContract = async (contractId: string): Promise<void> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         await db.collection('recurring_contracts').doc(contractId).delete();
     } else {
         demoData.recurringContracts = demoData.recurringContracts.filter(c => c.id !== contractId);
@@ -892,18 +853,17 @@ export const deleteContract = async (contractId: string): Promise<void> => {
 // --- INVITATION API ---
 
 export const listenToInvitationsForUser = (userId: string, callback: (invitations: Invitation[]) => void) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('invitations').where('toUserId', '==', userId).onSnapshot(snapshot => {
             callback(snapshot.docs.map(docToData));
         });
     }
-    // Demo mode is not real-time, just returns current state
     callback(demoData.invitations.filter(i => i.toUserId === userId));
-    return () => {}; // Return a dummy unsubscribe function
+    return () => {}; 
 };
 
 export const getInvitationsForUser = async (userId: string): Promise<Invitation[]> => {
-     if (isFirebaseConfigured) {
+     if (db) {
         const snapshot = await db.collection('invitations').where('toUserId', '==', userId).get();
         return snapshot.docs.map(docToData);
     }
@@ -911,7 +871,7 @@ export const getInvitationsForUser = async (userId: string): Promise<Invitation[
 }
 
 export const listenToInvitationsByTeams = (teamIds: string[], callback: (invitations: Invitation[]) => void) => {
-    if (isFirebaseConfigured && teamIds.length > 0) {
+    if (db && teamIds.length > 0) {
         return db.collection('invitations').where('teamId', 'in', teamIds).onSnapshot(snapshot => {
             callback(snapshot.docs.map(docToData));
         });
@@ -923,7 +883,7 @@ export const listenToInvitationsByTeams = (teamIds: string[], callback: (invitat
 };
 
 export const getInvitationsByTeams = async (teamIds: string[]): Promise<Invitation[]> => {
-    if (isFirebaseConfigured && teamIds.length > 0) {
+    if (db && teamIds.length > 0) {
         const snapshot = await db.collection('invitations').where('teamId', 'in', teamIds).get();
         return snapshot.docs.map(docToData);
     }
@@ -934,7 +894,7 @@ export const getInvitationsByTeams = async (teamIds: string[]): Promise<Invitati
 }
 
 export const addInvitation = async (invitationData: Omit<Invitation, 'id'>): Promise<Invitation> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const dataToSave = { ...invitationData, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection('invitations').add(dataToSave);
         return { id: docRef.id, ...invitationData, timestamp: new Date() };
@@ -945,7 +905,7 @@ export const addInvitation = async (invitationData: Omit<Invitation, 'id'>): Pro
 };
 
 export const deleteInvitation = async (invitationId: string): Promise<void> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('invitations').doc(invitationId).delete();
     }
     demoData.invitations = demoData.invitations.filter(i => i.id !== invitationId);
@@ -970,7 +930,7 @@ const aggregateReactions = async (reactionsSnapshot) => {
 };
 
 export const listenToPosts = (callback) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('posts').orderBy('createdAt', 'desc').onSnapshot(async (snapshot) => {
             const posts = await Promise.all(snapshot.docs.map(async (doc) => {
                 const post = docToData(doc);
@@ -997,7 +957,7 @@ export const listenToPosts = (callback) => {
 };
 
 export const addPost = async (postData) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const { content, imageUrls, tags, authorId, authorName, authorProfilePicture, isFlagged } = postData;
         const dataToSave = { content, imageUrls: imageUrls || [], tags, authorId, authorName, authorProfilePicture: authorProfilePicture || null, isFlagged: isFlagged || false, createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: null, commentCount: 0, reactionCounts: {} };
         const docRef = await db.collection('posts').add(dataToSave);
@@ -1009,7 +969,7 @@ export const addPost = async (postData) => {
 };
 
 export const updatePost = async (postId, updates) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('posts').doc(postId).update({ ...updates, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     }
     const postIndex = demoData.posts.findIndex(p => p.id === postId);
@@ -1020,7 +980,7 @@ export const updatePost = async (postId, updates) => {
 };
 
 export const deletePost = async (postId) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('posts').doc(postId).delete();
     }
     demoData.posts = demoData.posts.filter(p => p.id !== postId);
@@ -1028,7 +988,7 @@ export const deletePost = async (postId) => {
 };
 
 export const addComment = async (postId, commentData) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const postRef = db.collection('posts').doc(postId);
         const commentsRef = postRef.collection('comments');
         const dataToSave = { ...commentData, createdAt: firebase.firestore.FieldValue.serverTimestamp(), reactionCounts: {} };
@@ -1045,7 +1005,7 @@ export const addComment = async (postId, commentData) => {
 };
 
 export const toggleReaction = async (postId, commentId, userId, emoji) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const postRef = db.collection('posts').doc(postId);
         let docRef;
         let reactionsRef;
@@ -1107,7 +1067,7 @@ export const toggleReaction = async (postId, commentId, userId, emoji) => {
 // --- TEAM CHAT API ---
 
 export const listenToTeamChat = (teamId: string, callback: (messages: ChatMessage[]) => void) => {
-    if (isFirebaseConfigured) {
+    if (db) {
         return db.collection('teams').doc(teamId).collection('chat').orderBy('createdAt', 'asc').onSnapshot(snapshot => {
             const messages = snapshot.docs.map(doc => {
                 const data = docToData(doc);
@@ -1125,7 +1085,7 @@ export const listenToTeamChat = (teamId: string, callback: (messages: ChatMessag
 };
 
 export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<ChatMessage> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const dataToSave = { ...messageData, readBy: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection('teams').doc(teamId).collection('chat').add(dataToSave);
         return { id: docRef.id, ...messageData, timestamp: new Date(), readBy: [] };
@@ -1137,8 +1097,8 @@ export const addChatMessage = async (teamId: string, messageData: Omit<ChatMessa
     return Promise.resolve(newMessage);
 };
 
-export const markMessageAsRead = async (teamId: string, messageId, userId) => {
-    if (isFirebaseConfigured) {
+export const markMessageAsRead = async (teamId, messageId, userId) => {
+    if (db) {
         const messageRef = db.collection('teams').doc(teamId).collection('chat').doc(messageId);
         return messageRef.update({
             readBy: firebase.firestore.FieldValue.arrayUnion(userId)
@@ -1160,17 +1120,15 @@ export const markMessageAsRead = async (teamId: string, messageId, userId) => {
 };
 
 export const deleteChatMessage = async (teamId: string, messageId: string): Promise<void> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const messageRef = db.collection('teams').doc(teamId).collection('chat').doc(messageId);
-        // Soft delete: update the message to indicate it's deleted
         return messageRef.update({
             deleted: true,
-            text: '', // Clear the original text
+            text: '', 
             attachment: firebase.firestore.FieldValue.delete(),
-            replyTo: firebase.firestore.FieldValue.delete() // Remove the reply context
+            replyTo: firebase.firestore.FieldValue.delete() 
         });
     }
-    // Handle demo mode
     if (demoData.chats && demoData.chats[teamId]) {
         const msgIndex = demoData.chats[teamId].findIndex(m => m.id === messageId);
         if (msgIndex > -1) {
@@ -1184,12 +1142,12 @@ export const deleteChatMessage = async (teamId: string, messageId: string): Prom
 };
 
 export const clearTeamChat = async (teamId: string): Promise<void> => {
-    if (isFirebaseConfigured) {
+    if (db) {
         const chatCollectionRef = db.collection('teams').doc(teamId).collection('chat');
         const snapshot = await chatCollectionRef.limit(500).get();
 
         if (snapshot.size === 0) {
-            return; // All documents have been deleted
+            return; 
         }
         
         const batch = db.batch();
@@ -1199,14 +1157,12 @@ export const clearTeamChat = async (teamId: string): Promise<void> => {
         
         await batch.commit();
 
-        // Recursively call the function if there might be more documents
         if (snapshot.size > 0) {
             await clearTeamChat(teamId);
         }
 
         return;
     }
-    // Handle demo mode
     if (demoData.chats && demoData.chats[teamId]) {
         demoData.chats[teamId] = [];
     }

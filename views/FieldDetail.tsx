@@ -1,24 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
-import type { SoccerField, ConfirmedBooking, WeatherData, Review } from '../types';
+import React, { useState } from 'react';
+import type { SoccerField, ConfirmedBooking, WeatherData } from '../types';
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
-import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
-import { LocationIcon } from '../components/icons/LocationIcon';
-import { UserIcon } from '../components/icons/UserIcon';
 import StarRating from '../components/StarRating';
-import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { LocationIcon } from '../components/icons/LocationIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
 import { HeartIcon } from '../components/icons/HeartIcon';
-import ReviewsModal from '../components/ReviewsModal';
-import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
-import ImageLightbox from '../components/ImageLightbox';
+import { CalendarIcon } from '../components/icons/CalendarIcon';
 import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
-import { SunIcon } from '../components/icons/SunIcon';
-import { MoonIcon } from '../components/icons/MoonIcon';
-import { GoogleGenAI } from '@google/genai';
-import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { SpinnerIcon } from '../components/icons/SpinnerIcon';
-
 
 interface ComplexDisplayData {
     name: string;
@@ -41,429 +29,136 @@ interface FieldDetailProps {
     weatherData: WeatherData | null;
 }
 
-const BookingWidget: React.FC<{
-    field: SoccerField;
-    uniqueId: string;
-    selectedDate: Date;
-    selectedTime: string | null;
-    onDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onTimeSelect: (time: string | null) => void;
-    minDate: string;
-    formatDateForInput: (date: Date) => string;
-    unavailableTimes: string[];
-    isLoadingAvailability: boolean;
-    weatherData: WeatherData | null;
-}> = ({ field, uniqueId, selectedDate, selectedTime, onDateChange, onTimeSelect, minDate, formatDateForInput, unavailableTimes, isLoadingAvailability, weatherData }) => {
-    const [activeTimeTab, setActiveTimeTab] = useState<'mañana' | 'tarde' | 'noche'>('noche');
-    
-    const defaultTimes = {
-        mañana: ['08:00', '09:00', '10:00', '11:00'],
-        tarde: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
-        noche: ['19:00', '20:00', '21:00', '22:00'],
-    };
-    
-    const availableTimes = field.availableSlots || defaultTimes;
-
-    const handleTimeTabChange = (tab: 'mañana' | 'tarde' | 'noche') => {
-        setActiveTimeTab(tab);
-        onTimeSelect(null); // Reset time in parent
-    };
-    
-    const now = new Date();
-    const isToday = selectedDate.toDateString() === now.toDateString();
-    const currentHour = now.getHours();
-
-    const periodConfig = {
-        mañana: { 
-            label: 'Mañana', 
-            icon: <SunIcon className="w-4 h-4"/>, 
-            baseClass: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-gray-600 dark:text-gray-300',
-            activeClass: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 ring-2 ring-yellow-500 border-transparent'
-        },
-        tarde: { 
-            label: 'Tarde', 
-            icon: <SunIcon className="w-4 h-4"/>, 
-            baseClass: 'hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-600 dark:text-gray-300',
-            activeClass: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500 border-transparent'
-        },
-        noche: { 
-            label: 'Noche', 
-            icon: <MoonIcon className="w-4 h-4"/>, 
-            baseClass: 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-600 dark:text-gray-300',
-            activeClass: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500 border-transparent'
-        }
-    };
-
-    return (
-        <div className="mt-6 space-y-4">
-            {/* Date Picker */}
-            <div>
-                <label htmlFor={`booking-date-${uniqueId}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400"/> Fecha
-                </label>
-                <input
-                    id={`booking-date-${uniqueId}`}
-                    type="date"
-                    value={formatDateForInput(selectedDate)}
-                    min={minDate}
-                    onChange={onDateChange}
-                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 dark:text-gray-200"
-                />
-            </div>
-
-            {/* Time Picker */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                    <ClockIcon className="h-5 w-5 text-gray-500 dark:text-gray-400"/> Hora
-                </label>
-                <BookingWeatherStatus 
-                    weatherData={weatherData}
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                />
-                <div className="flex space-x-2 mb-3">
-                    {(['mañana', 'tarde', 'noche'] as const).map(periodKey => {
-                        const config = periodConfig[periodKey];
-                        const isActive = activeTimeTab === periodKey;
-                        return (
-                            <button
-                                key={periodKey}
-                                onClick={() => handleTimeTabChange(periodKey)}
-                                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all border border-transparent ${
-                                    isActive 
-                                        ? config.activeClass 
-                                        : `bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${config.baseClass}`
-                                }`}
-                            >
-                                {config.icon}
-                                <span>{config.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-                 <div className="min-h-[88px]"> {/* Prevents layout shift during loading */}
-                    {isLoadingAvailability ? (
-                        <div className="grid grid-cols-3 gap-2 animate-pulse">
-                            {[...Array(availableTimes[activeTimeTab].length)].map((_, i) => (
-                                <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-3 gap-2">
-                            {availableTimes[activeTimeTab].map(time => {
-                                const [timeHour] = time.split(':').map(Number);
-                                const isPastTime = isToday && timeHour <= currentHour;
-                                const isUnavailable = unavailableTimes.includes(time) || isPastTime;
-                                return (
-                                    <button
-                                        key={time}
-                                        onClick={() => onTimeSelect(time)}
-                                        disabled={isUnavailable}
-                                        className={`py-2 px-3 rounded-md text-sm font-semibold transition text-center ${
-                                            isUnavailable
-                                                ? 'bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 line-through cursor-not-allowed'
-                                                : selectedTime === time
-                                                ? 'bg-[var(--color-primary-600)] text-white shadow-md ring-2 ring-[var(--color-primary-300)]'
-                                                : 'bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:ring-1 focus:ring-[var(--color-primary-500)]'
-                                        }`}
-                                    >
-                                        {time}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const ReviewSummary: React.FC<{ summary: string }> = ({ summary }) => {
-    return (
-        <div className="mt-6 bg-gradient-to-br from-[var(--color-primary-50)] to-blue-50 dark:from-gray-800 dark:to-gray-800 p-5 rounded-xl border border-[var(--color-primary-200)] dark:border-gray-700 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-10">
-                <SparklesIcon className="w-24 h-24 text-[var(--color-primary-600)]" />
-            </div>
-            <h3 className="font-bold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100 mb-3">
-                <SparklesIcon className="w-5 h-5 text-[var(--color-primary-500)]" /> Resumen de Opiniones (IA)
-            </h3>
-            <div className="prose dark:prose-invert text-sm text-gray-700 dark:text-gray-300 max-w-none">
-                {summary.split('\n').map((line, i) => (
-                    <p key={i} className="mb-2 last:mb-0">{line}</p>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const FieldDetail: React.FC<FieldDetailProps> = ({ complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, allBookings, weatherData }) => {
+const FieldDetail: React.FC<FieldDetailProps> = ({ 
+    complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, weatherData 
+}) => {
     const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
     const selectedField = complex.fields.find(f => f.id === selectedFieldId) || complex.fields[0];
-    const complexId = selectedField.complexId || selectedField.id;
-    
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
-    const [activeImageIndex, setActiveImageIndex] = useState(0);
-    const [isBouncing, setIsBouncing] = useState(false);
-    const [unavailableTimes, setUnavailableTimes] = useState<string[]>([]);
-    const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
-    const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
-    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-    
-    // AI Summary State
-    const [summary, setSummary] = useState<string | null>(null);
-    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
-    const [summaryError, setSummaryError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!selectedDate || !selectedField.id) return;
-
-        setIsLoadingAvailability(true);
-        
-        // Use allBookings prop to determine unavailable times for the selected field and date
-        const timer = setTimeout(() => {
-            const bookedTimes = allBookings
-                .filter(booking => {
-                    const bookingDate = new Date(booking.date);
-                    return booking.field.id === selectedField.id &&
-                           bookingDate.getFullYear() === selectedDate.getFullYear() &&
-                           bookingDate.getMonth() === selectedDate.getMonth() &&
-                           bookingDate.getDate() === selectedDate.getDate() &&
-                           booking.status === 'confirmed';
-                })
-                .map(booking => booking.time);
-            
-            setUnavailableTimes(bookedTimes);
-            setIsLoadingAvailability(false);
-        }, 200);
-
-        return () => clearTimeout(timer);
-    }, [selectedDate, selectedField.id, allBookings]);
-
-    const handleBookNowClick = () => {
-        if (selectedTime) {
-            onBookNow(selectedField, selectedTime, selectedDate);
-        }
-    };
-    
-    const handleToggleFavoriteClick = () => {
-        onToggleFavorite(complexId);
-        if (!isFavorite) {
-            setIsBouncing(true);
-            setTimeout(() => setIsBouncing(false), 800);
-        }
-    };
-    
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedDate(new Date(`${e.target.value}T00:00:00`));
-        setSelectedTime(null);
-    };
-
-    const handleFieldChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedFieldId(e.target.value);
-        setSelectedTime(null);
-        setSummary(null); // Reset summary when field changes
-        setSummaryError(null);
-    };
-
-    const handleGenerateSummary = async () => {
-        if (!selectedField.reviews || selectedField.reviews.length === 0) return;
-        
-        setIsSummaryLoading(true);
-        setSummaryError(null);
-        try {
-            const reviewsText = selectedField.reviews.map(r => r.comment).join('\n');
-            const prompt = `Resume brevemente las opiniones de los usuarios sobre esta cancha de fútbol basándote en los siguientes comentarios. Destaca los puntos positivos y negativos principales en una lista corta:\n\n${reviewsText}`;
-            
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({ 
-                model: 'gemini-2.5-flash', // Using flash to avoid quota issues
-                contents: prompt 
-            });
-            
-            setSummary(response.text);
-        } catch (error: any) {
-            console.error("Error generating summary:", error);
-            // Improved error handling for quota exhaustion
-            if (
-                error?.status === 429 || 
-                error?.status === 'RESOURCE_EXHAUSTED' || 
-                (error?.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')))
-            ) {
-                setSummaryError('Se ha excedido el límite de uso de la IA. Por favor, intenta de nuevo más tarde.');
-            } else {
-                setSummaryError('No se pudo generar el resumen. Intenta de nuevo.');
-            }
-        } finally {
-            setIsSummaryLoading(false);
-        }
-    };
-
-    const formatDateForInput = (date: Date) => {
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    };
-    
-    const handlePrevImage = () => setActiveImageIndex(prev => (prev - 1 + complex.images.length) % complex.images.length);
-    const handleNextImage = () => setActiveImageIndex(prev => (prev + 1) % complex.images.length);
-
-    const minDate = formatDateForInput(new Date());
-    const isFavorite = favoriteFields.includes(complexId);
+    const isFavorite = favoriteFields.includes(selectedField.complexId || selectedField.id);
+    const availableHours = ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
 
     return (
-        <div>
-            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold mb-2 hover:underline">
-                <ChevronLeftIcon className="h-5 w-5" />
-                Volver
-            </button>
-
-            <div className="w-full aspect-video lg:aspect-[2.4/1] -mx-4 md:mx-0 md:mt-2">
-                <div className="relative group h-full w-full md:rounded-2xl md:overflow-hidden shadow-lg flex items-center justify-center bg-gray-200 dark:bg-gray-800 cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
-                    {complex.images.length > 0 && <img key={complex.images[activeImageIndex]} src={complex.images[activeImageIndex]} alt={`${complex.name} - Imagen ${activeImageIndex + 1}`} className="w-full h-full object-cover transition-opacity duration-300" />}
-                    {complex.images.length > 1 && (
-                        <>
-                            <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} aria-label="Imagen anterior" className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-800"><ChevronLeftIcon className="h-6 w-6 text-gray-800 dark:text-gray-200" /></button>
-                             <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} aria-label="Siguiente imagen" className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm p-2 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-800"><ChevronRightIcon className="h-6 w-6 text-gray-800 dark:text-gray-200" /></button>
-                        </>
-                    )}
+        <div className="bg-bgMain min-h-screen pb-32 animate-reveal">
+            {/* Immersive Header Image */}
+            <div className="relative h-[35vh] overflow-hidden">
+                <img 
+                    src={complex.images[0]} 
+                    className="w-full h-full object-cover scale-105" 
+                    alt={complex.name} 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-bgMain via-transparent to-black/20"></div>
+                
+                <div className="absolute top-6 left-4 right-4 flex justify-between items-center z-10">
+                    <button 
+                        onClick={onBack}
+                        className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-premium border border-white/50 active:scale-90 transition-transform"
+                    >
+                        <ChevronLeftIcon className="w-5 h-5 text-textMain" />
+                    </button>
+                    
+                    <button 
+                        onClick={() => onToggleFavorite(selectedField.complexId || selectedField.id)}
+                        className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-premium border border-white/50 active:scale-90 transition-transform"
+                    >
+                        <HeartIcon isFilled={isFavorite} className={`w-5 h-5 ${isFavorite ? 'text-brand' : 'text-textMuted'}`} />
+                    </button>
                 </div>
             </div>
-            
-            {complex.images.length > 1 && (
-                <div className="mt-2 -mx-4 md:mx-0">
-                    <div className="flex space-x-2 overflow-x-auto scrollbar-hide px-4 md:px-0 py-2">
-                        {complex.images.map((image, index) => (
+
+            {/* Information Card */}
+            <div className="relative -mt-10 px-4 space-y-6">
+                <div className="bg-white rounded-4xl p-6 shadow-premium border border-white">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h1 className="text-2xl font-extrabold text-textMain tracking-tight mb-1">{complex.name}</h1>
+                            <div className="flex items-center gap-2 text-textMuted text-sm">
+                                <LocationIcon className="w-4 h-4 text-brand" />
+                                <span>{complex.address}, {complex.city}</span>
+                            </div>
+                        </div>
+                        <div className="bg-primary-50 px-3 py-2 rounded-2xl flex flex-col items-center">
+                            <span className="text-brand font-black text-lg leading-none">{selectedField.rating}</span>
+                            <StarRating rating={selectedField.rating} totalStars={1} className="w-3 h-3 text-brand mt-1" />
+                        </div>
+                    </div>
+
+                    <p className="text-textMuted text-sm leading-relaxed mb-6">
+                        {complex.description}
+                    </p>
+
+                    {/* Services Cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {complex.services.map(s => (
+                            <div key={s.name} className="bg-bgMain/50 p-4 rounded-3xl flex flex-col items-center justify-center gap-2 border border-black/5">
+                                <span className="text-2xl filter drop-shadow-sm">{s.icon}</span>
+                                <span className="text-[10px] font-bold text-textMuted uppercase tracking-wider">{s.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Booking Selection Card */}
+                <div className="bg-white rounded-4xl p-6 shadow-premium border border-white space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-textMain flex items-center gap-2">
+                            <CalendarIcon className="w-5 h-5 text-brand" />
+                            Reserva hoy
+                        </h2>
+                        <div className="relative">
+                            <input 
+                                type="date" 
+                                className="bg-bgMain text-textMain text-xs font-bold px-4 py-2.5 rounded-full border-none focus:ring-2 focus:ring-brand cursor-pointer"
+                                onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                                defaultValue={new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
+                    </div>
+
+                    <BookingWeatherStatus weatherData={weatherData} selectedDate={selectedDate} selectedTime={selectedTime} />
+
+                    <div className="grid grid-cols-3 gap-3">
+                        {availableHours.map(time => (
                             <button
-                                key={index}
-                                onClick={() => setActiveImageIndex(index)}
-                                className={`flex-shrink-0 rounded-lg overflow-hidden transition-all duration-300 border-2 ${
-                                    activeImageIndex === index
-                                        ? 'border-[var(--color-primary-500)] shadow-md'
-                                        : 'border-transparent opacity-60 hover:opacity-100'
+                                key={time}
+                                onClick={() => setSelectedTime(time)}
+                                className={`py-4 rounded-2xl font-bold text-sm transition-all duration-200 border-2 active:scale-95 ${
+                                    selectedTime === time 
+                                    ? 'bg-brand text-white border-brand shadow-button' 
+                                    : 'bg-white border-bgMain text-textMuted hover:border-brand/30'
                                 }`}
-                                aria-label={`Ver imagen ${index + 1}`}
                             >
-                                <img
-                                    src={image}
-                                    alt={`Miniatura ${index + 1}`}
-                                    className="h-16 w-24 object-cover"
-                                />
+                                {time}
                             </button>
                         ))}
                     </div>
                 </div>
-            )}
-
-            <div className="mt-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                    <div className="lg:col-span-2 space-y-10 pb-[9.5rem] lg:pb-0">
-                        <div className="flex justify-between items-start gap-4">
-                            <div>
-                                <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 mt-1">{complex.name}</h1>
-                                <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-500 dark:text-gray-400">
-                                    <div className="flex items-center"><LocationIcon className="h-5 w-5 mr-2" /><span>{complex.address}, {complex.city}</span></div>
-                                    <div className="flex items-center"><StarRating rating={selectedField.rating} /><span className="text-gray-600 dark:text-gray-300 ml-2 text-sm">({selectedField.reviews.length} opiniones)</span></div>
-                                </div>
-                            </div>
-                            <button onClick={handleToggleFavoriteClick} className={`p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-full shadow-sm transition-transform ${isBouncing ? 'animate-heartbeat' : 'transform hover:scale-110'} flex-shrink-0 mt-2`} aria-label={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}>
-                                <HeartIcon isFilled={isFavorite} className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Mobile Booking Widget */}
-                        <div className="lg:hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
-                            <div className="mb-4">
-                                <label htmlFor="field-select-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Elige un campo</label>
-                                <div className="relative"><select id="field-select-mobile" value={selectedFieldId} onChange={handleFieldChange} className="w-full appearance-none p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 dark:text-gray-200 font-semibold">{complex.fields.map(f => (<option key={f.id} value={f.id}>{f.name.split(' - ').pop() || f.name} ({f.size})</option>))}</select><ChevronDownIcon className="h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/></div>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${selectedField.pricePerHour.toLocaleString('es-CO')}<span className="text-base font-normal text-gray-500 dark:text-gray-400"> / hora</span></p>
-                            </div>
-                            {selectedField.loyaltyEnabled && (<div className="flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-400 mt-2"><span className="text-lg">🎟️</span><span>Juega {selectedField.loyaltyGoal} y obtén 1 gratis</span></div>)}
-                            <BookingWidget field={selectedField} uniqueId="mobile" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} weatherData={weatherData} />
-                        </div>
-
-                        <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Descripción</h2>
-                            <p>{complex.description}</p>
-                        </div>
-
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Servicios</h2>
-                            <div className="flex flex-wrap gap-4">
-                                {complex.services.map(service => (
-                                    <div key={service.name} className="flex items-center gap-3 bg-white dark:bg-gray-800 py-2 px-4 rounded-lg border dark:border-gray-700">
-                                        <span className="text-xl">{service.icon}</span>
-                                        <span className="font-medium text-gray-700 dark:text-gray-300">{service.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Opiniones ({selectedField.reviews.length})</h2>
-                            <div className="space-y-6">{selectedField.reviews.slice(0, 2).map(review => (<div key={review.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700"><div className="flex items-start"><div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center mr-4 flex-shrink-0"><UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-400"/></div><div className="flex-1"><div className="flex items-center mb-1"><p className="font-bold text-gray-800 dark:text-gray-200">{review.author}</p><div className="ml-auto"><StarRating rating={review.rating} /></div></div><p className="text-gray-700 dark:text-gray-300 leading-relaxed">{review.comment}</p></div></div></div>))}</div>
-                            
-                            {selectedField.reviews.length > 2 && (<div className="mt-6 text-center"><button onClick={() => setIsReviewsModalOpen(true)} className="font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">Mostrar las {selectedField.reviews.length} opiniones</button></div>)}
-
-                            {/* AI Summary Button */}
-                            {selectedField.reviews.length > 0 && !summary && !isSummaryLoading && (
-                                <div className="mt-6">
-                                    <button 
-                                        onClick={handleGenerateSummary}
-                                        className="flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-[var(--color-primary-500)] to-blue-500 hover:from-[var(--color-primary-600)] hover:to-blue-600 py-2 px-4 rounded-full shadow-md transition-all transform hover:scale-105"
-                                    >
-                                        <SparklesIcon className="w-4 h-4" />
-                                        Resumir Opiniones con IA
-                                    </button>
-                                    {summaryError && <p className="text-red-500 text-xs mt-2">{summaryError}</p>}
-                                </div>
-                            )}
-
-                            {/* Loading State */}
-                            {isSummaryLoading && (
-                                <div className="mt-6 flex items-center gap-2 text-gray-500 dark:text-gray-400 animate-pulse">
-                                    <SpinnerIcon className="w-5 h-5" />
-                                    <span className="text-sm font-semibold">La IA está analizando las reseñas...</span>
-                                </div>
-                            )}
-
-                            {/* Summary Result */}
-                            {summary && <ReviewSummary summary={summary} />}
-                        </div>
-                    </div>
-
-                    <aside className="hidden lg:block lg:col-span-1">
-                        <div className="lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-y-auto bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border dark:border-gray-700">
-                            <div className="mb-4">
-                                <label htmlFor="field-select-desktop" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Elige un campo</label>
-                                <div className="relative"><select id="field-select-desktop" value={selectedFieldId} onChange={handleFieldChange} className="w-full appearance-none p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-1 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-white dark:bg-gray-700 dark:text-gray-200 font-semibold">{complex.fields.map(f => (<option key={f.id} value={f.id}>{f.name.split(' - ').pop() || f.name} ({f.size})</option>))}</select><ChevronDownIcon className="h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/></div>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${selectedField.pricePerHour.toLocaleString('es-CO')}<span className="text-base font-normal text-gray-500 dark:text-gray-400"> / hora</span></p>
-                            </div>
-                            {selectedField.loyaltyEnabled && (<div className="flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-400 mt-2"><span className="text-lg">🎟️</span><span>Juega {selectedField.loyaltyGoal} y obtén 1 gratis</span></div>)}
-                            <BookingWidget field={selectedField} uniqueId="desktop" selectedDate={selectedDate} selectedTime={selectedTime} onDateChange={handleDateChange} onTimeSelect={setSelectedTime} minDate={minDate} formatDateForInput={formatDateForInput} unavailableTimes={unavailableTimes} isLoadingAvailability={isLoadingAvailability} weatherData={weatherData} />
-                            <button onClick={handleBookNowClick} disabled={!selectedTime} className="w-full mt-6 bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none">Reservar ahora</button>
-                        </div>
-                    </aside>
-                </div>
             </div>
 
-            {isReviewsModalOpen && <ReviewsModal fieldName={selectedField.name} reviews={selectedField.reviews} onClose={() => setIsReviewsModalOpen(false)} />}
-            {isLightboxOpen && <ImageLightbox images={complex.images} startIndex={activeImageIndex} onClose={() => setIsLightboxOpen(false)} />}
-
-             {!isLightboxOpen && (
-                <div className="lg:hidden fixed bottom-20 left-0 right-0 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 shadow-t-2xl z-40 -mx-4">
-                    <div className="flex items-center justify-between gap-4 container mx-auto px-4">
-                        <div className="text-left">
-                            <p className="font-bold text-gray-900 dark:text-gray-100">{selectedTime ? `$${selectedField.pricePerHour.toLocaleString('es-CO')}` : 'Selecciona una hora'}</p>
-                            <p className="text-xs font-normal text-gray-500 dark:text-gray-400"> {selectedTime ? 'Total por 1 hora' : 'Disponibilidad para el día seleccionado'}</p>
-                        </div>
-                        <button onClick={handleBookNowClick} disabled={!selectedTime} className="bg-[var(--color-primary-600)] text-white font-bold py-3 rounded-lg hover:bg-[var(--color-primary-700)] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex-grow-[2] max-w-[60%]">Reservar ahora</button>
+            {/* Sticky Action Footer */}
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
+                <div className="container mx-auto max-w-md glass-footer p-4 rounded-5xl shadow-2xl flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-textMuted uppercase tracking-widest ml-1">PRECIO ESTIMADO</p>
+                        <p className="text-2xl font-black text-textMain tracking-tighter">
+                            ${selectedField.pricePerHour.toLocaleString('es-CO')}
+                        </p>
                     </div>
+                    <button
+                        onClick={() => selectedTime && onBookNow(selectedField, selectedTime, selectedDate)}
+                        disabled={!selectedTime}
+                        className={`px-10 py-4 rounded-3xl font-black text-sm uppercase tracking-widest transition-all shadow-button active:scale-95 ${
+                            selectedTime 
+                            ? 'bg-brand text-white' 
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                        }`}
+                    >
+                        RESERVAR
+                    </button>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

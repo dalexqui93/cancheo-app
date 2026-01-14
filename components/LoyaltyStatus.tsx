@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { UserLoyalty, SoccerField, Loyalty } from '../types';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
@@ -55,10 +54,10 @@ const LoyaltyStatus: React.FC<LoyaltyStatusProps> = ({ loyaltyData, allFields })
                             {loyaltyFieldIds.map(fieldId => {
                                 const field = allFields.find(f => f.id === fieldId);
                                 const loyalty = loyaltyData[fieldId];
-                                if (!field || !loyalty || !field.loyaltyGoal) return null;
+                                if (!field || !loyalty || !field.loyaltyGoal || field.loyaltyGoal <= 0) return null;
 
                                 const progressPercentage = (loyalty.progress / field.loyaltyGoal) * 100;
-                                const segments = Array.from({ length: field.loyaltyGoal });
+                                const segments = Array.from({ length: Math.max(0, Math.floor(field.loyaltyGoal)) });
 
                                 return (
                                     <div key={fieldId}>

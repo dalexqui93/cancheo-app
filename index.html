@@ -1,506 +1,105 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="light">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Cancheo - Reserva de Canchas</title>
     <link rel="icon" href="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#16a34a" />
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
-      // Evita el "flash" de tema claro si el modo oscuro está activado
-      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#fff1f0',
+                100: '#ffdfdc',
+                500: '#FF6B52', // Warm Coral
+                600: '#e55a4a',
+                700: '#b2463a',
+              },
+              brand: '#FF6B52',
+              bgMain: '#F6F7F9',
+              bgSurface: '#FFFFFF',
+              textMain: '#1A1C1E',
+              textMuted: '#8E9196',
+            },
+            fontFamily: {
+              sans: ['Poppins', 'Inter', 'sans-serif'],
+            },
+            borderRadius: {
+              '3xl': '1.5rem',
+              '4xl': '2rem',
+              '5xl': '2.5rem',
+            },
+            boxShadow: {
+              'premium': '0 8px 30px rgba(0, 0, 0, 0.04)',
+              'button': '0 10px 25px -5px rgba(255, 107, 82, 0.4)',
+              'card-hover': '0 20px 40px -10px rgba(0, 0, 0, 0.08)',
+            }
+          }
+        }
       }
     </script>
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            background-color: #F6F7F9;
+            color: #1A1C1E;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
         }
-
-        /* Color Palettes via CSS Variables */
-        :root {
-            /* Default to green */
-            --color-primary-50: #f0fdf4;
-            --color-primary-100: #dcfce7;
-            --color-primary-200: #bbf7d0;
-            --color-primary-300: #86efac;
-            --color-primary-400: #4ade80;
-            --color-primary-500: #22c55e;
-            --color-primary-600: #16a34a;
-            --color-primary-700: #15803d;
-            --color-primary-800: #166534;
-            --color-primary-900: #14532d;
-            --color-primary-950: #052e16;
-            --color-primary-rgb: 34, 197, 94;
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .theme-green {
-            /* Already the default */
+        .glass-footer {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.05);
         }
-        .theme-blue {
-            --color-primary-50: #eff6ff;
-            --color-primary-100: #dbeafe;
-            --color-primary-200: #bfdbfe;
-            --color-primary-300: #93c5fd;
-            --color-primary-400: #60a5fa;
-            --color-primary-500: #3b82f6;
-            --color-primary-600: #2563eb;
-            --color-primary-700: #1d4ed8;
-            --color-primary-800: #1e40af;
-            --color-primary-900: #1e3a8a;
-            --color-primary-950: #172554;
-            --color-primary-rgb: 59, 130, 246;
+        .ios-input {
+            appearance: none;
+            background: #F0F2F5;
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
         }
-        .theme-orange {
-            --color-primary-50: #fff7ed;
-            --color-primary-100: #ffedd5;
-            --color-primary-200: #fed7aa;
-            --color-primary-300: #fdba74;
-            --color-primary-400: #fb923c;
-            --color-primary-500: #f97316;
-            --color-primary-600: #ea580c;
-            --color-primary-700: #c2410c;
-            --color-primary-800: #9a3412;
-            --color-primary-900: #7c2d12;
-            --color-primary-950: #431407;
-            --color-primary-rgb: 249, 115, 22;
+        .ios-input:focus {
+            background: white;
+            border-color: #FF6B52;
+            outline: none;
         }
-        .theme-purple {
-            --color-primary-50: #f5f3ff;
-            --color-primary-100: #ede9fe;
-            --color-primary-200: #ddd6fe;
-            --color-primary-300: #c4b5fd;
-            --color-primary-400: #a78bfa;
-            --color-primary-500: #8b5cf6;
-            --color-primary-600: #7c3aed;
-            --color-primary-700: #6d28d9;
-            --color-primary-800: #5b21b6;
-            --color-primary-900: #4c1d95;
-            --color-primary-950: #2e1065;
-            --color-primary-rgb: 139, 92, 246;
-        }
-
-        /* Custom focus rings for accessibility and professional feel */
-        *:focus-visible {
-            outline: 2px solid transparent;
-            outline-offset: 2px;
-            --tw-ring-color: var(--color-primary-600);
-            --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-            --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--shadow, 0 0 #0000);
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            14% { transform: scale(1.3); }
-            28% { transform: scale(1); }
-            42% { transform: scale(1.3); }
-            70% { transform: scale(1); }
-        }
-        @keyframes slideInFromRight {
-            from { transform: translateX(100%); opacity: 0.5; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideInFromLeft {
-            from { transform: translateX(-100%); opacity: 0.5; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes reward-fade-in {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes reward-ticket-pop-in {
-            0% { transform: scale(0.2) rotate(-15deg); opacity: 0; }
-            60% { transform: scale(1.1) rotate(5deg); opacity: 1; }
-            80% { transform: scale(0.95) rotate(-2deg); }
-            100% { transform: scale(1) rotate(0deg); }
-        }
-        @keyframes reward-text-slide-in {
-            from { transform: translateY(20px); opacity: 0; }
+        @keyframes ios-reveal {
+            from { transform: translateY(10px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        @keyframes reward-sparkle {
-            0% { transform: scale(0); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
+        .animate-reveal {
+            animation: ios-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        @keyframes shimmer {
-            100% {
-                transform: translateX(100%);
-            }
-        }
-        @keyframes pulse-glow {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.5);
-            }
-            50% {
-                transform: scale(1.05);
-                box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0);
-            }
-        }
-        @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        @keyframes card-shimmer {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(100%); }
-        }
-        @keyframes progress-bar-fill {
-            from { width: 0%; }
-        }
-        @keyframes scale-in {
-            from {
-                opacity: 0;
-                transform: scale(0.95) translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-        @keyframes pulse-live {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-        @keyframes marquee-scroll {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
-        }
-        @keyframes goal-flash {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1.1);
-                text-shadow: 0 0 20px rgba(255, 51, 51, 1), 0 0 10px rgba(255, 51, 51, 1);
-            }
-            50% {
-                opacity: 0.8;
-                transform: scale(1);
-                text-shadow: 0 0 8px rgba(255, 51, 51, 0.7);
-            }
-        }
-        @keyframes highlight-pulse {
-            0% { background-color: rgba(var(--color-primary-rgb), 0); }
-            50% { background-color: rgba(var(--color-primary-rgb), 0.3); }
-            100% { background-color: rgba(var(--color-primary-rgb), 0); }
-        }
-        @keyframes typing-dot-bounce {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-4px);
-            }
-        }
-        /* New Animation for Unread Announcements */
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); border-color: rgba(59, 130, 246, 0.8); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); border-color: rgba(59, 130, 246, 0.3); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); border-color: rgba(59, 130, 246, 0.8); }
-        }
-        @keyframes bounce-small {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-        }
-
-        .animate-pulse-ring {
-            animation: pulse-ring 2s infinite;
-        }
-        .animate-bounce-small {
-            animation: bounce-small 2s infinite;
-        }
-
-        .typing-dot {
-            animation: typing-dot-bounce 1.4s infinite ease-in-out both;
-        }
-
-        .goal-animation-text {
-            position: absolute;
-            top: 50%;
-            font-family: 'Inter', sans-serif;
-            font-size: 1.125rem;
-            font-weight: 900;
-            color: #ff3333;
-            z-index: 10;
-            animation: goal-flash 0.8s infinite;
-            pointer-events: none;
-            white-space: nowrap;
-        }
-
-        .goal-animation-local {
-            left: 100%;
-            transform: translateY(-50%);
-            margin-left: 0.5rem;
-        }
-        .goal-animation-visitor {
-            right: 100%;
-            transform: translateY(-50%);
-            margin-right: 0.5rem;
-        }
-
-
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .animate-slide-in-up {
-            animation: slideInUp 0.5s ease-out both;
-        }
-        .animate-heartbeat {
-            animation: heartbeat 0.8s ease-in-out;
-        }
-        .animate-slide-in-from-right {
-            animation: slideInFromRight 0.3s ease-out;
-        }
-        .animate-slide-in-from-left {
-            animation: slideInFromLeft 0.3s ease-out;
-        }
-        .animate-pulse-glow {
-            animation: pulse-glow 2s infinite;
-        }
-        .animate-spin-slow {
-            animation: spin-slow 25s linear infinite;
-        }
-        .animate-scale-in {
-            animation: scale-in 0.15s ease-out forwards;
-        }
-        .animate-pulse-live {
-            animation: pulse-live 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        .animate-marquee-scroll {
-            animation: marquee-scroll 15s linear infinite;
-        }
-        .animate-highlight-pulse {
-            animation: highlight-pulse 1.5s ease-in-out;
-        }
-
-
-        .shimmer-bg {
-            position: relative;
-            overflow: hidden;
-        }
-        .shimmer-bg::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            transform: translateX(-100%);
-            background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.2) 20%, rgba(255, 255, 255, 0.5) 60%, rgba(255, 255, 255, 0));
-            animation: shimmer 2s infinite;
-        }
-        .dark .shimmer-bg::after {
-            background-image: linear-gradient(90deg, rgba(200, 200, 200, 0) 0, rgba(200, 200, 200, 0.1) 20%, rgba(200, 200, 200, 0.2) 60%, rgba(200, 200, 200, 0));
-        }
-
-        /* Weather Animations */
-        @keyframes rain {
-            0% { transform: translateY(-10%); }
-            100% { transform: translateY(110%); }
-        }
-        @keyframes cloud-move {
-            0% { transform: translateX(-20%); }
-            100% { transform: translateX(20%); }
-        }
-        @keyframes sun-glow {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 20px 5px #FFD700; }
-            50% { transform: scale(1.1); box-shadow: 0 0 30px 10px #FFA500; }
-        }
-
-
-        /* Leaflet popup customization */
-        .leaflet-popup-content-wrapper {
-            border-radius: 12px !important;
-            padding: 0 !important;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            background: #fff;
-            color: #1f2937;
-        }
-        .leaflet-popup-content {
-            margin: 0 !important;
-            width: 220px !important;
-            font-family: 'Inter', sans-serif;
-        }
-        .leaflet-container a.leaflet-popup-close-button {
-            padding: 8px 8px 0 0;
-            color: #333;
-        }
-
-        /* Custom popup content styling */
-        .popup-image {
-            width: 100%;
-            height: 112px;
-            object-fit: cover;
-            border-top-left-radius: 11px;
-            border-top-right-radius: 11px;
-        }
-        .popup-info {
-            padding: 8px 12px 12px;
-        }
-        .popup-title {
-            font-weight: 700;
-            font-size: 1rem;
-            line-height: 1.3;
-            margin-bottom: 2px;
-            color: #111827; /* gray-900 */
-        }
-        .popup-city {
-            font-size: 0.8rem;
-            color: #6b7280; /* gray-500 */
-            margin-bottom: 10px;
-        }
-        .popup-details-button {
-            width: 100%;
-            background-color: var(--color-primary-600);
-            color: white;
-            font-size: 0.875rem;
-            font-weight: 600;
-            padding: 8px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-        .popup-details-button:hover {
-            background-color: var(--color-primary-700);
-        }
-        
-        /* Dark mode for Leaflet popups */
-        .dark .leaflet-popup-content-wrapper {
-            background: #1f2937; /* bg-gray-800 */
-            color: #d1d5db; /* text-gray-300 */
-            border: 1px solid #374151; /* border-gray-700 */
-        }
-        .dark .leaflet-popup-content {
-            color: #d1d5db;
-        }
-        .dark .leaflet-container a.leaflet-popup-close-button {
-            color: #9ca3af; /* text-gray-400 */
-        }
-        .dark .popup-title {
-            color: #f3f4f6; /* gray-100 */
-        }
-        .dark .popup-city {
-            color: #9ca3af; /* text-gray-400 */
-        }
-        .dark .popup-details-button {
-             background-color: var(--color-primary-700);
-        }
-        .dark .popup-details-button:hover {
-             background-color: var(--color-primary-600);
-        }
-        
-        /* Scrollbar hiding utility */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scrollbar-hide {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
-
-        /* DaviPlay Hub Styles */
-        .daviplay-hub-bg {
-            background-image: url('https://i.pinimg.com/736x/47/ef/01/47ef01f804ec4ae51914ee18174221ab.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        .team-chat-bg {
-            background-color: #0d1418;
-            background-image: url('https://i.pinimg.com/736x/12/d8/86/12d886ffe69c6b940f440c3cffac55de.jpg');
-            background-repeat: repeat;
-            background-attachment: fixed;
-        }
-        .holographic-shine {
-            position: relative;
-            overflow: hidden;
-            transform: translateZ(0); /* Promotes the element to its own compositing layer */
-        }
-        .holographic-shine::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
-            transform: translateX(-150%) skewX(-30deg);
-            animation: card-shimmer 3.5s infinite;
-            animation-delay: 1.5s;
-        }
-        .progress-bar-fill {
-            animation: progress-bar-fill 1s 0.5s ease-out forwards;
-        }
-
-
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
   }
 }
 </script>
 </head>
-<body class="bg-slate-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
+<body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(err => {
-              console.log('ServiceWorker registration failed: ', err);
-            });
-        });
-      }
-    </script>
 </body>
 </html>
