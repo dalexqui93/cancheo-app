@@ -56,7 +56,7 @@ const PaymentMethodItem: React.FC<{ method: PaymentMethod | { id: 'cash' }, sele
             className={`p-5 rounded-3xl border-2 flex items-center gap-4 cursor-pointer transition-all active:scale-[0.98] ${
                 selected 
                 ? 'border-brand bg-primary-50 shadow-sm' 
-                : 'border-bgMain bg-white hover:border-brand/20'
+                : 'border-gray-50 bg-white hover:border-brand/20'
             }`}
         >
             <div className="flex-shrink-0">{renderIcon()}</div>
@@ -125,7 +125,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
     };
 
     return (
-        <div className="bg-bgMain min-h-screen pb-40 animate-reveal">
+        <div className="bg-white min-h-screen pb-40 animate-reveal">
             <div className="px-4 py-6">
                 <button onClick={onBack} className="flex items-center gap-2 text-textMuted font-bold mb-6 active:scale-95 transition-transform">
                     <ChevronLeftIcon className="h-5 w-5" />
@@ -136,7 +136,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
 
                 <div className="space-y-6">
                     {/* Summary Item Card */}
-                    <div className="bg-white rounded-4xl p-5 shadow-premium border border-white flex gap-4 items-center">
+                    <div className="bg-white rounded-4xl p-5 shadow-premium border border-gray-50 flex gap-4 items-center">
                         <div className="w-20 h-20 rounded-3xl overflow-hidden flex-shrink-0">
                             <img src={details.field.images[0]} className="w-full h-full object-cover" />
                         </div>
@@ -150,7 +150,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
                     </div>
 
                     {/* Team Details (Optional) */}
-                    <div className="bg-white rounded-4xl p-6 shadow-premium border border-white">
+                    <div className="bg-white rounded-4xl p-6 shadow-premium border border-gray-50">
                         <h3 className="font-black text-sm uppercase tracking-widest text-textMuted mb-4">Ajustes del partido</h3>
                         <div className="space-y-4">
                             <div className="flex flex-col gap-1">
@@ -177,7 +177,7 @@ const Booking: React.FC<BookingProps> = ({ details, user, allTeams, onConfirm, o
                     </div>
 
                     {/* Payment Methods */}
-                    <div className="bg-white rounded-4xl p-6 shadow-premium border border-white">
+                    <div className="bg-white rounded-4xl p-6 shadow-premium border border-gray-50">
                         <h3 className="font-black text-sm uppercase tracking-widest text-textMuted mb-4">Método de pago</h3>
                         <div className="space-y-3">
                             {user.paymentMethods?.map(method => (

@@ -41,7 +41,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
     const availableHours = ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
 
     return (
-        <div className="bg-bgMain min-h-screen pb-32 animate-reveal">
+        <div className="bg-white min-h-screen pb-32 animate-reveal">
             {/* Immersive Header Image */}
             <div className="relative h-[35vh] overflow-hidden">
                 <img 
@@ -49,7 +49,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                     className="w-full h-full object-cover scale-105" 
                     alt={complex.name} 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-bgMain via-transparent to-black/20"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/20"></div>
                 
                 <div className="absolute top-6 left-4 right-4 flex justify-between items-center z-10">
                     <button 
@@ -92,7 +92,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                     {/* Services Cards */}
                     <div className="grid grid-cols-3 gap-3">
                         {complex.services.map(s => (
-                            <div key={s.name} className="bg-bgMain/50 p-4 rounded-3xl flex flex-col items-center justify-center gap-2 border border-black/5">
+                            <div key={s.name} className="bg-gray-50 p-4 rounded-3xl flex flex-col items-center justify-center gap-2 border border-black/5">
                                 <span className="text-2xl filter drop-shadow-sm">{s.icon}</span>
                                 <span className="text-[10px] font-bold text-textMuted uppercase tracking-wider">{s.name}</span>
                             </div>
@@ -110,7 +110,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                         <div className="relative">
                             <input 
                                 type="date" 
-                                className="bg-bgMain text-textMain text-xs font-bold px-4 py-2.5 rounded-full border-none focus:ring-2 focus:ring-brand cursor-pointer"
+                                className="bg-gray-50 text-textMain text-xs font-bold px-4 py-2.5 rounded-full border-none focus:ring-2 focus:ring-brand cursor-pointer"
                                 onChange={(e) => setSelectedDate(new Date(e.target.value))}
                                 defaultValue={new Date().toISOString().split('T')[0]}
                             />
@@ -127,7 +127,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                                 className={`py-4 rounded-2xl font-bold text-sm transition-all duration-200 border-2 active:scale-95 ${
                                     selectedTime === time 
                                     ? 'bg-brand text-white border-brand shadow-button' 
-                                    : 'bg-white border-bgMain text-textMuted hover:border-brand/30'
+                                    : 'bg-white border-gray-50 text-textMuted hover:border-brand/30'
                                 }`}
                             >
                                 {time}

@@ -30,57 +30,62 @@ const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onT
         <div
             className={`bg-white rounded-4xl overflow-hidden shadow-premium group cursor-pointer transition-all duration-300 border-2 ${
                 isHighlighted ? 'border-brand' : 'border-transparent'
-            } ${className}`}
+            } active:scale-[0.98] ${className}`}
             style={style}
             onClick={() => onSelect(representativeField)}
         >
-            <div className="relative aspect-[16/10] overflow-hidden">
+            <div className="relative h-64 overflow-hidden">
                 <img 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" 
                     src={representativeField.images[0]} 
                     alt={displayName} 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 
                 <button 
                     onClick={(e) => { e.stopPropagation(); onToggleFavorite(complexId); }}
-                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-lg z-10 transition-colors"
+                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-lg z-10 transition-transform active:scale-75"
                 >
                     <HeartIcon isFilled={isFavorite} className={`w-5 h-5 ${isFavorite ? 'text-brand' : 'text-gray-400'}`} />
                 </button>
 
                 <div className="absolute top-4 left-4 flex gap-2">
-                    <span className="bg-brand/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
+                    <span className="bg-brand text-white text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-lg">
                         {representativeField.size}
                     </span>
+                    {representativeField.rating > 4.5 && (
+                        <span className="bg-yellow-400 text-black text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-lg">
+                            TOP RATED
+                        </span>
+                    )}
+                </div>
+
+                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+                    <div className="space-y-1">
+                        <h3 className="text-xl font-black text-white leading-none tracking-tight drop-shadow-md">{displayName}</h3>
+                        <div className="flex items-center gap-1.5 text-gray-200 text-sm font-medium">
+                            <LocationIcon className="w-3.5 h-3.5" />
+                            <span className="drop-shadow-sm">{representativeField.city}</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-sm">
+                        <StarRating rating={representativeField.rating} totalStars={1} className="w-3 h-3" />
+                        <span className="text-xs font-black text-textMain">{representativeField.rating}</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="p-5">
-                <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-bold text-textMain leading-tight">{displayName}</h3>
-                    <div className="flex items-center gap-1 bg-primary-50 px-2 py-1 rounded-lg">
-                        <StarRating rating={representativeField.rating} totalStars={1} className="w-3 h-3" />
-                        <span className="text-xs font-bold text-brand">{representativeField.rating}</span>
+            <div className="p-5 flex justify-between items-center bg-white">
+                <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Precio desde</p>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-textMain tracking-tighter">${minPrice.toLocaleString('es-CO')}</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase">/ hr</span>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-2 text-textMuted text-sm mb-4">
-                    <LocationIcon className="w-4 h-4 opacity-50" />
-                    <span className="truncate">{representativeField.city}</span>
-                </div>
-                
-                <div className="flex justify-between items-end border-t border-gray-50 pt-4">
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Por hora</p>
-                        <p className="text-xl font-black text-textMain">
-                            ${minPrice.toLocaleString('es-CO')}
-                        </p>
-                    </div>
-                    <button className="bg-brand text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-button hover:bg-primary-600 transition-colors">
-                        RESERVAR
-                    </button>
-                </div>
+                <button className="bg-brand text-white text-xs font-black px-8 py-3.5 rounded-2xl shadow-button hover:bg-primary-600 active:scale-90 transition-all uppercase tracking-widest">
+                    RESERVAR
+                </button>
             </div>
         </div>
     );

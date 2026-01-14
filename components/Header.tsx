@@ -3,18 +3,10 @@ import type { User, Notification, Invitation } from '../types';
 import { View } from '../types';
 import { UserIcon } from './icons/UserIcon';
 import { XIcon } from './icons/XIcon';
-import { CheckCircleIcon } from './icons/CheckCircleIcon';
-import { InformationCircleIcon } from './icons/InformationCircleIcon';
-import { SparklesIcon } from './icons/SparklesIcon';
-import { MegaphoneIcon } from './icons/MegaphoneIcon';
-import { timeSince } from '../utils/timeSince';
 import { BellIcon } from './icons/BellIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
-import { ShieldIcon } from './icons/ShieldIcon';
 import ConfirmationModal from './ConfirmationModal';
-import { SoccerBallIcon } from './icons/SoccerBallIcon';
-
 
 interface HeaderProps {
     user: User | null;
@@ -32,329 +24,68 @@ interface HeaderProps {
     currentTime: Date;
 }
 
-const NotificationIcon: React.FC<{ notification: Notification }> = ({ notification }) => {
-    const { type, title } = notification;
-
-    if (title.toLowerCase().includes('oferta')) return <SparklesIcon className="h-6 w-6 text-yellow-500" />;
-    if (title.toLowerCase().includes('anuncio')) return <MegaphoneIcon className="h-6 w-6 text-blue-500" />;
-    if (type === 'success') return <CheckCircleIcon className="h-6 w-6 text-green-500" />;
-    if (type === 'error') return <InformationCircleIcon className="h-6 w-6 text-red-500" />;
-    if (type === 'match_invite') return <SoccerBallIcon className="h-6 w-6 text-green-500" />;
-
-    return <InformationCircleIcon className="h-6 w-6 text-gray-500" />;
-};
-
-const InvitationCard: React.FC<{
-    invitation: Invitation;
-    onAccept: (invitation: Invitation) => void;
-    onReject: (invitation: Invitation) => void;
-}> = ({ invitation, onAccept, onReject }) => {
-    return (
-        <div className="p-4">
-            <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {invitation.teamLogo ? (
-                        <img src={invitation.teamLogo} alt={invitation.teamName} className="w-full h-full object-cover" />
-                    ) : (
-                        <ShieldIcon className="w-6 h-6 text-gray-400" />
-                    )}
-                </div>
-                <div className="flex-grow">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-bold text-gray-900 dark:text-gray-100">{invitation.fromUserName}</span> te invitó a unirte a <span className="font-bold text-gray-900 dark:text-gray-100">{invitation.teamName}</span>.
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{timeSince(new Date(invitation.timestamp))}</p>
-                </div>
-            </div>
-            <div className="mt-3 flex gap-3">
-                <button onClick={() => onAccept(invitation)} className="w-full bg-green-600 text-white font-semibold py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm">
-                    Aceptar
-                </button>
-                <button onClick={() => onReject(invitation)} className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm">
-                    Rechazar
-                </button>
-            </div>
-        </div>
-    );
-};
-
-const MatchInvitationCard: React.FC<{
-    notification: Notification;
-    onAccept: (notification: Notification) => void;
-    onReject: (notification: Notification) => void;
-}> = ({ notification, onAccept, onReject }) => {
-    if (!notification.payload) return null;
-
-    const { fromUserName, fieldName, matchTime, matchDate } = notification.payload;
-    const formattedDate = new Date(matchDate).toLocaleDateString('es-CO', { weekday: 'short', month: 'long', day: 'numeric' });
-
-    return (
-        <div className="p-4">
-            <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                    <SoccerBallIcon className="w-6 h-6 text-gray-400" />
-                </div>
-                <div className="flex-grow">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-bold text-gray-900 dark:text-gray-100">{fromUserName}</span> te invitó a su partido en <span className="font-bold text-gray-900 dark:text-gray-100">{fieldName}</span>.
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{formattedDate} a las {matchTime}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{timeSince(new Date(notification.timestamp))}</p>
-                </div>
-            </div>
-            <div className="mt-3 flex gap-3">
-                <button onClick={() => onAccept(notification)} className="w-full bg-green-600 text-white font-semibold py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm">
-                    Aceptar
-                </button>
-                <button onClick={() => onReject(notification)} className="w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm">
-                    Rechazar
-                </button>
-            </div>
-        </div>
-    );
-};
-
-
 const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, invitations, onDismiss, onMarkAllAsRead, onClearAll, onAcceptInvitation, onRejectInvitation, onAcceptMatchInvite, onRejectMatchInvite, currentTime }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
-    const notificationsRef = useRef<HTMLDivElement>(null);
 
-    const matchInvites = useMemo(() => notifications.filter(n => n.type === 'match_invite'), [notifications]);
-    const regularNotifications = useMemo(() => notifications.filter(n => n.type !== 'match_invite'), [notifications]);
-
-    // Mark as read when opening the dropdown after a delay
-    useEffect(() => {
-        if (isNotificationsOpen && regularNotifications.some(n => !n.read)) {
-            const timeoutId = setTimeout(() => {
-                onMarkAllAsRead();
-            }, 2000); 
-            return () => clearTimeout(timeoutId);
-        }
-    }, [isNotificationsOpen, onMarkAllAsRead, regularNotifications]);
-    
-     // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
                 setIsProfileOpen(false);
             }
-            if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-                setIsNotificationsOpen(false);
-            }
         };
-
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const unreadCount = regularNotifications.filter(n => !n.read).length + invitations.length + matchInvites.length;
-
-    const MenuItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
-        <button onClick={onClick} className="w-full flex items-center gap-3 p-2 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-            {icon}
-            <span className="font-medium">{label}</span>
-        </button>
-    );
-
-    const formattedDate = new Intl.DateTimeFormat('es-CO', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    }).format(currentTime);
-
-    const formattedTime = currentTime.toLocaleTimeString('es-CO', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-    });
-
-
     return (
-        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-            <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                <div className="flex-1 flex justify-start">
-                    <div 
-                        className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => onNavigate(View.HOME)}
-                        aria-label="Ir al inicio"
-                    >
-                        <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo logo" className="h-8 w-8 rounded-full" />
-                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 tracking-tight">Canche<span className="text-[var(--color-primary-600)]">o</span></h1>
-                    </div>
+        <header className="sticky top-0 z-50 px-4 py-4 sm:py-6">
+            <div className="container mx-auto flex justify-between items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl px-5 py-3 shadow-glass">
+                <div 
+                    className="flex items-center gap-2.5 cursor-pointer active:scale-95 transition-transform"
+                    onClick={() => onNavigate(View.HOME)}
+                >
+                    <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo" className="h-9 w-9 rounded-xl shadow-lg" />
+                    <h1 className="text-xl font-black tracking-tighter text-white">CANCHEO</h1>
                 </div>
 
-                <div className="hidden md:flex flex-1 flex-col items-center justify-center">
-                    <div className="font-semibold text-gray-800 dark:text-gray-200">{formattedTime}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formattedDate}</div>
-                </div>
-
-                <nav className="flex-1 flex justify-end items-center gap-4">
+                <div className="flex items-center gap-4">
                     {user ? (
-                        <div className="flex items-center gap-4">
-                            {/* Notifications Bell */}
-                            <div ref={notificationsRef} className="relative">
-                                <button
-                                    onClick={() => setIsNotificationsOpen(prev => !prev)}
-                                    className="relative text-gray-600 dark:text-gray-300 hover:text-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-500)] transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                                    aria-label={`Notificaciones (${unreadCount} sin leer)`}
-                                >
-                                    <BellIcon className="h-6 w-6" />
-                                     {unreadCount > 0 && (
-                                        <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" />
+                        <div ref={profileRef} className="relative">
+                            <button 
+                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                className="flex items-center gap-2 p-1 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center overflow-hidden shadow-inner">
+                                    {user.profilePicture ? (
+                                        <img src={user.profilePicture} alt="Avatar" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <UserIcon className="w-5 h-5 text-white" />
                                     )}
-                                </button>
-                                 {isNotificationsOpen && (
-                                    <div className="absolute right-[-3.5rem] sm:right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in flex flex-col" style={{maxHeight: '80vh', transformOrigin: 'top right'}}>
-                                        <div className="p-4 border-b border-black/10 dark:border-white/10 flex justify-between items-center flex-shrink-0">
-                                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">Notificaciones</h3>
-                                            {regularNotifications.filter(n => !n.read).length > 0 && (
-                                                <button onClick={onMarkAllAsRead} className="text-sm font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] hover:underline whitespace-nowrap">
-                                                    Marcar leídas
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="flex-grow overflow-y-auto">
-                                            {matchInvites.length > 0 && (
-                                                <>
-                                                    <div className="px-4 pt-4 pb-2">
-                                                        <h4 className="font-bold text-gray-800 dark:text-gray-200">Invitaciones a Partidos</h4>
-                                                    </div>
-                                                    <div className="divide-y divide-black/10 dark:divide-white/10">
-                                                        {matchInvites.map(notif => (
-                                                            <MatchInvitationCard key={notif.id} notification={notif} onAccept={onAcceptMatchInvite} onReject={onRejectMatchInvite} />
-                                                        ))}
-                                                    </div>
-                                                    {(invitations.length > 0 || regularNotifications.length > 0) && <div className="p-2 border-b border-black/10 dark:border-white/10"></div>}
-                                                </>
-                                            )}
-                                            {invitations.length > 0 && (
-                                                <>
-                                                    <div className="px-4 pt-4 pb-2">
-                                                        <h4 className="font-bold text-gray-800 dark:text-gray-200">Invitaciones de Equipo</h4>
-                                                    </div>
-                                                    <div className="divide-y divide-black/10 dark:divide-white/10">
-                                                        {invitations.map(inv => (
-                                                            <InvitationCard key={inv.id} invitation={inv} onAccept={onAcceptInvitation} onReject={onRejectInvitation} />
-                                                        ))}
-                                                    </div>
-                                                    {regularNotifications.length > 0 && <div className="p-2 border-b border-black/10 dark:border-white/10"></div>}
-                                                </>
-                                            )}
-                                            {regularNotifications.length > 0 ? (
-                                                regularNotifications.map(notif => (
-                                                    <div key={notif.id} className="group p-4 flex items-start gap-4 hover:bg-black/5 dark:hover:bg-white/5 relative">
-                                                        {!notif.read && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 bg-blue-500 rounded-full"></div>}
-                                                        <div className="flex-shrink-0 mt-1 pl-2">
-                                                            <NotificationIcon notification={notif} />
-                                                        </div>
-                                                        <div className="flex-grow">
-                                                            <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{notif.title}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{notif.message}</p>
-                                                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{timeSince(new Date(notif.timestamp))}</p>
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => onDismiss(notif.id)}
-                                                            className="ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            aria-label="Descartar notificación"
-                                                        >
-                                                            <XIcon className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                (invitations.length === 0 && matchInvites.length === 0) && (
-                                                    <div className="text-center py-16 px-4 flex flex-col items-center">
-                                                        <BellIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 opacity-50 mb-4"/>
-                                                        <h4 className="font-bold text-gray-800 dark:text-gray-200">Todo está al día</h4>
-                                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No tienes notificaciones nuevas.</p>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                        {regularNotifications.length > 0 && (
-                                            <div className="p-2 border-t border-black/10 dark:border-white/10 flex-shrink-0">
-                                                <button onClick={() => setIsClearAllModalOpen(true)} className="w-full text-center text-sm font-semibold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 py-2 rounded-md transition-colors">
-                                                    Limpiar notificaciones
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-
-                            {/* Profile Dropdown */}
-                            <div ref={profileRef} className="relative">
-                                <button onClick={() => setIsProfileOpen(prev => !prev)} className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                     <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        {user.profilePicture ? (
-                                            <img src={user.profilePicture} alt="Foto de perfil" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <UserIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                                        )}
-                                    </div>
-                                    <span className="font-semibold hidden sm:block">{user.name}</span>
-                                </button>
-                                {isProfileOpen && (
-                                    <div className="absolute right-0 mt-2 w-72 origin-top-right bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl shadow-2xl z-20 border border-black/10 dark:border-white/10 animate-scale-in" style={{ transformOrigin: 'top right' }}>
-                                        <div className="p-4 border-b border-black/10 dark:border-white/10">
-                                            <div className="flex items-center gap-3">
-                                                 <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                                                    {user.profilePicture ? (
-                                                        <img src={user.profilePicture} alt="Foto de perfil" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <UserIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="p-2">
-                                            {!user.isAdmin && <MenuItem icon={<UserIcon className="w-5 h-5"/>} label="Mi Perfil" onClick={() => { onNavigate(View.PROFILE); setIsProfileOpen(false); }} />}
-                                            {user.isOwner && <MenuItem icon={<DashboardIcon className="w-5 h-5"/>} label="Panel Propietario" onClick={() => { onNavigate(View.OWNER_DASHBOARD); setIsProfileOpen(false); }} />}
-                                            {user.isAdmin && <MenuItem icon={<DashboardIcon className="w-5 h-5"/>} label="Panel Admin" onClick={() => { onNavigate(View.SUPER_ADMIN_DASHBOARD); setIsProfileOpen(false); }} />}
-                                        </div>
-                                         <div className="p-2 border-t border-black/10 dark:border-white/10">
-                                            <button onClick={() => {onLogout(); setIsProfileOpen(false);}} className="w-full flex items-center gap-3 p-2 text-sm text-red-600 dark:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
-                                                <LogoutIcon className="w-5 h-5"/>
-                                                <span className="font-medium">Cerrar Sesión</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                </div>
+                            </button>
+                            {isProfileOpen && (
+                                <div className="absolute right-0 mt-3 w-56 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 p-2 animate-ios overflow-hidden">
+                                    <button onClick={() => { onNavigate(View.PROFILE); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 p-3 text-sm font-semibold text-gray-200 hover:bg-white/5 rounded-xl transition-colors">
+                                        <UserIcon className="w-4 h-4"/> Mi Perfil
+                                    </button>
+                                    <div className="h-px bg-white/10 my-1"></div>
+                                    <button onClick={() => { onLogout(); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 p-3 text-sm font-semibold text-red-400 hover:bg-red-400/10 rounded-xl transition-colors">
+                                        <LogoutIcon className="w-4 h-4"/> Cerrar Sesión
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <button 
                             onClick={() => onNavigate(View.LOGIN)}
-                            className="bg-[var(--color-primary-600)] text-white font-semibold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-700)] transition-transform transform hover:scale-105 shadow-sm hover:shadow-md"
+                            className="bg-brand text-white font-bold py-2.5 px-5 rounded-2xl shadow-button active:scale-95 transition-all text-xs uppercase tracking-widest"
                         >
-                            Iniciar Sesión
+                            ACCEDER
                         </button>
                     )}
-                </nav>
+                </div>
             </div>
-            {isClearAllModalOpen && (
-                <ConfirmationModal
-                    isOpen={isClearAllModalOpen}
-                    onClose={() => setIsClearAllModalOpen(false)}
-                    onConfirm={() => {
-                        onClearAll();
-                        setIsClearAllModalOpen(false);
-                    }}
-                    title="¿Limpiar todas las notificaciones?"
-                    message="Esta acción no se puede deshacer y eliminará permanentemente todas tus notificaciones informativas, pero conservará las invitaciones."
-                    confirmButtonText="Sí, limpiar todo"
-                />
-            )}
         </header>
     );
 };

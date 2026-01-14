@@ -2094,7 +2094,7 @@ const App = () => {
     const showBottomNav = !isChatView && user && !user.isOwner && !user.isAdmin && ![View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.BOOKING, View.BOOKING_CONFIRMATION, View.OWNER_DASHBOARD, View.PLAYER_PROFILE_CREATOR, View.SOCIAL].includes(view);
     
     return (
-        <div className={`bg-slate-50 min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
+        <div className={`bg-white min-h-screen dark:bg-gray-900 transition-colors duration-300 ${showDarkSocialBg ? 'daviplay-hub-bg' : ''} ${isChatView ? 'team-chat-bg' : ''}`}>
             {showDarkSocialBg && <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/80 z-0"></div>}
             
             <div className="relative z-10">
