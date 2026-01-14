@@ -23,15 +23,16 @@
               primary: {
                 50: '#fff1f0',
                 100: '#ffdfdc',
-                500: '#FF6452', // Coral Principal
+                500: '#FF6452', 
                 600: '#e55a4a',
                 700: '#b2463a',
               },
               brand: '#FF6452',
-              bgMain: '#0A0B10', // Midnight Deep
+              bgMain: '#0A0B10', 
               bgSurface: '#FFFFFF',
               textMain: '#1A1C1E',
               textMuted: '#8E9196',
+              navBg: '#0E1320',
             },
             fontFamily: {
               sans: ['Poppins', 'Inter', 'sans-serif'],
@@ -45,6 +46,8 @@
               'premium': '0 10px 40px -10px rgba(0, 0, 0, 0.12)',
               'button': '0 8px 25px -5px rgba(255, 100, 82, 0.45)',
               'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
+              'nav-glow': '0 -5px 20px -5px rgba(255, 100, 82, 0.15)',
+              'daviplay': '0 0 25px 0px rgba(255, 100, 82, 0.5)',
             }
           }
         }
@@ -60,39 +63,30 @@
         .safe-area-bottom {
             padding-bottom: env(safe-area-inset-bottom);
         }
+
+        /* Nav Animations */
+        @keyframes daviplay-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 100, 82, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(255, 100, 82, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 100, 82, 0.4); }
+        }
+        .animate-daviplay {
+            animation: daviplay-pulse 3s infinite ease-in-out;
+        }
+
         .glass-nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: linear-gradient(180deg, rgba(23, 29, 45, 0.95) 0%, rgba(14, 19, 32, 0.98) 100%);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        @keyframes icon-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
         }
-        .ios-scroller {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-        .ios-scroller::-webkit-scrollbar {
-            display: none;
-        }
-        @keyframes ios-slide-up {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-ios {
-            animation: ios-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .shimmer-bg {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            background-size: 200% 100%;
-            animation: shimmer 2s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+        .active-icon-anim {
+            animation: icon-bounce 0.4s ease-out;
         }
     </style>
 <script type="importmap">
