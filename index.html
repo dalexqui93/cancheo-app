@@ -43,8 +43,8 @@
               '5xl': '2.5rem',
             },
             boxShadow: {
-              'premium': '0 10px 40px -10px rgba(0, 0, 0, 0.12)',
-              'button': '0 8px 25px -5px rgba(255, 100, 82, 0.45)',
+              'premium': '0 20px 50px -15px rgba(0, 0, 0, 0.08)',
+              'button': '0 8px 30px -5px rgba(255, 100, 82, 0.5)',
               'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
               'nav-glow': '0 -5px 20px -5px rgba(255, 100, 82, 0.15)',
               'daviplay': '0 0 25px 0px rgba(255, 100, 82, 0.5)',
@@ -55,11 +55,18 @@
     </script>
     <style>
         body {
-            background-color: #0A0B10;
-            color: #FFFFFF;
+            background-color: #F8F9FD;
+            color: #1A1C1E;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: contain;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         }
+        
+        .dark body {
+            background-color: #0A0B10;
+            color: #FFFFFF;
+        }
+
         .safe-area-bottom {
             padding-bottom: env(safe-area-inset-bottom);
         }
@@ -87,6 +94,28 @@
         }
         .active-icon-anim {
             animation: icon-bounce 0.4s ease-out;
+        }
+
+        /* iOS Transition Emulation */
+        @keyframes ios-slide-up {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-in-up {
+            animation: ios-slide-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .ios-scroller {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .ios-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        @keyframes sun-glow {
+            0%, 100% { filter: blur(40px) brightness(1); }
+            50% { filter: blur(60px) brightness(1.2); }
         }
     </style>
 <script type="importmap">
