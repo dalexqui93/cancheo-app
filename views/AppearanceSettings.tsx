@@ -13,118 +13,99 @@ interface AppearanceSettingsProps {
     onUpdateAccentColor: (color: AccentColor) => void;
 }
 
-const ThemeCard: React.FC<{
+const ThemeOption: React.FC<{
     label: string;
-    description: string;
     icon: React.ReactNode;
     isSelected: boolean;
     onClick: () => void;
-}> = ({ label, description, icon, isSelected, onClick }) => (
+}> = ({ label, icon, isSelected, onClick }) => (
     <button 
         onClick={onClick}
-        className={`flex items-center gap-4 p-5 rounded-[28px] border-2 transition-all w-full text-left group active:scale-[0.98] ${
-            isSelected 
-                ? 'bg-brand/5 border-brand ring-4 ring-brand/10 shadow-lg' 
-                : 'bg-white dark:bg-navBg/50 border-gray-100 dark:border-white/5 hover:border-brand/30 shadow-sm'
-        }`}
+        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all w-full
+            ${isSelected 
+                ? 'bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/50 border-[var(--color-primary-600)] dark:border-[var(--color-primary-500)] text-[var(--color-primary-800)] dark:text-[var(--color-primary-300)]' 
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] dark:hover:border-[var(--color-primary-600)] dark:hover:text-[var(--color-primary-400)]'
+            }`}
     >
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${
-            isSelected ? 'bg-brand text-white' : 'bg-gray-50 dark:bg-white/5 text-gray-400 group-hover:text-brand'
-        }`}>
-            {icon}
-        </div>
-        <div className="flex-grow">
-            <p className={`font-bold text-lg ${isSelected ? 'text-brand dark:text-white' : 'text-textMain dark:text-gray-200'}`}>{label}</p>
-            <p className="text-xs text-textMuted font-medium">{description}</p>
-        </div>
-        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-            isSelected ? 'border-brand bg-brand' : 'border-gray-200 dark:border-white/10'
-        }`}>
-            {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}
-        </div>
+        {icon}
+        <span className="font-semibold">{label}</span>
     </button>
 );
 
+const AccentColorOption: React.FC<{
+    color: AccentColor;
+    isSelected: boolean;
+    onClick: () => void;
+}> = ({ color, isSelected, onClick }) => {
+    const colorClasses: Record<AccentColor, string> = {
+        green: 'bg-green-500',
+        blue: 'bg-blue-500',
+        orange: 'bg-orange-500',
+        purple: 'bg-purple-500',
+    };
+    return (
+        <button
+            onClick={onClick}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSelected ? 'ring-2 ring-offset-2 dark:ring-offset-gray-800 ring-[var(--color-primary-500)]' : ''}`}
+            aria-label={`Color de acento ${color}`}
+        >
+            <div className={`w-10 h-10 rounded-full ${colorClasses[color]}`}></div>
+        </button>
+    );
+};
+
+
 const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({ currentTheme, onUpdateTheme, onBack, currentAccentColor, onUpdateAccentColor }) => {
     return (
-        <div className="container mx-auto max-w-lg px-4 py-6 space-y-8 pb-32 animate-ios">
-            <button 
-                onClick={onBack} 
-                className="flex items-center gap-2 text-brand font-black text-sm uppercase tracking-widest hover:opacity-70 transition-opacity"
-            >
+        <div className="container mx-auto px-4 py-6 sm:py-8 space-y-8 pb-[5.5rem] md:pb-4">
+            <button onClick={onBack} className="flex items-center gap-2 text-[var(--color-primary-600)] dark:text-[var(--color-primary-500)] font-semibold hover:underline">
                 <ChevronLeftIcon className="h-5 w-5" />
-                Regresar
+                Volver al Perfil
             </button>
-
-            <div className="space-y-2">
-                <h1 className="text-4xl font-black tracking-tighter text-textMain dark:text-white uppercase italic">Apariencia</h1>
-                <p className="text-textMuted font-medium">Personaliza tu experiencia visual en Cancheo.</p>
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Apariencia</h1>
             
-            <div className="space-y-4">
-                <h2 className="text-xs font-black text-textMuted uppercase tracking-[0.2em] ml-2">Tema del Sistema</h2>
-                <div className="space-y-3">
-                    <ThemeCard 
-                        label="Modo Claro"
-                        description="Ideal para ambientes con mucha luz."
-                        icon={<SunIcon className="w-7 h-7"/>}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Tema de la Aplicación</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Elige cómo quieres que se vea la aplicación en tu dispositivo.
+                </p>
+                <div className="grid grid-cols-3 gap-4">
+                    <ThemeOption 
+                        label="Claro"
+                        icon={<SunIcon className="w-8 h-8"/>}
                         isSelected={currentTheme === 'light'}
                         onClick={() => onUpdateTheme('light')}
                     />
-                    <ThemeCard 
-                        label="Modo Oscuro"
-                        description="Elegante y amable con tu vista."
-                        icon={<MoonIcon className="w-7 h-7"/>}
+                    <ThemeOption 
+                        label="Oscuro"
+                        icon={<MoonIcon className="w-8 h-8"/>}
                         isSelected={currentTheme === 'dark'}
                         onClick={() => onUpdateTheme('dark')}
                     />
-                    <ThemeCard 
+                    <ThemeOption 
                         label="Sistema"
-                        description="Se adapta automáticamente a tu equipo."
-                        icon={<DesktopIcon className="w-7 h-7"/>}
+                        icon={<DesktopIcon className="w-8 h-8"/>}
                         isSelected={currentTheme === 'system'}
                         onClick={() => onUpdateTheme('system')}
                     />
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-navBg p-8 rounded-[40px] shadow-premium border border-white dark:border-white/5 space-y-6">
-                <div className="space-y-1 text-center">
-                    <h2 className="text-xl font-black text-textMain dark:text-white tracking-tight uppercase italic">Color de Acento</h2>
-                    <p className="text-xs text-textMuted font-medium">Define el color de los botones e interacción.</p>
-                </div>
-                
-                <div className="flex justify-center gap-6">
-                    {(['green', 'blue', 'orange', 'purple'] as AccentColor[]).map(color => {
-                        const colorClasses: Record<AccentColor, string> = {
-                            green: 'bg-emerald-500',
-                            blue: 'bg-blue-500',
-                            orange: 'bg-brand',
-                            purple: 'bg-violet-500',
-                        };
-                        const isSelected = currentAccentColor === color;
-                        return (
-                            <button
-                                key={color}
-                                onClick={() => onUpdateAccentColor(color)}
-                                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                                    isSelected 
-                                    ? 'ring-4 ring-offset-4 dark:ring-offset-bgMain ring-brand scale-110' 
-                                    : 'hover:scale-105'
-                                }`}
-                                aria-label={`Color ${color}`}
-                            >
-                                <div className={`w-full h-full rounded-full ${colorClasses[color]} shadow-lg`}></div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className="p-6 bg-brand/10 rounded-3xl border border-brand/20">
-                <p className="text-xs text-brand font-bold text-center italic">
-                    Nota: La sección DaviPlay mantiene siempre su estética oscura premium para una mejor inmersión competitiva.
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Color de Acento</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Personaliza el color principal de los botones y enlaces.
                 </p>
+                <div className="flex justify-center gap-6">
+                    {(['green', 'blue', 'orange', 'purple'] as AccentColor[]).map(color => (
+                        <AccentColorOption
+                            key={color}
+                            color={color}
+                            isSelected={currentAccentColor === color}
+                            onClick={() => onUpdateAccentColor(color)}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );
