@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { SoccerField } from '../types';
 import StarRating from './StarRating';
@@ -11,7 +12,6 @@ interface FieldCardProps {
     onToggleFavorite: (complexId: string) => void;
     className?: string;
     style?: React.CSSProperties;
-    onHover?: (complexId: string | null) => void;
     isHighlighted?: boolean;
 }
 
@@ -46,7 +46,7 @@ const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onT
                     onClick={(e) => { e.stopPropagation(); onToggleFavorite(complexId); }}
                     className="absolute top-4 right-4 bg-white/90 dark:bg-black/40 backdrop-blur-md p-2.5 rounded-full shadow-lg z-10 transition-transform active:scale-75"
                 >
-                    <HeartIcon isFilled={isFavorite} className={`w-5 h-5 ${isFavorite ? 'text-brand' : 'text-gray-400'}`} />
+                    <HeartIcon isFilled={isFavorite} className={`w-5 h-5 ${isFavorite ? 'text-brand' : 'text-textDisabled-light dark:text-textDisabled-dark'}`} />
                 </button>
 
                 <div className="absolute top-4 left-4 flex gap-2">
@@ -74,7 +74,7 @@ const FieldCard: React.FC<FieldCardProps> = ({ fields, onSelect, isFavorite, onT
                         <span className="text-xs font-bold text-textMuted-light dark:text-textMuted-dark uppercase">/ hr</span>
                     </div>
                 </div>
-                <button className="bg-brand text-white text-xs font-black px-8 py-3.5 rounded-2xl shadow-button hover:bg-primary-600 active:scale-90 transition-all uppercase tracking-widest">
+                <button className="bg-brand text-white text-xs font-black px-8 py-3.5 rounded-2xl shadow-button hover:bg-green-600 active:scale-90 transition-all uppercase tracking-widest">
                     RESERVAR
                 </button>
             </div>

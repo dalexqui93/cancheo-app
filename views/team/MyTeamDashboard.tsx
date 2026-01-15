@@ -1,13 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-// FIX: Import UserMessage type to correctly type mockMessages and resolve property access errors.
 import type { User, Team, Player, Notification, ChatMessage, SocialSection, UserMessage, ConfirmedBooking, SystemMessage } from '../../types';
 import RosterView from './RosterView';
 import TacticsView from './TacticsView';
 import ScheduleView from './ScheduleView';
 import CreateTeamView from './CreateTeamView';
 import PerformanceView from './PerformanceView';
-import TeamChatView from './TeamChatView';
 import { ShieldIcon } from '../../components/icons/ShieldIcon';
 import { TshirtIcon } from '../../components/icons/TshirtIcon';
 import { ClipboardListIcon } from '../../components/icons/ClipboardListIcon';
@@ -26,7 +23,6 @@ import { PlusIcon } from '../../components/icons/PlusIcon';
 import { ChevronRightIcon } from '../../components/icons/ChevronRightIcon';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { LogoutIcon } from '../../components/icons/LogoutIcon';
-
 
 type TeamView = 'dashboard' | 'roster' | 'tactics' | 'schedule' | 'performance' | 'chat';
 
@@ -47,15 +43,12 @@ interface MyTeamDashboardProps {
     setActiveChatTeam: (team: Team) => void;
 }
 
-// FIX: Added 'type' property to message objects to conform to the ChatMessage type. Changed array type to UserMessage[] to resolve property access errors.
 const mockMessages: UserMessage[] = [
     { type: 'user', id: 'msg1', senderId: 'u2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
     { type: 'user', id: 'msg2', senderId: 'u1', senderName: 'Carlos Pérez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { messageId: 'msg1', senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
     { type: 'user', id: 'msg3', senderId: 'u3', senderName: 'Luis Fernandez', text: 'Yo llevo los balones. ¿Alguien puede llevar los petos?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 50) },
     { type: 'user', id: 'msg4', senderId: 'u4', senderName: 'Marta Gomez', text: 'Yo los llevo!', timestamp: new Date(new Date().getTime() - 1000 * 60 * 48) },
 ];
-
-// --- Sub-Components for the new UI ---
 
 const NavTab: React.FC<{
     label: string;
@@ -98,19 +91,16 @@ const Widget: React.FC<{ title: string; icon: React.ReactNode; children: React.R
 
 const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, setSection: (section: SocialSection) => void, setActiveChatTeam: (team: Team) => void }> = ({ team, setView, setSection, setActiveChatTeam }) => {
     const nextMatch = team.schedule?.filter(e => e.type === 'match' && e.date >= new Date()).sort((a,b) => a.date.getTime() - b.date.getTime())[0];
-    const topScorer = [...team.players].sort((a, b) => b.stats.goals - a.stats.goals)[0];
-    const topAssister = [...team.players].sort((a, b) => b.stats.assists - a.stats.assists)[0];
+    const topScorer = [...team.players].sort((a, b) => (b.stats?.goals || 0) - (a.stats?.goals || 0))[0];
+    const topAssister = [...team.players].sort((a, b) => (b.stats?.assists || 0) - (a.stats?.assists || 0))[0];
     
     const teamForm = (team.matchHistory || [])
         .slice(0, 5)
         .map(match => {
-            // FIX: Ensure we check for type 'number' specifically, as 0 is a valid score but is falsy in JS.
             if (typeof match.scoreA !== 'number' || typeof match.scoreB !== 'number') return { result: 'E', key: match.id};
-            
             const isTeamA = 'id' in match.teamA && match.teamA.id === team.id;
             const scoreUs = isTeamA ? match.scoreA : match.scoreB;
             const scoreThem = isTeamA ? match.scoreB : match.scoreA;
-            
             if (scoreUs > scoreThem) return { result: 'V', key: match.id};
             if (scoreUs < scoreThem) return { result: 'D', key: match.id};
             return { result: 'E', key: match.id};
@@ -124,18 +114,13 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
                         <p className="font-bold text-lg">{nextMatch.title}</p>
                         <p className="text-sm text-white/70">{nextMatch.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
                         <p className="text-xs text-white/50">@{nextMatch.location}</p>
-                        {nextMatch.description && <p className="text-xs text-white/70 mt-1 italic">"{nextMatch.description}"</p>}
                     </div>
                 ) : <p className="text-sm text-white/60">No hay partidos programados.</p>}
             </Widget>
             <Widget title="Forma Reciente" icon={<TeamFormIcon className="w-5 h-5"/>}>
                 <div className="flex items-center gap-2">
                     {teamForm.map(item => {
-                        const colors: Record<string, string> = {
-                            V: 'bg-green-500',
-                            E: 'bg-yellow-500',
-                            D: 'bg-red-500',
-                        };
+                        const colors: Record<string, string> = { V: 'bg-green-500', E: 'bg-yellow-500', D: 'bg-red-500' };
                         return <div key={item.key} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${colors[item.result]}`}>{item.result}</div>
                     })}
                     {teamForm.length === 0 && <p className="text-sm text-white/60">Sin partidos recientes.</p>}
@@ -143,31 +128,32 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
             </Widget>
             <Widget title="Chat Rápido" icon={<ChatBubbleLeftRightIcon className="w-5 h-5"/>} onClick={() => { setActiveChatTeam(team); setSection('chat'); }}>
                  <div className="space-y-1 text-sm">
-                    <p className="truncate"><strong className="text-white/80">{mockMessages.slice(-1)[0]?.senderName}:</strong> <span className="text-white/60">{mockMessages.slice(-1)[0]?.text}</span></p>
+                    <p className="truncate"><strong className="text-white/80">Entrar al chat grupal</strong></p>
+                    <p className="text-xs text-white/40">Habla con tu equipo aquí.</p>
                  </div>
             </Widget>
             <Widget title="Máximo Goleador" icon={<SoccerBallIcon className="w-5 h-5"/>} className="lg:col-span-2">
-                {topScorer && topScorer.stats.goals > 0 ? (
+                {topScorer && (topScorer.stats?.goals || 0) > 0 ? (
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
                             {topScorer.profilePicture ? <img src={topScorer.profilePicture} alt={topScorer.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-white/70" />}
                         </div>
                         <div>
                             <p className="font-bold text-lg">{topScorer.name}</p>
-                            <p className="text-3xl font-black text-amber-400">{topScorer.stats.goals} <span className="text-xl">Goles</span></p>
+                            <p className="text-3xl font-black text-amber-400">{topScorer.stats?.goals || 0} <span className="text-xl">Goles</span></p>
                         </div>
                     </div>
                 ): <p className="text-sm text-white/60">Aún no hay un goleador destacado.</p>}
             </Widget>
             <Widget title="Máximo Asistente" icon={<ShoeIcon className="w-5 h-5"/>} className="lg:col-span-2">
-                 {topAssister && topAssister.stats.assists > 0 ? (
+                 {topAssister && (topAssister.stats?.assists || 0) > 0 ? (
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
                             {topAssister.profilePicture ? <img src={topAssister.profilePicture} alt={topAssister.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-white/70" />}
                         </div>
                         <div>
                             <p className="font-bold text-lg">{topAssister.name}</p>
-                            <p className="text-3xl font-black text-blue-400">{topAssister.stats.assists} <span className="text-xl">Asist.</span></p>
+                            <p className="text-3xl font-black text-blue-400">{topAssister.stats?.assists || 0} <span className="text-xl">Asist.</span></p>
                         </div>
                     </div>
                 ): <p className="text-sm text-white/60">Aún no hay un asistente destacado.</p>}
@@ -175,7 +161,6 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
         </div>
     );
 };
-
 
 const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allUsers, allBookings, allTeams, onBack, addNotification, onUpdateTeam, setIsPremiumModalOpen, onUpdateUserTeams, setSection, onRemovePlayerFromTeam, onLeaveTeam, setActiveChatTeam }) => {
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(userTeams[0] || null);
@@ -186,21 +171,16 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
     useEffect(() => {
         if (selectedTeam) {
             const updatedTeamData = userTeams.find(t => t.id === selectedTeam.id);
-            // Case 1: The selected team was deleted from the user's teams. Fall back to the list view.
             if (!updatedTeamData) {
                 setSelectedTeam(null);
-            } 
-            // Case 2: The data for the selected team has changed. Update the state.
-            else if (JSON.stringify(updatedTeamData) !== JSON.stringify(selectedTeam)) {
+            } else if (JSON.stringify(updatedTeamData) !== JSON.stringify(selectedTeam)) {
                 setSelectedTeam(updatedTeamData);
             }
         } else if (isCreating && userTeams.length > 0) {
-            // This handles the case where the user goes from having 0 teams to having 1+ team
             setSelectedTeam(userTeams[0]);
             setIsCreating(false);
         }
     }, [userTeams, selectedTeam, isCreating]);
-
 
     const handleCreateTeam = async (teamData: { name: string; logo: string | null; level: 'Casual' | 'Intermedio' | 'Competitivo' }) => {
         const currentUserAsPlayer = user.playerProfile || {
@@ -228,23 +208,15 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                 await onUpdateUserTeams(newTeamIds);
                 addNotification({type: 'success', title: '¡Equipo Creado!', message: `Bienvenido a ${newTeam.name}.`});
                 setIsCreating(false);
-            } else {
-                throw new Error("La creación del equipo no devolvió un resultado válido.");
+                setSelectedTeam(newTeam);
             }
         } catch (error) {
-            console.error("Error al crear equipo y actualizar usuario:", String(error));
-            addNotification({type: 'error', title: 'Error al Crear', message: 'No se pudo crear el equipo. Inténtalo de nuevo.'});
-            throw error;
+            console.error("Team creation failed:", String(error));
         }
     };
 
     if (isCreating) {
-        return <CreateTeamView 
-            onBack={userTeams.length > 0 ? () => setIsCreating(false) : onBack} 
-            onCreate={handleCreateTeam} 
-            user={user} 
-            setIsPremiumModalOpen={setIsPremiumModalOpen} 
-        />;
+        return <CreateTeamView onBack={userTeams.length > 0 ? () => setIsCreating(false) : onBack} onCreate={handleCreateTeam} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
     }
     
     if (userTeams.length === 0 && !isCreating) {
@@ -258,24 +230,12 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
         const handleUpdatePlayer = (updatedPlayer: Player) => {
             const updatedPlayers = team.players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p);
             onUpdateTeam(team.id, { players: updatedPlayers });
-            addNotification({type: 'success', title: 'Jugador Actualizado', message: `${updatedPlayer.name} ha sido actualizado.`})
         };
     
         const handleAddPlayer = async (newPlayer: Player) => {
             const updatedPlayers = [...team.players, newPlayer];
             await onUpdateTeam(team.id, { players: updatedPlayers });
-
-            const systemMessageData: Omit<SystemMessage, "id" | "timestamp"> = {
-                type: 'system',
-                text: `${newPlayer.name} ha sido añadido al equipo por el capitán. ¡Bienvenido!`,
-            };
-            await db.addChatMessage(team.id, systemMessageData);
-
-            addNotification({type: 'success', title: 'Jugador Añadido', message: `${newPlayer.name} se ha unido al equipo.`})
-        };
-        
-        const handleRemovePlayer = (playerId: string) => {
-            onRemovePlayerFromTeam(team.id, playerId);
+            await db.addChatMessage(team.id, { type: 'system', text: `${newPlayer.name} se ha unido al equipo.` });
         };
         
         const TABS: { id: TeamView; label: string; icon: React.ReactNode }[] = [
@@ -290,16 +250,13 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
         const renderContent = () => {
             switch (view) {
                 case 'roster':
-                    return <RosterView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={handleRemovePlayer} allUsers={allUsers} />;
+                    return <RosterView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdatePlayer={handleUpdatePlayer} onAddPlayer={handleAddPlayer} onRemovePlayer={(pid) => onRemovePlayerFromTeam(team.id, pid)} allUsers={allUsers} />;
                 case 'tactics':
                     return <TacticsView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} user={user} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
                 case 'schedule':
                     return <ScheduleView team={team} isCaptain={isCaptain} onBack={() => setView('dashboard')} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} addNotification={addNotification} />;
                 case 'performance':
                     return <PerformanceView team={team} allBookings={allBookings} onUpdateTeam={(updates) => onUpdateTeam(team.id, updates)} />;
-                case 'chat':
-                     return null;
-                case 'dashboard':
                 default:
                     return <DashboardGrid team={team} setView={setView} setSection={setSection} setActiveChatTeam={setActiveChatTeam} />;
             }
@@ -312,42 +269,29 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                     Volver a Mis Equipos
                 </button>
                 
-                <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6 relative holographic-shine">
+                <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6">
                     <div className="flex items-center gap-4 mb-6">
                         {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg" /> : <div className="w-24 h-24 rounded-full bg-black/30 flex items-center justify-center border-4 border-white/20 shadow-lg"><ShieldIcon className="w-12 h-12 text-gray-400" /></div>}
-                        <div>
-                            <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
+                        <div className="flex-grow">
+                            <h1 className="text-3xl font-black tracking-tight">{team.name}</h1>
                             <p className="opacity-80 font-semibold">{team.level}</p>
                         </div>
                         {!isCaptain && (
-                            <button onClick={() => setIsLeaveModalOpen(true)} className="absolute top-4 right-4 p-2 text-red-400 rounded-full hover:bg-red-500/20">
+                            <button onClick={() => setIsLeaveModalOpen(true)} className="p-2 text-red-400 rounded-full hover:bg-red-500/20">
                                 <LogoutIcon className="w-6 h-6" />
                             </button>
                         )}
                     </div>
                     <div className="grid grid-cols-3 gap-4">
-                        <HeaderStatCard label="Victorias" value={team.stats.wins} colorClass="text-green-400" />
-                        <HeaderStatCard label="Empates" value={team.stats.draws} colorClass="text-yellow-400" />
-                        <HeaderStatCard label="Derrotas" value={team.stats.losses} colorClass="text-red-400" />
+                        <HeaderStatCard label="Victorias" value={team.stats?.wins || 0} colorClass="text-green-400" />
+                        <HeaderStatCard label="Empates" value={team.stats?.draws || 0} colorClass="text-yellow-400" />
+                        <HeaderStatCard label="Derrotas" value={team.stats?.losses || 0} colorClass="text-red-400" />
                     </div>
                 </div>
                 
                 <nav className="flex space-x-1 sm:space-x-2 border-b border-white/10 mt-6 overflow-x-auto scrollbar-hide">
                     {TABS.map(tab => (
-                        <NavTab 
-                            key={tab.id}
-                            label={tab.label}
-                            icon={tab.icon}
-                            isActive={view === tab.id}
-                            onClick={() => {
-                                if (tab.id === 'chat') {
-                                    setActiveChatTeam(team);
-                                    setSection('chat');
-                                } else {
-                                    setView(tab.id);
-                                }
-                            }}
-                        />
+                        <NavTab key={tab.id} label={tab.label} icon={tab.icon} isActive={view === tab.id} onClick={() => { if (tab.id === 'chat') { setActiveChatTeam(team); setSection('chat'); } else { setView(tab.id); } }} />
                     ))}
                 </nav>
                 
@@ -358,11 +302,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                 <ConfirmationModal
                     isOpen={isLeaveModalOpen}
                     onClose={() => setIsLeaveModalOpen(false)}
-                    onConfirm={() => {
-                        onLeaveTeam(team.id);
-                        setSelectedTeam(null); // Go back to team list
-                        setIsLeaveModalOpen(false);
-                    }}
+                    onConfirm={() => { onLeaveTeam(team.id); setSelectedTeam(null); setIsLeaveModalOpen(false); }}
                     title={`¿Abandonar ${team.name}?`}
                     message="Ya no serás miembro de este equipo. Esta acción no se puede deshacer."
                     confirmButtonText="Sí, abandonar"
@@ -371,7 +311,6 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
         );
     }
     
-    // Vista de la lista de equipos
     return (
         <div className="p-4 sm:p-6 pb-[5.5rem] md:pb-4 text-white">
             <button onClick={onBack} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
@@ -386,7 +325,7 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                 </button>
             </div>
             <div className="space-y-4">
-                {userTeams.map(team => (
+                {userTeams.length > 0 ? userTeams.map(team => (
                     <button key={team.id} onClick={() => { setView('dashboard'); setSelectedTeam(team); }} className="w-full text-left bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between hover:bg-white/20 transition-colors">
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600 overflow-hidden">
@@ -398,13 +337,16 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
                             </div>
                         </div>
                          <div className="flex items-center gap-4">
-                            {team.captainId === user.id && (
-                                <span className="text-xs font-bold text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-0.5 rounded-full">Capitán</span>
-                            )}
+                            {team.captainId === user.id && <span className="text-xs font-bold text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-0.5 rounded-full">Capitán</span>}
                             <ChevronRightIcon className="w-6 h-6 text-gray-400"/>
                         </div>
                     </button>
-                ))}
+                )) : (
+                    <div className="text-center py-20 bg-black/10 rounded-2xl border border-dashed border-white/10">
+                        <ShieldIcon className="w-16 h-16 mx-auto text-white/20 mb-4" />
+                        <p className="text-white/60">Aún no tienes equipos. ¡Crea uno!</p>
+                    </div>
+                )}
             </div>
         </div>
     );

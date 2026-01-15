@@ -21,16 +21,9 @@
         theme: {
           extend: {
             colors: {
-              primary: {
-                50: '#f2fbf5',
-                100: '#DFF5E7',
-                500: '#1DB954', 
-                600: '#19a34a',
-                700: '#0F3D2E',
-              },
               brand: '#1DB954',
               sportGreen: '#1DB954',
-              // Tokens dinámicos
+              // Tokens dinámicos basados en la especificación del usuario
               bgMain: {
                 light: '#F7F9F8',
                 dark: '#121212'
@@ -47,9 +40,17 @@
                 light: '#6B7A72',
                 dark: '#BFC7C2'
               },
+              textDisabled: {
+                light: '#A8B3AD',
+                dark: '#6B7A72'
+              },
               borderDefault: {
                 light: '#E6ECE9',
                 dark: '#2A2A2A'
+              },
+              badgeGreen: {
+                light: '#DFF5E7',
+                dark: '#22C55E'
               }
             },
             fontFamily: {
@@ -63,8 +64,8 @@
               '5xl': '2.5rem',
             },
             boxShadow: {
-              'premium-light': '0 10px 30px -10px rgba(0, 0, 0, 0.05)',
-              'premium-dark': '0 20px 40px -15px rgba(0, 0, 0, 0.4)',
+              'premium-light': '0 10px 30px -10px rgba(0, 0, 0, 0.08)',
+              'premium-dark': '0 20px 40px -15px rgba(0, 0, 0, 0.5)',
               'button': '0 8px 25px -5px rgba(29, 185, 84, 0.3)',
               'nav-light': '0 -10px 40px -10px rgba(0, 0, 0, 0.06)',
               'nav-dark': '0 -10px 40px -10px rgba(0, 0, 0, 0.4)',
@@ -76,75 +77,47 @@
     </script>
     <style>
         :root {
-            --bg-main: #F7F9F8;
-            --text-main: #0E1A13;
+            --bg-body: #F7F9F8;
+            --text-body: #0E1A13;
         }
-
         .dark {
-            --bg-main: #121212;
-            --text-main: #E6E6E6;
+            --bg-body: #121212;
+            --text-body: #E6E6E6;
         }
-
         body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
+            background-color: var(--bg-body);
+            color: var(--text-body);
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: contain;
             font-feature-settings: "cv02", "cv03", "cv04", "cv11";
             transition: background-color 0.3s ease, color 0.3s ease;
         }
+        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .glass-nav { backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
         
-        .safe-area-bottom {
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        /* Nav Animations */
         @keyframes daviplay-pulse {
             0% { transform: scale(1); box-shadow: 0 0 20px rgba(29, 185, 84, 0.2); }
             50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(29, 185, 84, 0.4); }
             100% { transform: scale(1); box-shadow: 0 0 20px rgba(29, 185, 84, 0.2); }
         }
-        .animate-daviplay {
-            animation: daviplay-pulse 3s infinite ease-in-out;
-        }
+        .animate-daviplay { animation: daviplay-pulse 3s infinite ease-in-out; }
 
-        .glass-nav {
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-        }
-
-        @keyframes icon-bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-        }
-        .active-icon-anim {
-            animation: icon-bounce 0.4s ease-out;
-        }
-
-        /* iOS Transition Emulation */
         @keyframes ios-slide-up {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        .animate-slide-in-up {
-            animation: ios-slide-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        .ios-scroller {
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-        }
-        .ios-scroller::-webkit-scrollbar {
-            display: none;
-        }
+        .animate-ios { animation: ios-slide-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         
+        .ios-scroller { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .ios-scroller::-webkit-scrollbar { display: none; }
+
         .shimmer-bg {
             background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
         }
         .dark .shimmer-bg {
-            background: linear-gradient(90deg, #222 25%, #2a2a2a 50%, #222 75%);
+            background: linear-gradient(90deg, #1E1E1E 25%, #2A2A2A 50%, #1E1E1E 75%);
         }
         @keyframes shimmer {
             0% { background-position: 200% 0; }
