@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { User, Notification, Invitation } from '../types';
 import { View } from '../types';
 import { UserIcon } from './icons/UserIcon';
-import { XIcon } from './icons/XIcon';
-import { BellIcon } from './icons/BellIcon';
-import { DashboardIcon } from './icons/DashboardIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
-import ConfirmationModal from './ConfirmationModal';
 
 interface HeaderProps {
     user: User | null;
@@ -24,7 +20,7 @@ interface HeaderProps {
     currentTime: Date;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notifications, invitations, onDismiss, onMarkAllAsRead, onClearAll, onAcceptInvitation, onRejectInvitation, onAcceptMatchInvite, onRejectMatchInvite, currentTime }) => {
+const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
 
@@ -39,14 +35,14 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
     }, []);
 
     return (
-        <header className="sticky top-0 z-50 px-4 py-4 sm:py-6">
-            <div className="container mx-auto flex justify-between items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl px-5 py-3 shadow-glass">
+        <header className="sticky top-0 z-50 px-4 py-4 sm:py-6 bg-bgMain-light/80 dark:bg-bgMain-dark/80 backdrop-blur-md transition-colors">
+            <div className="container mx-auto flex justify-between items-center bg-bgSurface-light dark:bg-bgSurface-dark border border-borderDefault-light dark:border-borderDefault-dark rounded-3xl px-5 py-3 shadow-premium-light dark:shadow-premium-dark">
                 <div 
                     className="flex items-center gap-2.5 cursor-pointer active:scale-95 transition-transform"
                     onClick={() => onNavigate(View.HOME)}
                 >
-                    <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo" className="h-9 w-9 rounded-xl shadow-lg" />
-                    <h1 className="text-xl font-black tracking-tighter text-white">CANCHEO</h1>
+                    <img src="https://ideogram.ai/assets/image/lossless/response/zjy_oza2RB2xuDygg3HR-Q" alt="Cancheo" className="h-9 w-9 rounded-xl shadow-sm" />
+                    <h1 className="text-xl font-black tracking-tighter text-textMain-light dark:text-textMain-dark">CANCHEO</h1>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -54,9 +50,9 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                         <div ref={profileRef} className="relative">
                             <button 
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                className="flex items-center gap-2 p-1 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
+                                className="flex items-center gap-2 p-1 rounded-full border border-borderDefault-light dark:border-borderDefault-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                             >
-                                <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center overflow-hidden shadow-inner">
+                                <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center overflow-hidden shadow-inner border border-brand/20">
                                     {user.profilePicture ? (
                                         <img src={user.profilePicture} alt="Avatar" className="w-full h-full object-cover" />
                                     ) : (
@@ -65,12 +61,12 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, notificatio
                                 </div>
                             </button>
                             {isProfileOpen && (
-                                <div className="absolute right-0 mt-3 w-56 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 p-2 animate-ios overflow-hidden">
-                                    <button onClick={() => { onNavigate(View.PROFILE); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 p-3 text-sm font-semibold text-gray-200 hover:bg-white/5 rounded-xl transition-colors">
-                                        <UserIcon className="w-4 h-4"/> Mi Perfil
+                                <div className="absolute right-0 mt-3 w-56 bg-bgSurface-light dark:bg-bgSurface-dark rounded-2xl shadow-2xl border border-borderDefault-light dark:border-borderDefault-dark p-2 animate-ios overflow-hidden">
+                                    <button onClick={() => { onNavigate(View.PROFILE); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 p-3 text-sm font-semibold text-textMain-light dark:text-textMain-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors">
+                                        <UserIcon className="w-4 h-4 text-brand"/> Mi Perfil
                                     </button>
-                                    <div className="h-px bg-white/10 my-1"></div>
-                                    <button onClick={() => { onLogout(); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 p-3 text-sm font-semibold text-red-400 hover:bg-red-400/10 rounded-xl transition-colors">
+                                    <div className="h-px bg-borderDefault-light dark:bg-borderDefault-dark my-1"></div>
+                                    <button onClick={() => { onLogout(); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 p-3 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors">
                                         <LogoutIcon className="w-4 h-4"/> Cerrar Sesión
                                     </button>
                                 </div>
