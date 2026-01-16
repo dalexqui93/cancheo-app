@@ -24,6 +24,7 @@ import PremiumLockModal from '../components/PremiumLockModal';
 import ForgotPasswordView from '../views/ForgotPassword';
 import * as db from '../database';
 import { isFirebaseConfigured } from '../database';
+import { getCurrentPosition } from '../utils/geolocation';
 
 const App = () => {
     const [fields, setFields] = useState<SoccerField[]>([]);
@@ -45,7 +46,62 @@ const App = () => {
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
     const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
 
-    // Lógica de Temas Unificada y Persistente
+    // --- LÓGICA DE CLIMA ---
+    const fetchWeatherData = useCallback(async (lat?: number, lon?: number) => {
+        setIsWeatherLoading(true);
+        const latitude = lat || 4.6097; // Bogotá default
+        const longitude = lon || -74.0817;
+
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m&timezone=auto`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data) {
+                const formattedData: WeatherData = {
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    timezone: data.timezone,
+                    lastUpdated: new Date(),
+                    current: {
+                        time: new Date(),
+                        temperature: data.current.temperature_2m,
+                        apparentTemperature: data.current.temperature_2m,
+                        precipitationProbability: data.current.relative_humidity_2m,
+                        windSpeed: 0,
+                        weatherCode: data.current.weather_code
+                    },
+                    hourly: data.hourly.time.map((timeStr: string, index: number) => ({
+                        time: new Date(timeStr),
+                        temperature: data.hourly.temperature_2m[index],
+                        apparentTemperature: data.hourly.temperature_2m[index],
+                        precipitationProbability: data.hourly.precipitation_probability[index],
+                        windSpeed: data.hourly.wind_speed_10m[index],
+                        weatherCode: data.hourly.weather_code[index]
+                    }))
+                };
+                setWeatherData(formattedData);
+            }
+        } catch (error) {
+            console.error("Error fetching weather:", error);
+        } finally {
+            setIsWeatherLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        const initWeather = async () => {
+            try {
+                const pos = await getCurrentPosition({ timeout: 5000 });
+                fetchWeatherData(pos.coords.latitude, pos.coords.longitude);
+            } catch (e) {
+                fetchWeatherData(); // Bogotá
+            }
+        };
+        initWeather();
+    }, [fetchWeatherData]);
+
+    // --- TEMAS ---
     useEffect(() => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -244,7 +300,7 @@ const App = () => {
 
         switch (view) {
             case View.HOME:
-                return <Home onSearch={(loc) => {}} onSelectField={(f) => { setSelectedField(f); setView(View.FIELD_DETAIL); }} fields={fields} loading={false} favoriteFields={user?.favoriteFields || []} onToggleFavorite={(id) => {}} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={() => {}} allBookings={allBookings} allTeams={allTeams} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
+                return <Home onSearch={(loc) => {}} onSelectField={(f) => { setSelectedField(f); setView(View.FIELD_DETAIL); }} fields={fields} loading={false} favoriteFields={user?.favoriteFields || []} onToggleFavorite={(id) => {}} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={() => fetchWeatherData(weatherData?.latitude, weatherData?.longitude)} allBookings={allBookings} allTeams={allTeams} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
             case View.SOCIAL:
                 return <SocialView {...commonProps} section={socialSection} setSection={setSocialSection} onUpdateUserTeams={handleUpdateUserTeams} onUpdateTeam={handleUpdateTeam} sentInvitations={sentInvitations} onSendInvitation={handleSendInvitation} onCancelInvitation={db.deleteInvitation} onRemovePlayerFromTeam={handleRemovePlayerFromTeam} onLeaveTeam={handleLeaveTeam} onSetAvailability={handleSetAvailability} />;
             case View.PLAYER_PROFILE_CREATOR:
@@ -265,14 +321,15 @@ const App = () => {
     };
 
     const isFullscreen = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR].includes(view);
+    const showNavigation = !isFullscreen && user !== null;
 
     return (
         <div className="bg-bgMain-light dark:bg-bgMain-dark min-h-screen transition-colors duration-300">
             {!isFullscreen && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={user?.notifications || []} invitations={receivedInvitations} onDismiss={() => {}} onMarkAllAsRead={() => {}} onClearAll={() => {}} onAcceptInvitation={handleAcceptInvitation} onRejectInvitation={handleRejectInvitation} onAcceptMatchInvite={() => {}} onRejectMatchInvite={() => {}} currentTime={new Date()} />}
-            <main className={`container mx-auto ${!isFullscreen ? 'pb-32' : ''}`}>
+            <main className={`container mx-auto ${showNavigation ? 'pb-32' : ''}`}>
                 {renderView()}
             </main>
-            {!isFullscreen && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
+            {showNavigation && <BottomNav activeTab={activeTab} onNavigate={handleTabNavigate} />}
             <NotificationContainer notifications={toasts} onDismiss={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
             {isPremiumModalOpen && <PremiumLockModal onClose={() => setIsPremiumModalOpen(false)} />}
         </div>
