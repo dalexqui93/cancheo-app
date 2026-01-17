@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { SoccerField, User, WeatherData, ConfirmedBooking, Team, AcceptedMatchInvite } from '../types';
 import FieldCard from '../components/FieldCard';
@@ -159,7 +160,7 @@ const Home: React.FC<HomeProps> = ({
                         <span className="text-[10px] font-bold text-textMuted-light dark:text-textMuted-dark uppercase">{currentTime.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</span>
                     </div>
 
-                    <div className="flex gap-4 overflow-x-auto ios-scroller -mx-4 px-4 pb-2">
+                    <div className="flex gap-4 overflow-x-auto justify-center ios-scroller -mx-4 px-4 pb-2">
                         {globalMatchesToday.map(match => (
                             <div 
                                 key={match.id}
