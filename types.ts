@@ -2,6 +2,7 @@
 // Basic types
 export type Theme = 'system' | 'light' | 'dark';
 export type AccentColor = 'green' | 'blue' | 'orange' | 'purple';
+export type AppBackgroundColor = 'default' | 'turf' | 'midnight' | 'slate';
 export type Tab = 'explore' | 'bookings' | 'community' | 'profile';
 export type SocialSection = 'hub' | 'my-team' | 'sports-forum' | 'tournaments' | 'challenge' | 'find-players' | 'chat' | 'available-today';
 

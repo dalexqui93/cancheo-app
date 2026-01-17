@@ -8,6 +8,7 @@ import { ClockIcon } from '../components/icons/ClockIcon';
 import { HeartIcon } from '../components/icons/HeartIcon';
 import WeatherIcon from '../components/icons/WeatherIcon';
 import { mapWmoCodeToIcon } from '../utils/weatherUtils';
+import { BanIcon } from '../components/icons/BanIcon';
 
 interface ComplexDisplayData {
     name: string;
@@ -31,7 +32,7 @@ interface FieldDetailProps {
 }
 
 const FieldDetail: React.FC<FieldDetailProps> = ({ 
-    complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, weatherData 
+    complex, initialFieldId, onBookNow, onBack, favoriteFields, onToggleFavorite, weatherData, allBookings
 }) => {
     const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
     const selectedField = complex.fields.find(f => f.id === selectedFieldId) || complex.fields[0];
@@ -39,20 +40,42 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
     const isFavorite = favoriteFields.includes(selectedField.complexId || selectedField.id);
-    const availableHours = ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
 
-    const nextDays = useMemo(() => {
-        return Array.from({ length: 7 }).map((_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() + i);
-            return date;
-        });
-    }, []);
+    // Determinar horarios base (del dueño o genéricos)
+    const availableHours = useMemo(() => {
+        if (selectedField.availableSlots) {
+            return [
+                ...(selectedField.availableSlots.mañana || []),
+                ...(selectedField.availableSlots.tarde || []),
+                ...(selectedField.availableSlots.noche || [])
+            ].sort();
+        }
+        return ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+    }, [selectedField]);
 
     const isSameDay = (d1: Date, d2: Date) => 
         d1.getDate() === d2.getDate() && 
         d1.getMonth() === d2.getMonth() && 
         d1.getFullYear() === d2.getFullYear();
+
+    // Calcular horas ocupadas para esta cancha y fecha
+    const occupiedHours = useMemo(() => {
+        return allBookings
+            .filter(b => 
+                b.field.id === selectedField.id && 
+                isSameDay(new Date(b.date), selectedDate) &&
+                b.status !== 'cancelled'
+            )
+            .map(b => b.time);
+    }, [allBookings, selectedField.id, selectedDate]);
+
+    const nextDays = useMemo(() => {
+        return Array.from({ length: 14 }).map((_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() + i);
+            return date;
+        });
+    }, []);
 
     return (
         <div className="bg-bgMain-light dark:bg-bgMain-dark min-h-screen pb-44 animate-ios transition-colors">
@@ -94,6 +117,28 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
             </div>
 
             <div className="relative -mt-8 px-6 space-y-8">
+                {/* Selector de Canchas del Complejo */}
+                {complex.fields.length > 1 && (
+                    <div className="space-y-3">
+                        <h2 className="text-[10px] font-black text-textMuted-light dark:text-textMuted-dark uppercase tracking-[0.2em] ml-1">Selecciona la cancha</h2>
+                        <div className="flex gap-2 overflow-x-auto ios-scroller pb-2">
+                            {complex.fields.map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => { setSelectedFieldId(f.id); setSelectedTime(null); }}
+                                    className={`flex-shrink-0 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border-2 ${
+                                        selectedFieldId === f.id
+                                        ? 'bg-brand border-brand text-white shadow-button'
+                                        : 'bg-bgSurface-light dark:bg-bgSurface-dark border-borderDefault-light dark:border-borderDefault-dark text-textMuted-light dark:text-textMuted-dark'
+                                    }`}
+                                >
+                                    {f.name.split(' - ').pop()} ({f.size})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Detalles Rápidos Adaptativos */}
                 <div className="flex items-center gap-6 overflow-x-auto ios-scroller py-2">
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -125,7 +170,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                             return (
                                 <button
                                     key={idx}
-                                    onClick={() => setSelectedDate(date)}
+                                    onClick={() => { setSelectedDate(date); setSelectedTime(null); }}
                                     className={`flex-shrink-0 w-16 py-5 rounded-[24px] flex flex-col items-center gap-1 transition-all duration-300 border-2 ${
                                         isSelected 
                                         ? 'bg-brand border-brand shadow-button text-white scale-105' 
@@ -148,21 +193,32 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                     <div className="grid grid-cols-3 gap-3">
                         {availableHours.map(time => {
                             const isSelected = selectedTime === time;
+                            const isOccupied = occupiedHours.includes(time);
                             const hourData = weatherData?.hourly.find(h => h.time.getHours() === parseInt(time));
                             const condition = hourData ? mapWmoCodeToIcon(hourData.weatherCode) : null;
 
                             return (
                                 <button
                                     key={time}
-                                    onClick={() => setSelectedTime(time)}
-                                    className={`py-6 rounded-[24px] font-black text-sm transition-all duration-300 border-2 flex flex-col items-center gap-2 ${
-                                        isSelected 
+                                    onClick={() => !isOccupied && setSelectedTime(time)}
+                                    disabled={isOccupied}
+                                    className={`py-6 rounded-[24px] font-black text-sm transition-all duration-300 border-2 flex flex-col items-center gap-2 relative overflow-hidden ${
+                                        isOccupied
+                                        ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-40 grayscale cursor-not-allowed'
+                                        : isSelected 
                                         ? 'bg-brand border-brand text-white shadow-button scale-95' 
                                         : 'bg-bgSurface-light dark:bg-bgSurface-dark border-borderDefault-light dark:border-borderDefault-dark text-textMain-light dark:text-textMain-dark shadow-sm'
                                     }`}
                                 >
-                                    <span>{time}</span>
-                                    {condition && (
+                                    {isOccupied && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/5">
+                                            <BanIcon className="w-8 h-8 text-red-500/50" />
+                                        </div>
+                                    )}
+                                    <span className={isOccupied ? 'line-through' : ''}>{time}</span>
+                                    {isOccupied ? (
+                                        <span className="text-[8px] font-black uppercase text-red-500">Ocupado</span>
+                                    ) : condition && (
                                         <WeatherIcon 
                                             condition={condition} 
                                             className={`w-5 h-5 opacity-60 ${isSelected ? 'brightness-200' : ''}`} 
@@ -172,6 +228,9 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                             );
                         })}
                     </div>
+                    {availableHours.length === 0 && (
+                        <p className="text-center py-10 text-textMuted-light font-bold">No hay horarios configurados para este día.</p>
+                    )}
                 </div>
             </div>
 

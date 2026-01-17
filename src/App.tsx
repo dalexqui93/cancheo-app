@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import type { SoccerField, User, Notification, ConfirmedBooking, Tab, Theme, AccentColor, WeatherData, SocialSection, Team, Invitation, Player } from '../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { SoccerField, User, Notification, ConfirmedBooking, Tab, Theme, AccentColor, AppBackgroundColor, WeatherData, SocialSection, Team, Invitation, Player, BookingDetails } from '../types';
 import { View } from '../types';
 import Header from '../components/Header';
 import Home from '../views/Home';
@@ -35,16 +35,28 @@ const App = () => {
     const [activeTab, setActiveTab] = useState<Tab>('explore');
     const [user, setUser] = useState<User | null>(null);
     const [selectedField, setSelectedField] = useState<SoccerField | null>(null);
+    const [bookingInProgress, setBookingInProgress] = useState<BookingDetails | null>(null);
+    const [lastConfirmedBooking, setLastConfirmedBooking] = useState<ConfirmedBooking | null>(null);
+    const [selectedDetailBookingId, setSelectedDetailBookingId] = useState<string | null>(null);
+    const [isBookingLoading, setIsBookingLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<SoccerField[]>([]);
     const [toasts, setToasts] = useState<Notification[]>([]);
+    
+    // --- APARIENCIA ---
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
     const [accentColor, setAccentColor] = useState<AccentColor>(() => (localStorage.getItem('accentColor') as AccentColor) || 'green');
+    const [appBgColor, setAppBgColor] = useState<AppBackgroundColor>(() => (localStorage.getItem('appBgColor') as AppBackgroundColor) || 'default');
+    
     const [isPremiumModalOpen, setIsPremiumModalOpen] = useState<boolean>(false);
     const [socialSection, setSocialSection] = useState<SocialSection>('hub');
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
     const [sentInvitations, setSentInvitations] = useState<Invitation[]>([]);
     const [receivedInvitations, setReceivedInvitations] = useState<Invitation[]>([]);
+
+    const selectedDetailBooking = useMemo(() => 
+        allBookings.find(b => b.id === selectedDetailBookingId) || null
+    , [allBookings, selectedDetailBookingId]);
 
     // --- LÓGICA DE CLIMA ---
     const fetchWeatherData = useCallback(async (lat?: number, lon?: number) => {
@@ -101,22 +113,31 @@ const App = () => {
         initWeather();
     }, [fetchWeatherData]);
 
-    // --- TEMAS ---
+    // --- TEMAS Y FONDO ---
     useEffect(() => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        const updateTheme = () => {
+        const updateAppearance = () => {
             const isDark = theme === 'dark' || (theme === 'system' && mediaQuery.matches);
             root.classList.toggle('dark', isDark);
             root.classList.toggle('light', !isDark);
             localStorage.setItem('theme', theme);
+            localStorage.setItem('appBgColor', appBgColor);
+
+            const bgConfig = {
+                light: { default: '#F7F9F8', turf: '#F0F7F2', midnight: '#F1F4F9', slate: '#F2F4F7' },
+                dark: { default: '#121212', turf: '#0A1A0F', midnight: '#0F172A', slate: '#1A1C1E' }
+            };
+
+            const selectedBg = isDark ? bgConfig.dark[appBgColor] : bgConfig.light[appBgColor];
+            root.style.setProperty('--bg-body', selectedBg);
         };
 
-        updateTheme();
-        mediaQuery.addEventListener('change', updateTheme);
-        return () => mediaQuery.removeEventListener('change', updateTheme);
-    }, [theme]);
+        updateAppearance();
+        mediaQuery.addEventListener('change', updateAppearance);
+        return () => mediaQuery.removeEventListener('change', updateAppearance);
+    }, [theme, appBgColor]);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -135,7 +156,6 @@ const App = () => {
         loadInitialData();
     }, []);
 
-    // Listeners para datos en tiempo real si Firebase está configurado
     useEffect(() => {
         if (!isFirebaseConfigured) return;
         const unsubUsers = db.listenToAllUsers(setAllUsers);
@@ -148,7 +168,6 @@ const App = () => {
         };
     }, []);
 
-    // Listener para invitaciones
     useEffect(() => {
         if (!user) return;
         const unsubRec = db.listenToInvitationsForUser(user.id, setReceivedInvitations);
@@ -196,6 +215,72 @@ const App = () => {
         setUser(null);
         setView(View.HOME);
         setActiveTab('explore');
+    };
+
+    const handleConfirmBooking = async (bookingInfo: any) => {
+        if (!user) return;
+        setIsBookingLoading(true);
+        try {
+            const finalBooking = await db.addBooking({
+                ...bookingInfo,
+                userId: user.id,
+                userName: user.name,
+                userPhone: user.phone || '',
+                status: 'confirmed',
+                timestamp: new Date()
+            });
+
+            if (user.loyalty && finalBooking.field.loyaltyEnabled) {
+                const fieldId = finalBooking.field.id;
+                const currentLoyalty = user.loyalty[fieldId] || { progress: 0, freeTickets: 0 };
+                let nextProgress = currentLoyalty.progress + 1;
+                let nextFreeTickets = currentLoyalty.freeTickets;
+
+                if (nextProgress >= (finalBooking.field.loyaltyGoal || 7)) {
+                    nextProgress = 0;
+                    nextFreeTickets += 1;
+                    setToasts(prev => [...prev, { id: Date.now(), type: 'success', title: '¡Cancha Gratis!', message: 'Has ganado un ticket para un partido gratis.', timestamp: new Date() }]);
+                }
+
+                const updatedLoyalty = { ...user.loyalty, [fieldId]: { progress: nextProgress, freeTickets: nextFreeTickets } };
+                await db.updateUser(user.id, { loyalty: updatedLoyalty });
+                setUser(prev => prev ? { ...prev, loyalty: updatedLoyalty } : null);
+            }
+
+            setLastConfirmedBooking(finalBooking);
+            setView(View.BOOKING_CONFIRMATION);
+        } catch (error) {
+            setToasts(prev => [...prev, { id: Date.now(), type: 'error', title: 'Error', message: 'No se pudo procesar la reserva.', timestamp: new Date() }]);
+        } finally {
+            setIsBookingLoading(false);
+        }
+    };
+
+    const handleCancelBooking = async (id: string) => {
+        try {
+            await db.updateBooking(id, { status: 'cancelled' });
+            setToasts(prev => [...prev, { id: Date.now(), type: 'info', title: 'Reserva Cancelada', message: 'Tu reserva ha sido cancelada exitosamente.', timestamp: new Date() }]);
+            setView(View.BOOKINGS);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleUpdateScore = async (bookingId: string, scoreA: number, scoreB: number) => {
+        try {
+            await db.updateBooking(bookingId, { scoreA, scoreB });
+        } catch (error) {
+            console.error("Error updating score:", error);
+        }
+    };
+
+    const handleFinalizeMatch = async (bookingId: string, scoreA: number, scoreB: number) => {
+        try {
+            await db.updateBooking(bookingId, { scoreA, scoreB, status: 'completed' });
+            setToasts(prev => [...prev, { id: Date.now(), type: 'success', title: 'Partido Finalizado', message: 'El resultado ha sido registrado oficialmente.', timestamp: new Date() }]);
+        } catch (error) {
+            console.error("Error finalizing match:", error);
+        }
     };
 
     const handleUpdateUserTeams = async (teamIds: string[]) => {
@@ -259,7 +344,6 @@ const App = () => {
         const newPlayers = team.players.filter(p => p.id !== playerId);
         await db.updateTeam(teamId, { players: newPlayers });
         
-        // También actualizar el array teamIds del usuario expulsado
         const targetUser = allUsers.find(u => u.id === playerId);
         if (targetUser) {
             const newIds = (targetUser.teamIds || []).filter(id => id !== teamId);
@@ -300,31 +384,44 @@ const App = () => {
 
         switch (view) {
             case View.HOME:
-                return <Home onSearch={(loc) => {}} onSelectField={(f) => { setSelectedField(f); setView(View.FIELD_DETAIL); }} fields={fields} loading={false} favoriteFields={user?.favoriteFields || []} onToggleFavorite={(id) => {}} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={() => fetchWeatherData(weatherData?.latitude, weatherData?.longitude)} allBookings={allBookings} allTeams={allTeams} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
+                return <Home onSearch={(loc) => {}} onSelectField={(f) => { setSelectedField(f); setView(View.FIELD_DETAIL); }} fields={fields} loading={false} favoriteFields={user?.favoriteFields || []} onToggleFavorite={(id) => {}} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={() => fetchWeatherData(weatherData?.latitude, weatherData?.longitude)} allBookings={allBookings} allTeams={allTeams} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={(b) => { setSelectedDetailBookingId(b.id); setView(View.BOOKING_DETAIL); }} />;
+            case View.FIELD_DETAIL:
+                return selectedField ? <FieldDetail complex={{...selectedField, fields: [selectedField], name: selectedField.name.split(' - ')[0]}} initialFieldId={selectedField.id} onBookNow={(f, t, d) => { setBookingInProgress({field: f, time: t, date: d}); setView(View.BOOKING); }} onBack={() => setView(View.HOME)} favoriteFields={user?.favoriteFields || []} onToggleFavorite={() => {}} allBookings={allBookings} weatherData={weatherData} /> : <Home {...commonProps} fields={fields} loading={false} favoriteFields={[]} onToggleFavorite={() => {}} onSearch={() => {}} onSelectField={() => {}} onSearchByLocation={() => {}} isSearchingLocation={false} isWeatherLoading={false} onRefreshWeather={() => {}} allTeams={[]} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
+            case View.BOOKING:
+                return bookingInProgress ? <Booking details={bookingInProgress} user={user!} allTeams={allTeams} onConfirm={handleConfirmBooking} onBack={() => setView(View.FIELD_DETAIL)} isBookingLoading={isBookingLoading} /> : null;
+            case View.BOOKING_CONFIRMATION:
+                return lastConfirmedBooking ? <BookingConfirmation details={lastConfirmedBooking} onDone={() => setView(View.HOME)} weatherData={weatherData} /> : null;
+            case View.BOOKINGS:
+                return <BookingsView bookings={allBookings.filter(b => b.userId === user?.id)} onSelectBooking={(b) => { setSelectedDetailBookingId(b.id); setView(View.BOOKING_DETAIL); }} />;
+            case View.BOOKING_DETAIL:
+                return selectedDetailBooking ? <BookingDetailView booking={selectedDetailBooking} user={user!} allTeams={allTeams} onBack={() => setView(View.BOOKINGS)} onCancelBooking={handleCancelBooking} weatherData={weatherData} onUpdateScore={handleUpdateScore} onFinalizeMatch={handleFinalizeMatch} currentTime={new Date()} /> : null;
             case View.SOCIAL:
                 return <SocialView {...commonProps} section={socialSection} setSection={setSocialSection} onUpdateUserTeams={handleUpdateUserTeams} onUpdateTeam={handleUpdateTeam} sentInvitations={sentInvitations} onSendInvitation={handleSendInvitation} onCancelInvitation={db.deleteInvitation} onRemovePlayerFromTeam={handleRemovePlayerFromTeam} onLeaveTeam={handleLeaveTeam} onSetAvailability={handleSetAvailability} />;
             case View.PLAYER_PROFILE_CREATOR:
                 return <PlayerProfileCreatorView user={user!} onBack={() => handleNavigate(View.SOCIAL)} onSave={handleSavePlayerProfile} />;
-            case View.FIELD_DETAIL:
-                return selectedField ? <FieldDetail complex={{...selectedField, fields: [selectedField], name: selectedField.name.split(' - ')[0]}} initialFieldId={selectedField.id} onBookNow={() => setView(View.BOOKING)} onBack={() => setView(View.HOME)} favoriteFields={user?.favoriteFields || []} onToggleFavorite={() => {}} allBookings={allBookings} weatherData={weatherData} /> : <Home {...commonProps} fields={fields} loading={false} favoriteFields={[]} onToggleFavorite={() => {}} onSearch={() => {}} onSelectField={() => {}} onSearchByLocation={() => {}} isSearchingLocation={false} isWeatherLoading={false} onRefreshWeather={() => {}} allTeams={[]} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
             case View.LOGIN:
                 return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
             case View.PROFILE:
                 return <ProfileView user={user!} allTeams={allTeams} setSocialSection={setSocialSection} onLogout={handleLogout} allFields={fields} onToggleFavorite={() => {}} onSelectField={() => {}} onUpdateProfilePicture={() => {}} onRemoveProfilePicture={() => {}} onUpdateUser={() => {}} onChangePassword={() => {}} onUpdateNotificationPreferences={() => {}} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
             case View.APPEARANCE:
-                return <AppearanceSettings currentTheme={theme} onUpdateTheme={setTheme} onBack={() => setView(View.PROFILE)} currentAccentColor={accentColor} onUpdateAccentColor={setAccentColor} />;
-            case View.BOOKINGS:
-                return <BookingsView bookings={allBookings.filter(b => b.userId === user?.id)} onSelectBooking={(b) => { setView(View.BOOKING_DETAIL); }} />;
+                return <AppearanceSettings currentTheme={theme} onUpdateTheme={setTheme} onBack={() => setView(View.PROFILE)} currentAccentColor={accentColor} onUpdateAccentColor={setAccentColor} currentBgColor={appBgColor} onUpdateBgColor={setAppBgColor} />;
             default:
                 return <Home {...commonProps} fields={fields} loading={false} favoriteFields={[]} onToggleFavorite={() => {}} onSearch={() => {}} onSelectField={() => {}} onSearchByLocation={() => {}} isSearchingLocation={false} isWeatherLoading={false} onRefreshWeather={() => {}} allTeams={[]} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
         }
     };
 
-    const isFullscreen = [View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.PLAYER_PROFILE_CREATOR].includes(view);
+    const isFullscreen = [
+        View.LOGIN, 
+        View.REGISTER, 
+        View.FORGOT_PASSWORD, 
+        View.PLAYER_PROFILE_CREATOR,
+        View.FIELD_DETAIL,
+        View.BOOKING
+    ].includes(view);
     const showNavigation = !isFullscreen && user !== null;
 
     return (
-        <div className="bg-bgMain-light dark:bg-bgMain-dark min-h-screen transition-colors duration-300">
+        <div className="bg-bgMain-light dark:bg-bgMain-dark min-h-screen transition-all duration-500 ease-in-out">
             {!isFullscreen && <Header user={user} onNavigate={handleNavigate} onLogout={handleLogout} notifications={user?.notifications || []} invitations={receivedInvitations} onDismiss={() => {}} onMarkAllAsRead={() => {}} onClearAll={() => {}} onAcceptInvitation={handleAcceptInvitation} onRejectInvitation={handleRejectInvitation} onAcceptMatchInvite={() => {}} onRejectMatchInvite={() => {}} currentTime={new Date()} />}
             <main className={`container mx-auto ${showNavigation ? 'pb-32' : ''}`}>
                 {renderView()}

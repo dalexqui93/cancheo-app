@@ -35,30 +35,50 @@ const Home: React.FC<HomeProps> = ({
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Función para obtener string de fecha YYYY-MM-DD local
+    const getLocalDateString = (date: Date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const globalMatchesToday = useMemo(() => {
-        const todayStr = currentTime.toISOString().split('T')[0];
-        const nowTime = currentTime.getHours() * 60 + currentTime.getMinutes();
+        const todayStr = getLocalDateString(currentTime);
+        const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
         return allBookings
             .filter(b => {
                 if (!b.date) return false;
-                const bDateStr = new Date(b.date).toISOString().split('T')[0];
+                // Comparación local para evitar desfase UTC
+                const bDateStr = getLocalDateString(new Date(b.date));
                 return bDateStr === todayStr && b.status !== 'cancelled';
             })
             .map(b => {
                 const [hours, minutes] = b.time.split(':').map(Number);
-                const startTime = hours * 60 + minutes;
-                const endTime = startTime + 60;
+                const startTimeMinutes = hours * 60 + minutes;
+                const endTimeMinutes = startTimeMinutes + 60; // Duración estándar 1h
 
                 let status: 'upcoming' | 'live' | 'final' = 'upcoming';
-                if (nowTime >= startTime && nowTime <= endTime) status = 'live';
-                else if (nowTime > endTime || b.status === 'completed') status = 'final';
+                
+                if (b.status === 'completed') {
+                    status = 'final';
+                } else if (nowMinutes >= startTimeMinutes && nowMinutes <= endTimeMinutes) {
+                    status = 'live';
+                } else if (nowMinutes > endTimeMinutes) {
+                    status = 'final';
+                }
 
                 return { ...b, liveStatus: status };
             })
             .sort((a, b) => {
                 const statusOrder = { live: 0, upcoming: 1, final: 2 };
-                return statusOrder[a.liveStatus] - statusOrder[b.liveStatus];
+                if (statusOrder[a.liveStatus] !== statusOrder[b.liveStatus]) {
+                    return statusOrder[a.liveStatus] - statusOrder[b.liveStatus];
+                }
+                // Si tienen el mismo estado, ordenar por hora
+                return a.time.localeCompare(b.time);
             });
     }, [allBookings, currentTime]);
 
@@ -74,10 +94,10 @@ const Home: React.FC<HomeProps> = ({
 
     const todayUserBookings = useMemo(() => {
         if (!user) return [];
-        const todayStr = currentTime.toISOString().split('T')[0];
+        const todayStr = getLocalDateString(currentTime);
         return allBookings.filter(b => {
             if (!b.date) return false;
-            const bDateStr = new Date(b.date).toISOString().split('T')[0];
+            const bDateStr = getLocalDateString(new Date(b.date));
             return b.userId === user.id && bDateStr === todayStr && b.status !== 'cancelled';
         });
     }, [user, allBookings, currentTime]);
@@ -143,7 +163,8 @@ const Home: React.FC<HomeProps> = ({
                         {globalMatchesToday.map(match => (
                             <div 
                                 key={match.id}
-                                className={`flex-shrink-0 w-[280px] p-4 rounded-3xl border transition-all bg-bgSurface-light dark:bg-bgSurface-dark ${
+                                onClick={() => onSelectBooking(match)}
+                                className={`flex-shrink-0 w-[280px] p-4 rounded-3xl border transition-all cursor-pointer active:scale-95 bg-bgSurface-light dark:bg-bgSurface-dark ${
                                     match.liveStatus === 'live' 
                                     ? 'border-brand/40 shadow-premium-light dark:shadow-premium-dark' 
                                     : 'border-borderDefault-light dark:border-borderDefault-dark shadow-sm'
