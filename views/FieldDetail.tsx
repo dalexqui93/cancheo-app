@@ -9,6 +9,7 @@ import { HeartIcon } from '../components/icons/HeartIcon';
 import WeatherIcon from '../components/icons/WeatherIcon';
 import { mapWmoCodeToIcon } from '../utils/weatherUtils';
 import { BanIcon } from '../components/icons/BanIcon';
+import BookingWeatherStatus from '../components/weather/BookingWeatherStatus';
 
 interface ComplexDisplayData {
     name: string;
@@ -189,12 +190,24 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
 
                 {/* Horarios Adaptativos */}
                 <div className="space-y-4">
-                    <h2 className="text-sm font-black text-textMain-light dark:text-textMain-dark uppercase tracking-widest italic">2. Horarios disponibles</h2>
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-sm font-black text-textMain-light dark:text-textMain-dark uppercase tracking-widest italic">2. Horarios disponibles</h2>
+                        {weatherData && (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-brand uppercase tracking-tighter">
+                                <WeatherIcon condition="sunny" className="w-3 h-3" />
+                                Pronóstico en tiempo real
+                            </div>
+                        )}
+                    </div>
+                    
                     <div className="grid grid-cols-3 gap-3">
                         {availableHours.map(time => {
                             const isSelected = selectedTime === time;
                             const isOccupied = occupiedHours.includes(time);
-                            const hourData = weatherData?.hourly.find(h => h.time.getHours() === parseInt(time));
+                            const hourData = weatherData?.hourly.find(h => {
+                                const hDate = new Date(h.time);
+                                return hDate.getHours() === parseInt(time) && isSameDay(hDate, selectedDate);
+                            });
                             const condition = hourData ? mapWmoCodeToIcon(hourData.weatherCode) : null;
 
                             return (
@@ -206,7 +219,7 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                                         isOccupied
                                         ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-40 grayscale cursor-not-allowed'
                                         : isSelected 
-                                        ? 'bg-brand border-brand text-white shadow-button scale-95' 
+                                        ? 'bg-brand border-brand text-white shadow-button scale-95 ring-4 ring-brand/20' 
                                         : 'bg-bgSurface-light dark:bg-bgSurface-dark border-borderDefault-light dark:border-borderDefault-dark text-textMain-light dark:text-textMain-dark shadow-sm'
                                     }`}
                                 >
@@ -216,18 +229,34 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                                         </div>
                                     )}
                                     <span className={isOccupied ? 'line-through' : ''}>{time}</span>
-                                    {isOccupied ? (
+                                    {!isOccupied && condition && (
+                                        <div className={`transition-transform ${isSelected ? 'scale-110' : ''}`}>
+                                            <WeatherIcon 
+                                                condition={condition} 
+                                                className={`w-5 h-5 opacity-60 ${isSelected ? 'brightness-200' : ''}`} 
+                                            />
+                                        </div>
+                                    )}
+                                    {isOccupied && (
                                         <span className="text-[8px] font-black uppercase text-red-500">Ocupado</span>
-                                    ) : condition && (
-                                        <WeatherIcon 
-                                            condition={condition} 
-                                            className={`w-5 h-5 opacity-60 ${isSelected ? 'brightness-200' : ''}`} 
-                                        />
                                     )}
                                 </button>
                             );
                         })}
                     </div>
+                    
+                    {/* Clima Detallado para la hora escogida */}
+                    {selectedTime && (
+                        <div className="mt-6 animate-ios">
+                            <h3 className="text-[10px] font-black text-textMuted-light dark:text-textMuted-dark uppercase tracking-[0.2em] mb-3 ml-1">Análisis del Clima</h3>
+                            <BookingWeatherStatus 
+                                weatherData={weatherData} 
+                                selectedDate={selectedDate} 
+                                selectedTime={selectedTime} 
+                            />
+                        </div>
+                    )}
+
                     {availableHours.length === 0 && (
                         <p className="text-center py-10 text-textMuted-light font-bold">No hay horarios configurados para este día.</p>
                     )}

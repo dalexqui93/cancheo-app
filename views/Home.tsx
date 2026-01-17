@@ -8,6 +8,7 @@ import CompactWeatherWidget from '../components/weather/CompactWeatherWidget';
 import { ClockIcon } from '../components/icons/ClockIcon';
 import { SoccerBallIcon } from '../components/icons/SoccerBallIcon';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
 
 interface HomeProps {
     onSearch: (location: string) => void;
@@ -27,16 +28,17 @@ interface HomeProps {
     currentTime: Date;
     acceptedMatches: AcceptedMatchInvite[];
     onSelectBooking: (booking: ConfirmedBooking) => void;
+    onOwnerRegisterClick: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({ 
     onSearch, onSelectField, fields, loading, favoriteFields, onToggleFavorite, 
     user, onSearchByLocation, isSearchingLocation, weatherData, isWeatherLoading, 
-    onRefreshWeather, allBookings, currentTime, acceptedMatches, onSelectBooking
+    onRefreshWeather, allBookings, currentTime, acceptedMatches, onSelectBooking,
+    onOwnerRegisterClick
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Función para obtener string de fecha YYYY-MM-DD local
     const getLocalDateString = (date: Date) => {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -52,14 +54,13 @@ const Home: React.FC<HomeProps> = ({
         return allBookings
             .filter(b => {
                 if (!b.date) return false;
-                // Comparación local para evitar desfase UTC
                 const bDateStr = getLocalDateString(new Date(b.date));
                 return bDateStr === todayStr && b.status !== 'cancelled';
             })
             .map(b => {
                 const [hours, minutes] = b.time.split(':').map(Number);
                 const startTimeMinutes = hours * 60 + minutes;
-                const endTimeMinutes = startTimeMinutes + 60; // Duración estándar 1h
+                const endTimeMinutes = startTimeMinutes + 60;
 
                 let status: 'upcoming' | 'live' | 'final' = 'upcoming';
                 
@@ -78,7 +79,6 @@ const Home: React.FC<HomeProps> = ({
                 if (statusOrder[a.liveStatus] !== statusOrder[b.liveStatus]) {
                     return statusOrder[a.liveStatus] - statusOrder[b.liveStatus];
                 }
-                // Si tienen el mismo estado, ordenar por hora
                 return a.time.localeCompare(b.time);
             });
     }, [allBookings, currentTime]);
@@ -105,7 +105,7 @@ const Home: React.FC<HomeProps> = ({
 
     return (
         <div className="space-y-8 animate-ios pb-32 bg-bgMain-light dark:bg-bgMain-dark">
-            {/* Header Section Adaptativo */}
+            {/* Header Section */}
             <div className="px-1">
                 <div className="flex justify-between items-end mb-6">
                     <div className="space-y-1">
@@ -149,7 +149,7 @@ const Home: React.FC<HomeProps> = ({
                 </div>
             </div>
 
-            {/* Marcadores de Hoy - Card dinámica */}
+            {/* Marcadores de Hoy */}
             {globalMatchesToday.length > 0 && (
                 <section className="animate-ios">
                     <div className="flex justify-between items-center px-1 mb-4">
@@ -190,7 +190,6 @@ const Home: React.FC<HomeProps> = ({
                                     <div className="flex-1 text-center min-w-0">
                                         <p className="text-textMain-light dark:text-textMain-dark font-bold text-sm truncate uppercase tracking-tight">{match.teamName || match.userName}</p>
                                     </div>
-                                    
                                     <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-xl border border-borderDefault-light dark:border-borderDefault-dark">
                                         <span className={`text-xl font-black ${match.liveStatus === 'live' ? 'text-brand' : 'text-textMain-light dark:text-textMain-dark'}`}>
                                             {match.scoreA ?? 0}
@@ -200,7 +199,6 @@ const Home: React.FC<HomeProps> = ({
                                             {match.scoreB ?? 0}
                                         </span>
                                     </div>
-
                                     <div className="flex-1 text-center min-w-0">
                                         <p className="text-textMain-light dark:text-textMain-dark font-bold text-sm truncate uppercase tracking-tight">{match.rivalName || 'Rival'}</p>
                                     </div>
@@ -280,15 +278,34 @@ const Home: React.FC<HomeProps> = ({
                 )}
             </section>
 
-            {/* Promo Banner */}
-            <div className="mx-1 p-8 rounded-5xl bg-gradient-to-br from-brand to-primary-600 text-white relative overflow-hidden shadow-button group active:scale-[0.98] transition-transform">
-                <div className="relative z-10 space-y-3">
-                    <h3 className="text-3xl font-black italic leading-none uppercase tracking-tighter">¿Dueño de canchas?</h3>
-                    <p className="text-sm font-medium opacity-90 max-w-[220px]">Digitaliza tu negocio y aumenta tus reservas con Cancheo Pro.</p>
-                    <button className="mt-4 bg-white text-brand px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl active:scale-95 transition-transform tracking-widest">COMENZAR</button>
+            {/* Promo Banner Premium */}
+            <div 
+                onClick={onOwnerRegisterClick}
+                className="mx-1 p-8 rounded-[40px] bg-gradient-to-br from-emerald-400 to-brand text-white relative overflow-hidden shadow-[0_20px_50px_rgba(29,185,84,0.3)] group cursor-pointer active:scale-[0.98] transition-all duration-500 border border-white/20"
+            >
+                <div className="relative z-10 space-y-4">
+                    <div className="flex items-center gap-2">
+                        <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5">
+                                <SparklesIcon className="w-3 h-3" />
+                                Cancheo Pro
+                            </p>
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-4xl font-black italic leading-tight uppercase tracking-tighter drop-shadow-sm">¿Dueño de canchas?</h3>
+                        <p className="text-sm font-semibold opacity-90 max-w-[240px] leading-relaxed">Digitaliza tu negocio, gestiona tus reservas y aumenta tus ingresos con herramientas profesionales.</p>
+                    </div>
+                    <button className="mt-4 bg-white text-brand px-10 py-4 rounded-2xl font-black text-xs uppercase shadow-[0_10px_25px_rgba(0,0,0,0.1)] group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.2)] group-hover:-translate-y-1 transition-all tracking-widest">
+                        COMENZAR AHORA
+                    </button>
                 </div>
-                <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
-                <SoccerBallIcon className="absolute -right-6 top-1/2 -translate-y-1/2 w-40 h-40 text-white/10 rotate-12" />
+                
+                {/* Elementos decorativos */}
+                <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
+                <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-300/20 rounded-full blur-3xl"></div>
+                <SoccerBallIcon className="absolute -right-8 top-1/2 -translate-y-1/2 w-56 h-56 text-white/5 rotate-[25deg] group-hover:rotate-[45deg] transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
             </div>
         </div>
     );

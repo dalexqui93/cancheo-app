@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { SoccerField, User, Notification, ConfirmedBooking, Tab, Theme, AccentColor, AppBackgroundColor, WeatherData, SocialSection, Team, Invitation, Player, BookingDetails } from '../types';
+import type { SoccerField, User, Notification, ConfirmedBooking, Tab, Theme, AccentColor, AppBackgroundColor, WeatherData, SocialSection, Team, Invitation, Player, BookingDetails, OwnerApplication } from '../types';
 import { View } from '../types';
 import Header from '../components/Header';
 import Home from '../views/Home';
@@ -22,6 +23,8 @@ import PaymentMethodsView from '../views/PaymentMethodsView';
 import PlayerProfileCreatorView from '../views/player_profile/PlayerProfileCreatorView';
 import PremiumLockModal from '../components/PremiumLockModal';
 import ForgotPasswordView from '../views/ForgotPassword';
+import OwnerRegisterView from '../views/OwnerRegisterView';
+import OwnerPendingVerificationView from '../views/OwnerPendingVerificationView';
 import * as db from '../database';
 import { isFirebaseConfigured } from '../database';
 import { getCurrentPosition } from '../utils/geolocation';
@@ -39,6 +42,7 @@ const App = () => {
     const [lastConfirmedBooking, setLastConfirmedBooking] = useState<ConfirmedBooking | null>(null);
     const [selectedDetailBookingId, setSelectedDetailBookingId] = useState<string | null>(null);
     const [isBookingLoading, setIsBookingLoading] = useState(false);
+    const [isOwnerRegisterLoading, setIsOwnerRegisterLoading] = useState(false);
     const [searchResults, setSearchResults] = useState<SoccerField[]>([]);
     const [toasts, setToasts] = useState<Notification[]>([]);
     
@@ -58,10 +62,10 @@ const App = () => {
         allBookings.find(b => b.id === selectedDetailBookingId) || null
     , [allBookings, selectedDetailBookingId]);
 
-    // --- LÓGICA DE CLIMA ---
+    // --- CLIMA ---
     const fetchWeatherData = useCallback(async (lat?: number, lon?: number) => {
         setIsWeatherLoading(true);
-        const latitude = lat || 4.6097; // Bogotá default
+        const latitude = lat || 4.6097;
         const longitude = lon || -74.0817;
 
         try {
@@ -107,13 +111,13 @@ const App = () => {
                 const pos = await getCurrentPosition({ timeout: 5000 });
                 fetchWeatherData(pos.coords.latitude, pos.coords.longitude);
             } catch (e) {
-                fetchWeatherData(); // Bogotá
+                fetchWeatherData();
             }
         };
         initWeather();
     }, [fetchWeatherData]);
 
-    // --- TEMAS Y FONDO ---
+    // --- APARIENCIA ---
     useEffect(() => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -155,6 +159,25 @@ const App = () => {
         };
         loadInitialData();
     }, []);
+
+    // --- AUTO LOGIN (RECORDARME) ---
+    useEffect(() => {
+        if (!user && allUsers.length > 0) {
+            const savedUserId = localStorage.getItem('cancheo_saved_user_id');
+            if (savedUserId) {
+                const foundUser = allUsers.find(u => u.id === savedUserId);
+                if (foundUser) {
+                    setUser(foundUser);
+                    // Si es propietario aprobado, ir al dashboard directamente
+                    if (foundUser.isOwner && foundUser.ownerStatus === 'approved') {
+                        setView(View.OWNER_DASHBOARD);
+                    } else if (foundUser.ownerStatus === 'pending') {
+                        setView(View.OWNER_PENDING_VERIFICATION);
+                    }
+                }
+            }
+        }
+    }, [allUsers, user]);
 
     useEffect(() => {
         if (!isFirebaseConfigured) return;
@@ -201,11 +224,25 @@ const App = () => {
         }
     };
 
-    const handleLogin = (email: string, password: string) => {
+    const handleLogin = (email: string, password: string, rememberMe: boolean) => {
         const loggedInUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
         if (loggedInUser && loggedInUser.password === password) {
             setUser(loggedInUser);
-            handleNavigate(View.HOME);
+            
+            // Manejo de "Recordarme"
+            if (rememberMe) {
+                localStorage.setItem('cancheo_saved_user_id', loggedInUser.id);
+            } else {
+                localStorage.removeItem('cancheo_saved_user_id');
+            }
+
+            if (loggedInUser.isOwner && loggedInUser.ownerStatus === 'approved') {
+                handleNavigate(View.OWNER_DASHBOARD);
+            } else if (loggedInUser.ownerStatus === 'pending') {
+                handleNavigate(View.OWNER_PENDING_VERIFICATION);
+            } else {
+                handleNavigate(View.HOME);
+            }
         } else {
             setToasts(prev => [...prev, { id: Date.now(), type: 'error', title: 'Error de acceso', message: 'Credenciales inválidas', timestamp: new Date() }]);
         }
@@ -213,8 +250,45 @@ const App = () => {
 
     const handleLogout = () => {
         setUser(null);
+        localStorage.removeItem('cancheo_saved_user_id'); // Limpiar sesión persistente
         setView(View.HOME);
         setActiveTab('explore');
+    };
+
+    const handleOwnerRegister = async (appData: any, userData: any) => {
+        setIsOwnerRegisterLoading(true);
+        try {
+            // 1. Crear el usuario
+            const createdUser = await db.addUser({
+                ...userData,
+                isOwner: true,
+                ownerStatus: 'pending',
+                isAdmin: false,
+                favoriteFields: [],
+                isPremium: false,
+                loyalty: {},
+                paymentMethods: [],
+                cancheoCoins: 0
+            });
+
+            // 2. Crear la solicitud de propietario
+            await db.addOwnerApplication({
+                ...appData,
+                userId: createdUser.id,
+                userName: createdUser.name,
+                userEmail: createdUser.email,
+                status: 'pending'
+            });
+
+            setUser(createdUser);
+            handleNavigate(View.OWNER_PENDING_VERIFICATION);
+            setToasts(prev => [...prev, { id: Date.now(), type: 'success', title: 'Solicitud Enviada', message: 'Estamos revisando tus datos. Te contactaremos pronto.', timestamp: new Date() }]);
+        } catch (error) {
+            console.error(error);
+            setToasts(prev => [...prev, { id: Date.now(), type: 'error', title: 'Error', message: 'No se pudo completar el registro.', timestamp: new Date() }]);
+        } finally {
+            setIsOwnerRegisterLoading(false);
+        }
     };
 
     const handleConfirmBooking = async (bookingInfo: any) => {
@@ -367,7 +441,7 @@ const App = () => {
     };
 
     const renderView = () => {
-        if (!user && ![View.HOME, View.SEARCH_RESULTS, View.FIELD_DETAIL, View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD].includes(view)) {
+        if (!user && ![View.HOME, View.SEARCH_RESULTS, View.FIELD_DETAIL, View.LOGIN, View.REGISTER, View.FORGOT_PASSWORD, View.OWNER_REGISTER].includes(view)) {
             return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
         }
 
@@ -384,9 +458,9 @@ const App = () => {
 
         switch (view) {
             case View.HOME:
-                return <Home onSearch={(loc) => {}} onSelectField={(f) => { setSelectedField(f); setView(View.FIELD_DETAIL); }} fields={fields} loading={false} favoriteFields={user?.favoriteFields || []} onToggleFavorite={(id) => {}} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={() => fetchWeatherData(weatherData?.latitude, weatherData?.longitude)} allBookings={allBookings} allTeams={allTeams} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={(b) => { setSelectedDetailBookingId(b.id); setView(View.BOOKING_DETAIL); }} />;
+                return <Home onSearch={(loc) => {}} onSelectField={(f) => { setSelectedField(f); setView(View.FIELD_DETAIL); }} fields={fields} loading={false} favoriteFields={user?.favoriteFields || []} onToggleFavorite={(id) => {}} user={user} onSearchByLocation={() => {}} isSearchingLocation={false} weatherData={weatherData} isWeatherLoading={isWeatherLoading} onRefreshWeather={() => fetchWeatherData(weatherData?.latitude, weatherData?.longitude)} allBookings={allBookings} allTeams={allTeams} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={(b) => { setSelectedDetailBookingId(b.id); setView(View.BOOKING_DETAIL); }} onOwnerRegisterClick={() => handleNavigate(View.OWNER_REGISTER)} />;
             case View.FIELD_DETAIL:
-                return selectedField ? <FieldDetail complex={{...selectedField, fields: [selectedField], name: selectedField.name.split(' - ')[0]}} initialFieldId={selectedField.id} onBookNow={(f, t, d) => { setBookingInProgress({field: f, time: t, date: d}); setView(View.BOOKING); }} onBack={() => setView(View.HOME)} favoriteFields={user?.favoriteFields || []} onToggleFavorite={() => {}} allBookings={allBookings} weatherData={weatherData} /> : <Home {...commonProps} fields={fields} loading={false} favoriteFields={[]} onToggleFavorite={() => {}} onSearch={() => {}} onSelectField={() => {}} onSearchByLocation={() => {}} isSearchingLocation={false} isWeatherLoading={false} onRefreshWeather={() => {}} allTeams={[]} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
+                return selectedField ? <FieldDetail complex={{...selectedField, fields: [selectedField], name: selectedField.name.split(' - ')[0]}} initialFieldId={selectedField.id} onBookNow={(f, t, d) => { setBookingInProgress({field: f, time: t, date: d}); setView(View.BOOKING); }} onBack={() => setView(View.HOME)} favoriteFields={user?.favoriteFields || []} onToggleFavorite={() => {}} allBookings={allBookings} weatherData={weatherData} /> : null;
             case View.BOOKING:
                 return bookingInProgress ? <Booking details={bookingInProgress} user={user!} allTeams={allTeams} onConfirm={handleConfirmBooking} onBack={() => setView(View.FIELD_DETAIL)} isBookingLoading={isBookingLoading} /> : null;
             case View.BOOKING_CONFIRMATION:
@@ -401,12 +475,20 @@ const App = () => {
                 return <PlayerProfileCreatorView user={user!} onBack={() => handleNavigate(View.SOCIAL)} onSave={handleSavePlayerProfile} />;
             case View.LOGIN:
                 return <Login onLogin={handleLogin} onNavigateToHome={() => handleNavigate(View.HOME)} onNavigate={handleNavigate} />;
+            case View.REGISTER:
+                return <Register onRegister={(nu) => db.addUser(nu).then(u => { setUser(u); handleNavigate(View.HOME); })} onNavigate={handleNavigate} isRegisterLoading={false} />;
+            case View.OWNER_REGISTER:
+                return <OwnerRegisterView onRegister={handleOwnerRegister} onNavigate={handleNavigate} isOwnerRegisterLoading={isOwnerRegisterLoading} />;
+            case View.OWNER_PENDING_VERIFICATION:
+                return <OwnerPendingVerificationView onNavigate={handleNavigate} />;
+            case View.OWNER_DASHBOARD:
+                return <OwnerDashboard user={user!} fields={fields.filter(f => f.ownerId === user?.id)} setFields={setFields} bookings={allBookings.filter(b => b.field.ownerId === user?.id)} setBookings={setAllBookings} announcements={[]} setAnnouncements={() => {}} addNotification={commonProps.addNotification} onLogout={handleLogout} allUsers={allUsers} allFields={fields} />;
             case View.PROFILE:
                 return <ProfileView user={user!} allTeams={allTeams} setSocialSection={setSocialSection} onLogout={handleLogout} allFields={fields} onToggleFavorite={() => {}} onSelectField={() => {}} onUpdateProfilePicture={() => {}} onRemoveProfilePicture={() => {}} onUpdateUser={() => {}} onChangePassword={() => {}} onUpdateNotificationPreferences={() => {}} onNavigate={handleNavigate} setIsPremiumModalOpen={setIsPremiumModalOpen} />;
             case View.APPEARANCE:
                 return <AppearanceSettings currentTheme={theme} onUpdateTheme={setTheme} onBack={() => setView(View.PROFILE)} currentAccentColor={accentColor} onUpdateAccentColor={setAccentColor} currentBgColor={appBgColor} onUpdateBgColor={setAppBgColor} />;
             default:
-                return <Home {...commonProps} fields={fields} loading={false} favoriteFields={[]} onToggleFavorite={() => {}} onSearch={() => {}} onSelectField={() => {}} onSearchByLocation={() => {}} isSearchingLocation={false} isWeatherLoading={false} onRefreshWeather={() => {}} allTeams={[]} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} />;
+                return <Home {...commonProps} fields={fields} loading={false} favoriteFields={[]} onToggleFavorite={() => {}} onSearch={() => {}} onSelectField={() => {}} onSearchByLocation={() => {}} isSearchingLocation={false} isWeatherLoading={false} onRefreshWeather={() => {}} allTeams={[]} currentTime={new Date()} acceptedMatches={[]} onSelectBooking={() => {}} onOwnerRegisterClick={() => handleNavigate(View.OWNER_REGISTER)} />;
         }
     };
 
@@ -416,9 +498,11 @@ const App = () => {
         View.FORGOT_PASSWORD, 
         View.PLAYER_PROFILE_CREATOR,
         View.FIELD_DETAIL,
-        View.BOOKING
+        View.BOOKING,
+        View.OWNER_REGISTER,
+        View.OWNER_PENDING_VERIFICATION
     ].includes(view);
-    const showNavigation = !isFullscreen && user !== null;
+    const showNavigation = !isFullscreen && user !== null && !user.isOwner;
 
     return (
         <div className="bg-bgMain-light dark:bg-bgMain-dark min-h-screen transition-all duration-500 ease-in-out">

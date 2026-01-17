@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Team, Formation, Player, User } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -28,28 +27,27 @@ const TacticalAnalysisModal: React.FC<{ team: Team; onClose: () => void; }> = ({
                 .map(m => `vs ${'name' in m.teamB ? m.teamB.name : 'Rival'}: ${m.scoreA}-${m.scoreB}`)
                 .join(', ');
             
-            const prompt = `Eres un analista táctico de fútbol experto. Mi equipo amateur se llama "${team.name}" y nuestro nivel es ${team.level}.
+            const prompt = `Eres un analista táctico de fútbol profesional (estilo Champions League). Mi equipo amateur se llama "${team.name}" (Nivel: ${team.level}).
 Formación actual: ${team.formation}.
-Últimos 3 resultados: ${lastMatches || 'No hay partidos registrados'}.
-Notas tácticas actuales: "${team.tacticsNotes || 'Ninguna'}".
+Jugadores en campo: ${team.players.filter(p => team.playerPositions[p.id]).map(p => p.name).join(', ')}.
+Últimos 3 resultados: ${lastMatches || 'Sin historial'}.
 
-Analiza esta información y dame un consejo táctico para mejorar. Sugiere un posible cambio de formación o estrategia, y explica por qué sería beneficioso. Sé conciso y directo en tu recomendación.`;
+Analiza profundamente esta estructura táctica. Identifica posibles desequilibrios entre defensa y ataque. Sugiere una variante táctica específica (ej: "pasar a un 3-4-3 dinámico") y da una instrucción clave para el capitán. Sé sofisticado pero práctico.`;
 
             try {
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+                const response = await ai.models.generateContent({ 
+                    model: 'gemini-3-pro-preview', 
+                    contents: prompt,
+                    config: {
+                        temperature: 0.7,
+                        thinkingConfig: { thinkingBudget: 2000 }
+                    }
+                });
                 setAnalysis(response.text);
             } catch (e: any) {
-                console.error("Error getting AI analysis:", String(e));
-                if (
-                    e?.status === 429 || 
-                    e?.status === 'RESOURCE_EXHAUSTED' || 
-                    (e?.message && (e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('quota')))
-                ) {
-                    setAnalysis('Has excedido tu cuota de IA. Por favor, inténtalo más tarde.');
-                } else {
-                    setAnalysis('Hubo un error al obtener el análisis. Por favor, inténtalo de nuevo más tarde.');
-                }
+                console.error("AI Error:", String(e));
+                setAnalysis('El sistema táctico está sobrecargado. Intenta de nuevo en unos minutos.');
             } finally {
                 setIsLoading(false);
             }
@@ -58,21 +56,31 @@ Analiza esta información y dame un consejo táctico para mejorar. Sugiere un po
     }, [team]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-lg m-4" onClick={e => e.stopPropagation()}>
-                <div className="p-5 border-b border-white/10 flex justify-between items-center">
-                    <h3 className="text-xl font-bold flex items-center gap-2"><SparklesIcon className="w-6 h-6 text-yellow-400"/> Análisis del DT Virtual</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10"><XIcon className="w-6 h-6"/></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in" onClick={onClose}>
+            <div className="bg-bgSurface-light dark:bg-bgSurface-dark rounded-[40px] shadow-2xl w-full max-w-xl m-4 flex flex-col border border-brand/40 overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="p-6 bg-gradient-to-br from-gray-900 to-black text-white flex justify-between items-center border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-brand/20 flex items-center justify-center text-brand">
+                            <SparklesIcon className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-xl font-black italic uppercase tracking-tighter">Pizarra del DT Virtual</h3>
+                    </div>
+                    <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><XIcon className="w-5 h-5"/></button>
                 </div>
-                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                <div className="p-8 max-h-[65vh] overflow-y-auto scrollbar-hide">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center text-center p-8">
-                            <SpinnerIcon className="w-12 h-12 text-amber-500" />
-                            <p className="mt-4 font-semibold">Analizando jugadas...</p>
+                        <div className="flex flex-col items-center justify-center text-center p-12">
+                            <SpinnerIcon className="w-12 h-12 text-brand animate-spin" />
+                            <p className="mt-6 font-black uppercase tracking-widest text-xs opacity-60 italic">Calculando variantes tácticas...</p>
                         </div>
                     ) : (
-                        <div className="prose prose-invert max-w-none whitespace-pre-wrap">{analysis}</div>
+                        <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                            {analysis}
+                        </div>
                     )}
+                </div>
+                <div className="p-6 bg-gray-50 dark:bg-black/20 border-t border-white/5 text-center">
+                    <button onClick={onClose} className="text-brand font-black uppercase tracking-[0.2em] text-[10px] hover:underline">Entendido, a la cancha</button>
                 </div>
             </div>
         </div>
@@ -278,8 +286,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ team, user, isCaptain, onBack
                     <div className="bg-black/20 backdrop-blur-md border border-white/10 p-5 rounded-xl">
                         <button onClick={handleAiAnalysisClick} className="w-full font-semibold text-yellow-400 hover:underline text-left flex items-center gap-2 mb-4 p-3 rounded-lg bg-yellow-400/10 hover:bg-yellow-400/20">
                             <SparklesIcon className="w-5 h-5" />
-                            Consejo del Analista IA
-                            <span className="text-xs bg-yellow-400/20 text-yellow-400 px-1.5 py-0.5 rounded-full">PREMIUM</span>
+                            Análisis Táctico IA
+                            <span className="text-xs bg-yellow-400/20 text-yellow-400 px-1.5 py-0.5 rounded-full">PRO</span>
                         </button>
                         <label htmlFor="formation-select" className="block text-lg font-bold mb-2">Formación</label>
                         <select

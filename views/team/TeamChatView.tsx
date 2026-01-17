@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import type { Team, Player, ChatMessage, Notification, ChatItem, UserMessage, SystemMessage } from '../../types';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon';
@@ -9,16 +8,9 @@ import * as db from '../../database';
 import { SpinnerIcon } from '../../components/icons/SpinnerIcon';
 import TeamInfoView from './TeamInfoView';
 import { DotsVerticalIcon } from '../../components/icons/DotsVerticalIcon';
-import { ClockIcon } from '../../components/icons/ClockIcon';
-import { CheckIcon } from '../../components/icons/CheckIcon';
-import { DoubleCheckIcon } from '../../components/icons/DoubleCheckIcon';
 import { TrashIcon } from '../../components/icons/TrashIcon';
 import ImageLightbox from '../../components/ImageLightbox';
-import { SearchIcon } from '../../components/icons/SearchIcon';
-import { ChevronUpIcon } from '../../components/icons/ChevronUpIcon';
-import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon';
 import MessageInput from '../../components/team/MessageInput';
-import ConfirmationModal from '../../components/ConfirmationModal';
 import { PinIcon } from '../../components/icons/PinIcon';
 import ChatMessageBubble from '../../components/team/ChatMessageBubble';
 
@@ -38,7 +30,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const [deletedForMeIds, setDeletedForMeIds] = useState<Set<string>>(new Set());
     
-    // State for message selection
     const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
     const isSelectionMode = selectedMessages.size > 0;
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -76,16 +67,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
     const handleClearChat = useCallback(async () => {
         try {
             await db.clearTeamChat(team.id);
-            // The listener will eventually clear the messages.
-            // For immediate feedback, we can clear it locally.
             setMessages([]);
             setDeletedForMeIds(new Set<string>());
             localStorage.removeItem(localStorageKey);
-            addNotification({type: 'info', title: 'Chat Vaciado', message: 'Todos los mensajes han sido eliminados permanentemente.'});
-        } catch (error: any) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error(`Error al vaciar el chat: ${errorMessage}`);
-            addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el historial del chat.' });
+            addNotification({type: 'info', title: 'Chat Vaciado', message: 'Historial eliminado.'});
+        } catch (error) {
+            addNotification({ type: 'error', title: 'Error', message: 'No se pudo vaciar el chat.' });
         }
     }, [team.id, localStorageKey, addNotification]);
 
@@ -94,58 +81,26 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setHighlightedMessageId(messageId);
-            setTimeout(() => {
-                setHighlightedMessageId(null);
-            }, 1500); // Highlight for 1.5 seconds
+            setTimeout(() => setHighlightedMessageId(null), 1500);
         }
     }, []);
 
-    // Selection mode logic
     const toggleSelection = (messageId: string) => {
         setSelectedMessages(prev => {
             const newSelection = new Set(prev);
-            if (newSelection.has(messageId)) {
-                newSelection.delete(messageId);
-            } else {
-                newSelection.add(messageId);
-            }
+            if (newSelection.has(messageId)) newSelection.delete(messageId);
+            else newSelection.add(messageId);
             return newSelection;
         });
     };
 
-    const handleLongPress = (e: React.MouseEvent, message: ChatItem) => {
-        if (message.type !== 'user') return;
-        e.preventDefault();
-        toggleSelection(message.id);
-    };
-
     const handleTap = (message: ChatItem) => {
-        if (isSelectionMode && message.type === 'user') {
-            toggleSelection(message.id);
-        }
+        if (isSelectionMode && message.type === 'user') toggleSelection(message.id);
     };
     
-    const handleCancelSelection = () => {
-        setSelectedMessages(new Set());
-    };
+    const handleCancelSelection = () => setSelectedMessages(new Set());
 
-    const handleReplySelected = () => {
-        const messageId = Array.from(selectedMessages)[0];
-        const messageToReply = messages.find(m => m.id === messageId) as UserMessage;
-        if (messageToReply) {
-            setReplyingTo(messageToReply);
-        }
-        handleCancelSelection();
-    };
-
-    const handlePinSelected = () => {
-        addNotification({type: 'info', title: 'Próximamente', message: 'La función de fijar mensajes estará disponible pronto.'});
-        handleCancelSelection();
-    };
-
-    const handleDeleteSelected = () => {
-        setShowDeleteModal(true);
-    };
+    const handleDeleteSelected = () => setShowDeleteModal(true);
     
     const handleConfirmDeleteForMe = () => {
         selectedMessages.forEach((id: string) => handleDeleteForMe(id));
@@ -157,11 +112,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         try {
             const deletePromises = Array.from(selectedMessages).map((id: string) => db.deleteChatMessage(team.id, id));
             await Promise.all(deletePromises);
-            addNotification({ type: 'info', title: 'Mensajes Eliminados', message: 'Los mensajes han sido eliminados para todos.' });
-        } catch (error: any) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error(`Error al eliminar mensajes: ${errorMessage}`);
-            addNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los mensajes.' });
+        } catch (error) {
+            addNotification({ type: 'error', title: 'Error', message: 'Fallo al eliminar para todos.' });
         } finally {
             setShowDeleteModal(false);
             handleCancelSelection();
@@ -187,11 +139,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 result.push({ type: 'date', id: `date-${messageDate}`, timestamp: message.timestamp, date: messageDate });
                 lastDate = messageDate;
             }
-            if (message.type === 'system') {
-                result.push(message);
-            } else {
-                 result.push(message as UserMessage);
-            }
+            result.push(message);
         });
         return result;
     }, [messages, deletedForMeIds]);
@@ -206,112 +154,78 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
         return <TeamInfoView team={team} currentUser={currentUser} onBack={() => setIsInfoView(false)} onUpdateTeam={onUpdateTeam} onClearChat={handleClearChat} />;
     }
 
-    const Header = () => (
-        <header className="flex-shrink-0 flex items-center p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm z-10 sticky top-0">
-             <button onClick={onBack} className="p-2 rounded-full text-gray-300 hover:text-white mr-2">
-                <ChevronLeftIcon className="w-6 h-6" />
-            </button>
-            <button onClick={() => setIsInfoView(true)} className="flex items-center flex-grow min-w-0">
-                <div className="w-10 h-10 rounded-full bg-gray-700 mr-3 flex items-center justify-center flex-shrink-0">
-                    {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-gray-500"/>}
-                </div>
-                <div className="text-left min-w-0">
-                    <h2 className="font-bold text-lg truncate text-white">{team.name}</h2>
-                    <p className="text-xs text-gray-400">{team.players.length} miembros</p>
-                </div>
-            </button>
-        </header>
-    );
-
-    const SelectionHeader = () => (
-        <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/10 bg-blue-900/50 backdrop-blur-sm z-10 sticky top-0">
-             <div className="flex items-center gap-4">
-                 <button onClick={handleCancelSelection} className="p-2 rounded-full text-white hover:bg-white/10">
-                    <XIcon className="w-6 h-6" />
-                </button>
-                <span className="font-bold text-lg">{selectedMessages.size}</span>
-             </div>
-             <div className="flex items-center gap-2">
-                {selectedMessages.size === 1 && (
-                    <button onClick={handleReplySelected} className="p-2 rounded-full text-white hover:bg-white/10"><ArrowUturnLeftIcon className="w-6 h-6" /></button>
-                )}
-                <button onClick={handleDeleteSelected} className="p-2 rounded-full text-white hover:bg-white/10"><TrashIcon className="w-6 h-6" /></button>
-                {selectedMessages.size === 1 && (
-                    <button onClick={handlePinSelected} className="p-2 rounded-full text-white hover:bg-white/10"><PinIcon className="w-6 h-6" /></button>
-                )}
-             </div>
-        </header>
-    );
-
-    const DeleteActionSheet: React.FC<{
-        isOpen: boolean;
-        onCancel: () => void;
-        onDeleteForMe: () => void;
-        onDeleteForEveryone: () => void;
-        showForEveryone: boolean;
-    }> = ({ isOpen, onCancel, onDeleteForMe, onDeleteForEveryone, showForEveryone }) => (
-        <div
-            className={`fixed inset-0 z-50 flex items-end bg-black/60 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-            onClick={onCancel}
-        >
-            <div
-                className={`w-full bg-slate-800 rounded-t-2xl p-4 transition-transform duration-300 ease-out ${isOpen ? 'transform translate-y-0' : 'transform translate-y-full'}`}
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="w-10 h-1 bg-slate-600 rounded-full mx-auto mb-4"></div>
-                <h3 className="font-bold text-lg mb-4 text-slate-100">Eliminar {selectedMessages.size > 1 ? `${selectedMessages.size} mensajes` : 'mensaje'}?</h3>
-                <div className="space-y-2">
-                    {showForEveryone && (
-                        <button onClick={() => onDeleteForEveryone()} className="w-full text-left p-3 text-red-500 font-semibold rounded-lg hover:bg-slate-700 transition-colors">Eliminar para todos</button>
-                    )}
-                    <button onClick={() => onDeleteForMe()} className="w-full text-left p-3 text-slate-200 font-semibold rounded-lg hover:bg-slate-700 transition-colors">Eliminar para mí</button>
-                    <button onClick={() => onCancel()} className="w-full text-left p-3 text-slate-200 font-semibold rounded-lg hover:bg-slate-700 mt-2">Cancelar</button>
-                </div>
-            </div>
-        </div>
-    );
-
     return (
-        <div className="min-h-screen">
-            {isSelectionMode ? <SelectionHeader /> : <Header />}
+        <div className="flex flex-col h-screen bg-bgMain-light dark:bg-bgMain-dark overflow-hidden transition-colors duration-300">
+            {/* Header Adaptativo */}
+            <header className={`flex-shrink-0 flex items-center justify-between p-4 border-b backdrop-blur-md sticky top-0 z-40 transition-all ${isSelectionMode ? 'bg-blue-600 text-white border-blue-500' : 'bg-bgSurface-light/80 dark:bg-bgSurface-dark/80 border-borderDefault-light dark:border-borderDefault-dark'}`}>
+                {isSelectionMode ? (
+                    <>
+                        <div className="flex items-center gap-4">
+                            <button onClick={handleCancelSelection} className="p-2 active:scale-90"><XIcon className="w-6 h-6" /></button>
+                            <span className="font-black text-lg">{selectedMessages.size}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <button onClick={handleDeleteSelected} className="p-2 active:scale-90"><TrashIcon className="w-6 h-6" /></button>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <button onClick={onBack} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 active:scale-90"><ChevronLeftIcon className="w-6 h-6 text-textMuted-light" /></button>
+                        <button onClick={() => setIsInfoView(true)} className="flex items-center gap-3 flex-1 px-2 group">
+                            <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-borderDefault-light dark:border-borderDefault-dark group-active:scale-95 transition-transform">
+                                {team.logo ? <img src={team.logo} alt="logo" className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-textDisabled-light"/>}
+                            </div>
+                            <div className="text-left">
+                                <h2 className="font-black text-sm uppercase tracking-wider text-textMain-light dark:text-textMain-dark truncate max-w-[180px]">{team.name}</h2>
+                                <p className="text-[10px] font-bold text-textMuted-light uppercase tracking-widest">{team.players.length} miembros</p>
+                            </div>
+                        </button>
+                        <button onClick={() => setIsInfoView(true)} className="p-2 text-textMuted-light"><DotsVerticalIcon className="w-5 h-5"/></button>
+                    </>
+                )}
+            </header>
             
-            <main className="relative p-4 pb-32">
-                 <div className="flex flex-col gap-1">
-                    {isLoading && items.length === 0 ? (
-                        <div className="absolute inset-0 flex justify-center items-center"><SpinnerIcon className="w-8 h-8 text-amber-500" /></div>
+            {/* Mensajes Area */}
+            <main className="flex-1 overflow-y-auto ios-scroller px-4 bg-gray-50/50 dark:bg-black/20">
+                 <div className="flex flex-col pb-4">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-64"><SpinnerIcon className="w-10 h-10 text-brand" /></div>
                     ) : (
                         items.map((item, index) => {
-                            const prevItem = items[index - 1];
-                            const nextItem = items[index + 1];
-                            const isUserMessage = item.type === 'user';
-                            
-                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (isUserMessage && prevItem.senderId !== (item as UserMessage).senderId);
-                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (isUserMessage && nextItem.senderId !== (item as UserMessage).senderId);
-                            
                             if (item.type === 'date') {
-                                return <div key={item.id} className="text-center my-3"><span className="bg-black/30 text-gray-300 text-xs font-semibold py-1 px-3 rounded-full">{item.date}</span></div>;
-                            }
-                            if (item.type === 'system') {
                                 return (
-                                    <div key={item.id} className="text-center my-2">
-                                        <span className="bg-black/30 backdrop-blur-sm text-gray-200 text-xs font-semibold py-1 px-3 rounded-full shadow-md">
-                                            {(item as SystemMessage).text}
+                                    <div key={item.id} className="text-center my-6">
+                                        <span className="bg-bgSurface-light dark:bg-bgSurface-dark text-textMuted-light dark:text-textMuted-dark text-[10px] font-black uppercase tracking-widest py-1.5 px-4 rounded-full shadow-sm border border-borderDefault-light dark:border-borderDefault-dark">
+                                            {item.date}
                                         </span>
                                     </div>
                                 );
                             }
-                            // It's a UserMessage
+                            if (item.type === 'system') {
+                                return (
+                                    <div key={item.id} className="text-center my-3 px-8">
+                                        <p className="text-[10px] font-bold text-textMuted-light dark:text-textMuted-dark bg-gray-100 dark:bg-gray-900 inline-block py-1 px-3 rounded-lg">
+                                            {item.text}
+                                        </p>
+                                    </div>
+                                );
+                            }
+
+                            const isUserMessage = item.type === 'user';
+                            const prevItem = items[index - 1];
+                            const nextItem = items[index + 1];
+                            
+                            const isFirstInGroup = !prevItem || prevItem.type !== 'user' || (isUserMessage && prevItem.senderId !== item.senderId);
+                            const isLastInGroup = !nextItem || nextItem.type !== 'user' || (isUserMessage && nextItem.senderId !== item.senderId);
+                            
                             return (
                                 <div key={item.id} ref={el => messageRefs.current.set(item.id, el)}>
                                     <ChatMessageBubble 
                                         message={item as UserMessage}
-                                        isCurrentUser={(item as UserMessage).senderId === currentUser.id}
+                                        isCurrentUser={item.senderId === currentUser.id}
                                         onReply={setReplyingTo}
                                         onDelete={handleDeleteForMe}
-                                        onDeleteForEveryone={(messageId: string) => {
-                                            setSelectedMessages(new Set([messageId]));
-                                            setShowDeleteModal(true);
-                                        }}
+                                        onDeleteForEveryone={() => { setSelectedMessages(new Set([item.id])); setShowDeleteModal(true); }}
                                         onOpenLightbox={setLightboxImage}
                                         onScrollToMessage={handleScrollToMessage}
                                         highlighted={highlightedMessageId === item.id}
@@ -322,7 +236,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                                         isLastInGroup={isLastInGroup}
                                         teamPlayerCount={team.players.length}
                                         onClick={() => handleTap(item)}
-                                        onContextMenu={(e) => handleLongPress(e, item)}
+                                        onContextMenu={(e) => { e.preventDefault(); if(!isSelectionMode) toggleSelection(item.id); }}
                                     />
                                 </div>
                             );
@@ -332,25 +246,33 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ team, currentUser, onBack, 
                 <div ref={messagesEndRef} />
             </main>
 
-            <DeleteActionSheet
-                isOpen={showDeleteModal}
-                onCancel={() => setShowDeleteModal(false)}
-                onDeleteForMe={handleConfirmDeleteForMe}
-                onDeleteForEveryone={handleConfirmDeleteForEveryone}
-                showForEveryone={canDeleteForEveryone}
+            {/* Input Overlay */}
+            <MessageInput 
+                team={team}
+                currentUser={currentUser}
+                addNotification={addNotification}
+                replyingTo={replyingTo}
+                onCancelReply={() => setReplyingTo(null)}
             />
 
+            {/* Modals & Action Sheets */}
             {lightboxImage && <ImageLightbox images={[lightboxImage]} startIndex={0} onClose={() => setLightboxImage(null)} />}
 
-            <div className="fixed bottom-0 left-0 right-0 z-20">
-                <MessageInput 
-                    team={team}
-                    currentUser={currentUser}
-                    addNotification={addNotification}
-                    replyingTo={replyingTo as UserMessage | null}
-                    onCancelReply={() => setReplyingTo(null)}
-                />
-            </div>
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[100] flex items-end bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowDeleteModal(false)}>
+                    <div className="w-full bg-bgSurface-light dark:bg-bgSurface-dark rounded-t-[32px] p-6 animate-slide-in-up" onClick={e => e.stopPropagation()}>
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
+                        <h3 className="font-black text-xl uppercase italic tracking-tighter mb-6">¿Eliminar Mensaje?</h3>
+                        <div className="space-y-3">
+                            {canDeleteForEveryone && (
+                                <button onClick={handleConfirmDeleteForEveryone} className="w-full py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-bold rounded-2xl active:scale-95 transition-all">Eliminar para todos</button>
+                            )}
+                            <button onClick={handleConfirmDeleteForMe} className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-textMain-light dark:text-textMain-dark font-bold rounded-2xl active:scale-95 transition-all">Eliminar para mí</button>
+                            <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 text-textMuted-light font-bold">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

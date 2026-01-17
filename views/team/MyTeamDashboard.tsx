@@ -43,13 +43,6 @@ interface MyTeamDashboardProps {
     setActiveChatTeam: (team: Team) => void;
 }
 
-const mockMessages: UserMessage[] = [
-    { type: 'user', id: 'msg1', senderId: 'u2', senderName: 'Ana García', text: 'Hola equipo, ¿listos para el partido del sábado?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 3) },
-    { type: 'user', id: 'msg2', senderId: 'u1', senderName: 'Carlos Pérez', text: '¡Claro que sí! Con toda.', timestamp: new Date(new Date().getTime() - 1000 * 60 * 60 * 2.5), replyTo: { messageId: 'msg1', senderName: 'Ana García', text: 'Hola equipo, ¿listos pa...' } },
-    { type: 'user', id: 'msg3', senderId: 'u3', senderName: 'Luis Fernandez', text: 'Yo llevo los balones. ¿Alguien puede llevar los petos?', timestamp: new Date(new Date().getTime() - 1000 * 60 * 50) },
-    { type: 'user', id: 'msg4', senderId: 'u4', senderName: 'Marta Gomez', text: 'Yo los llevo!', timestamp: new Date(new Date().getTime() - 1000 * 60 * 48) },
-];
-
 const NavTab: React.FC<{
     label: string;
     icon: React.ReactNode;
@@ -58,34 +51,76 @@ const NavTab: React.FC<{
 }> = ({ label, icon, isActive, onClick }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
+        className={`flex flex-col items-center gap-1.5 px-4 py-3 transition-all relative ${
             isActive
-                ? 'border-amber-400 text-white'
-                : 'border-transparent text-gray-400 hover:text-white hover:border-gray-500'
+                ? 'text-brand'
+                : 'text-textMuted-light dark:text-textMuted-dark hover:text-textMain-light dark:hover:text-textMain-dark'
         }`}
     >
-        {icon}
-        <span className="hidden sm:inline text-sm">{label}</span>
+        {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5' })}
+        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+        {isActive && (
+            <div className="absolute bottom-0 left-4 right-4 h-1 bg-brand rounded-t-full shadow-[0_-4px_10px_rgba(29,185,84,0.4)]"></div>
+        )}
     </button>
 );
 
 const HeaderStatCard: React.FC<{ label: string; value: string | number; colorClass: string }> = ({ label, value, colorClass }) => (
-    <div className="text-center">
-        <p className={`text-4xl font-black ${colorClass}`}>{value}</p>
-        <p className="text-sm text-white/70 font-semibold uppercase tracking-wider">{label}</p>
+    <div className="flex flex-col items-center justify-center py-2 px-4 border-r border-borderDefault-light dark:border-borderDefault-dark last:border-none">
+        <p className={`text-2xl font-black italic tracking-tighter ${colorClass}`}>{value}</p>
+        <p className="text-[9px] font-bold text-textMuted-light dark:text-textMuted-dark uppercase tracking-widest">{label}</p>
     </div>
 );
 
 const Widget: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; className?: string, onClick?: () => void }> = ({ title, icon, children, className = '', onClick }) => (
     <div 
         onClick={onClick} 
-        className={`bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-4 transition-all duration-300 ${onClick ? 'cursor-pointer hover:border-white/30 hover:-translate-y-1' : ''} ${className}`}
+        className={`bg-bgSurface-light dark:bg-bgSurface-dark border border-borderDefault-light dark:border-borderDefault-dark rounded-[32px] p-6 shadow-premium-light dark:shadow-premium-dark transition-all duration-300 active:scale-[0.98] ${onClick ? 'cursor-pointer hover:shadow-lg' : ''} ${className}`}
     >
-        <div className="flex items-center gap-3 mb-3">
-            <div className="text-amber-400">{icon}</div>
-            <h3 className="font-bold text-white/90">{title}</h3>
+        <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-2xl bg-brand/10 dark:bg-brand/20 flex items-center justify-center text-brand">
+                {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5' })}
+            </div>
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-textMuted-light dark:text-textMuted-dark">{title}</h3>
         </div>
         <div>{children}</div>
+    </div>
+);
+
+const PlayerStatWidget: React.FC<{ player: Player | undefined; stat: number; label: string; icon: React.ReactNode; color: string; className?: string }> = ({ player, stat, label, icon, color, className = '' }) => (
+    <div className={`bg-bgSurface-light dark:bg-bgSurface-dark border border-borderDefault-light dark:border-borderDefault-dark rounded-[32px] p-6 shadow-premium-light dark:shadow-premium-dark overflow-hidden relative group ${className}`}>
+        <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+                <div className={`w-8 h-8 rounded-xl ${color} text-white flex items-center justify-center shadow-lg`}>
+                    {icon}
+                </div>
+                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-textMuted-light dark:text-textMuted-dark">{label}</h3>
+            </div>
+
+            {player ? (
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-borderDefault-light dark:border-borderDefault-dark overflow-hidden flex-shrink-0 shadow-sm">
+                        {player.profilePicture ? (
+                            <img src={player.profilePicture} alt={player.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-textDisabled-light dark:text-textDisabled-dark">
+                                <UserIcon className="w-6 h-6" />
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-grow min-w-0">
+                        <p className="text-xl font-black text-textMain-light dark:text-textMain-dark truncate uppercase italic tracking-tighter leading-none">{player.name.split(' ')[0]} {player.name.split(' ')[1]?.charAt(0)}.</p>
+                        <p className="text-3xl font-black text-brand mt-1">{stat}</p>
+                    </div>
+                </div>
+            ) : (
+                <p className="text-xs font-bold text-textDisabled-light dark:text-textDisabled-dark uppercase">Sin datos registrados</p>
+            )}
+        </div>
+        {/* Marca de agua decorativa */}
+        <div className="absolute -right-4 -bottom-4 text-7xl font-black text-gray-50 dark:text-gray-900/50 pointer-events-none italic select-none">
+            {stat}
+        </div>
     </div>
 );
 
@@ -107,57 +142,82 @@ const DashboardGrid: React.FC<{ team: Team; setView: (view: TeamView) => void, s
         });
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
-            <Widget title="Próximo Partido" icon={<CalendarDaysIcon className="w-5 h-5"/>} className="lg:col-span-2">
-                {nextMatch ? (
-                    <div>
-                        <p className="font-bold text-lg">{nextMatch.title}</p>
-                        <p className="text-sm text-white/70">{nextMatch.date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                        <p className="text-xs text-white/50">@{nextMatch.location}</p>
+        <div className="space-y-6 animate-ios">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Widget Próximo Partido */}
+                <Widget title="Calendario" icon={<CalendarDaysIcon />} className="md:col-span-1">
+                    {nextMatch ? (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-xl text-textMain-light dark:text-textMain-dark italic uppercase tracking-tighter leading-none">{nextMatch.title}</p>
+                                <p className="text-xs font-bold text-brand mt-2 flex items-center gap-1 uppercase tracking-widest">
+                                    <CalendarIcon className="w-3 h-3" />
+                                    {nextMatch.date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · {nextMatch.date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+                            <ChevronRightIcon className="w-5 h-5 text-textDisabled-light" />
+                        </div>
+                    ) : (
+                        <p className="text-xs font-bold text-textDisabled-light dark:text-textDisabled-dark uppercase tracking-widest">No hay partidos próximos</p>
+                    )}
+                </Widget>
+
+                {/* Widget Forma */}
+                <Widget title="Estado de Forma" icon={<TeamFormIcon />}>
+                    <div className="flex items-center gap-2">
+                        {teamForm.map(item => {
+                            const colors: Record<string, string> = { 
+                                V: 'bg-emerald-500 shadow-[0_4px_12px_rgba(16,185,129,0.3)]', 
+                                E: 'bg-amber-500 shadow-[0_4px_12px_rgba(245,158,11,0.3)]', 
+                                D: 'bg-rose-500 shadow-[0_4px_12px_rgba(244,63,94,0.3)]' 
+                            };
+                            return (
+                                <div key={item.key} className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs ${colors[item.result]}`}>
+                                    {item.result}
+                                </div>
+                            );
+                        })}
+                        {teamForm.length === 0 && <p className="text-xs font-bold text-textDisabled-light dark:text-textDisabled-dark uppercase">Sin historial</p>}
                     </div>
-                ) : <p className="text-sm text-white/60">No hay partidos programados.</p>}
-            </Widget>
-            <Widget title="Forma Reciente" icon={<TeamFormIcon className="w-5 h-5"/>}>
-                <div className="flex items-center gap-2">
-                    {teamForm.map(item => {
-                        const colors: Record<string, string> = { V: 'bg-green-500', E: 'bg-yellow-500', D: 'bg-red-500' };
-                        return <div key={item.key} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${colors[item.result]}`}>{item.result}</div>
-                    })}
-                    {teamForm.length === 0 && <p className="text-sm text-white/60">Sin partidos recientes.</p>}
+                </Widget>
+            </div>
+
+            {/* Fichas de Jugadores Estrella */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <PlayerStatWidget 
+                    player={topScorer} 
+                    stat={topScorer?.stats?.goals || 0} 
+                    label="Pichichi" 
+                    icon={<SoccerBallIcon className="w-4 h-4"/>} 
+                    color="bg-amber-500" 
+                />
+                <PlayerStatWidget 
+                    player={topAssister} 
+                    stat={topAssister?.stats?.assists || 0} 
+                    label="Asistente" 
+                    icon={<ShoeIcon className="w-4 h-4"/>} 
+                    color="bg-blue-500" 
+                />
+            </div>
+
+            {/* Widget Chat */}
+            <button 
+                onClick={() => { setActiveChatTeam(team); setSection('chat'); }}
+                className="w-full bg-gradient-to-r from-gray-900 to-black dark:from-black dark:to-gray-900 p-8 rounded-[40px] shadow-xl flex items-center justify-between group transition-all active:scale-[0.98]"
+            >
+                <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center text-brand shadow-inner">
+                        <ChatBubbleLeftRightIcon className="w-8 h-8" />
+                    </div>
+                    <div className="text-left">
+                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Vestuario Virtual</h3>
+                        <p className="text-sm font-bold text-white/50 uppercase tracking-widest mt-1">Chat grupal activo</p>
+                    </div>
                 </div>
-            </Widget>
-            <Widget title="Chat Rápido" icon={<ChatBubbleLeftRightIcon className="w-5 h-5"/>} onClick={() => { setActiveChatTeam(team); setSection('chat'); }}>
-                 <div className="space-y-1 text-sm">
-                    <p className="truncate"><strong className="text-white/80">Entrar al chat grupal</strong></p>
-                    <p className="text-xs text-white/40">Habla con tu equipo aquí.</p>
-                 </div>
-            </Widget>
-            <Widget title="Máximo Goleador" icon={<SoccerBallIcon className="w-5 h-5"/>} className="lg:col-span-2">
-                {topScorer && (topScorer.stats?.goals || 0) > 0 ? (
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
-                            {topScorer.profilePicture ? <img src={topScorer.profilePicture} alt={topScorer.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-white/70" />}
-                        </div>
-                        <div>
-                            <p className="font-bold text-lg">{topScorer.name}</p>
-                            <p className="text-3xl font-black text-amber-400">{topScorer.stats?.goals || 0} <span className="text-xl">Goles</span></p>
-                        </div>
-                    </div>
-                ): <p className="text-sm text-white/60">Aún no hay un goleador destacado.</p>}
-            </Widget>
-            <Widget title="Máximo Asistente" icon={<ShoeIcon className="w-5 h-5"/>} className="lg:col-span-2">
-                 {topAssister && (topAssister.stats?.assists || 0) > 0 ? (
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center shadow-md border-2 border-white/20 overflow-hidden flex-shrink-0">
-                            {topAssister.profilePicture ? <img src={topAssister.profilePicture} alt={topAssister.name} className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-white/70" />}
-                        </div>
-                        <div>
-                            <p className="font-bold text-lg">{topAssister.name}</p>
-                            <p className="text-3xl font-black text-blue-400">{topAssister.stats?.assists || 0} <span className="text-xl">Asist.</span></p>
-                        </div>
-                    </div>
-                ): <p className="text-sm text-white/60">Aún no hay un asistente destacado.</p>}
-            </Widget>
+                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all text-white/30">
+                    <ChevronRightIcon className="w-6 h-6" />
+                </div>
+            </button>
         </div>
     );
 };
@@ -239,12 +299,11 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
         };
         
         const TABS: { id: TeamView; label: string; icon: React.ReactNode }[] = [
-            { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon className="w-5 h-5"/> },
-            { id: 'roster', label: 'Plantilla', icon: <TshirtIcon className="w-5 h-5"/> },
-            { id: 'tactics', label: 'Tácticas', icon: <ClipboardListIcon className="w-5 h-5"/> },
-            { id: 'schedule', label: 'Calendario', icon: <CalendarIcon className="w-5 h-5"/> },
-            { id: 'performance', label: 'Rendimiento', icon: <ChartBarIcon className="w-5 h-5"/> },
-            { id: 'chat', label: 'Chat', icon: <ChatBubbleLeftRightIcon className="w-5 h-5"/> },
+            { id: 'dashboard', label: 'Inicio', icon: <DashboardIcon /> },
+            { id: 'roster', label: 'Plantilla', icon: <TshirtIcon /> },
+            { id: 'tactics', label: 'Pizarra', icon: <ClipboardListIcon /> },
+            { id: 'schedule', label: 'Eventos', icon: <CalendarIcon /> },
+            { id: 'performance', label: 'Ranking', icon: <ChartBarIcon /> },
         ];
 
         const renderContent = () => {
@@ -263,39 +322,69 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
         };
 
         return (
-             <div className="min-h-screen p-4 sm:p-6 pb-[5.5rem] md:pb-4">
-                <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
-                    <ChevronLeftIcon className="h-5 h-5" />
-                    Volver a Mis Equipos
-                </button>
-                
-                <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-6">
-                    <div className="flex items-center gap-4 mb-6">
-                        {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg" /> : <div className="w-24 h-24 rounded-full bg-black/30 flex items-center justify-center border-4 border-white/20 shadow-lg"><ShieldIcon className="w-12 h-12 text-gray-400" /></div>}
-                        <div className="flex-grow">
-                            <h1 className="text-3xl font-black tracking-tight">{team.name}</h1>
-                            <p className="opacity-80 font-semibold">{team.level}</p>
+             <div className="space-y-6 pb-32 bg-bgMain-light dark:bg-bgMain-dark min-h-screen">
+                <div className="px-1">
+                    <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-2 text-textMuted-light dark:text-textMuted-dark font-black text-[10px] uppercase tracking-[0.2em] mb-4 hover:text-brand transition-colors">
+                        <ChevronLeftIcon className="h-4 w-4" />
+                        Mis Equipos
+                    </button>
+                    
+                    {/* Header Principal del Equipo */}
+                    <div className="bg-bgSurface-light dark:bg-bgSurface-dark border border-borderDefault-light dark:border-borderDefault-dark rounded-[40px] p-6 shadow-premium-light dark:shadow-premium-dark relative overflow-hidden">
+                        <div className="flex items-start justify-between relative z-10">
+                            <div className="flex items-center gap-5">
+                                <div className="relative">
+                                    <div className="w-24 h-24 rounded-[32px] bg-gray-50 dark:bg-gray-800 border-4 border-white dark:border-gray-700 overflow-hidden shadow-xl flex items-center justify-center">
+                                        {team.logo ? (
+                                            <img src={team.logo} alt={`${team.name} logo`} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ShieldIcon className="w-12 h-12 text-textDisabled-light" />
+                                        )}
+                                    </div>
+                                    {isCaptain && (
+                                        <div className="absolute -bottom-2 -right-2 bg-amber-400 text-black text-[9px] font-black px-2 py-1 rounded-lg border-2 border-white shadow-lg uppercase tracking-tighter italic">Capitán</div>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <h1 className="text-3xl font-black italic uppercase tracking-tighter text-textMain-light dark:text-textMain-dark leading-none">{team.name}</h1>
+                                    <p className="text-[10px] font-black text-textMuted-light dark:text-textMuted-dark uppercase tracking-[0.25em]">{team.level}</p>
+                                </div>
+                            </div>
+                            {!isCaptain && (
+                                <button onClick={() => setIsLeaveModalOpen(true)} className="p-3 text-rose-500 rounded-2xl bg-rose-50 dark:bg-rose-900/20 active:scale-90 transition-all">
+                                    <LogoutIcon className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
-                        {!isCaptain && (
-                            <button onClick={() => setIsLeaveModalOpen(true)} className="p-2 text-red-400 rounded-full hover:bg-red-500/20">
-                                <LogoutIcon className="w-6 h-6" />
-                            </button>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <HeaderStatCard label="Victorias" value={team.stats?.wins || 0} colorClass="text-green-400" />
-                        <HeaderStatCard label="Empates" value={team.stats?.draws || 0} colorClass="text-yellow-400" />
-                        <HeaderStatCard label="Derrotas" value={team.stats?.losses || 0} colorClass="text-red-400" />
+
+                        {/* Fila de Estadísticas Rápidas */}
+                        <div className="grid grid-cols-3 bg-gray-50 dark:bg-gray-900/50 rounded-3xl mt-6 border border-borderDefault-light dark:border-borderDefault-dark">
+                            <HeaderStatCard label="Victorias" value={team.stats?.wins || 0} colorClass="text-emerald-500" />
+                            <HeaderStatCard label="Empates" value={team.stats?.draws || 0} colorClass="text-amber-500" />
+                            <HeaderStatCard label="Derrotas" value={team.stats?.losses || 0} colorClass="text-rose-500" />
+                        </div>
+
+                        {/* Marca de agua decorativa */}
+                        <ShieldIcon className="absolute -right-8 -top-8 w-40 h-40 text-gray-50 dark:text-gray-900 opacity-20 pointer-events-none" />
                     </div>
                 </div>
                 
-                <nav className="flex space-x-1 sm:space-x-2 border-b border-white/10 mt-6 overflow-x-auto scrollbar-hide">
-                    {TABS.map(tab => (
-                        <NavTab key={tab.id} label={tab.label} icon={tab.icon} isActive={view === tab.id} onClick={() => { if (tab.id === 'chat') { setActiveChatTeam(team); setSection('chat'); } else { setView(tab.id); } }} />
-                    ))}
-                </nav>
+                {/* Navegación Refinada */}
+                <div className="sticky top-20 z-30 -mx-4 bg-bgMain-light/80 dark:bg-bgMain-dark/80 backdrop-blur-md px-4 border-b border-borderDefault-light dark:border-borderDefault-dark mb-4">
+                    <nav className="flex justify-between items-center max-w-lg mx-auto">
+                        {TABS.map(tab => (
+                            <NavTab 
+                                key={tab.id} 
+                                label={tab.label} 
+                                icon={tab.icon} 
+                                isActive={view === tab.id} 
+                                onClick={() => setView(tab.id)} 
+                            />
+                        ))}
+                    </nav>
+                </div>
                 
-                <main className="mt-6">
+                <main className="px-1">
                     {renderContent()}
                 </main>
 
@@ -312,39 +401,54 @@ const MyTeamDashboard: React.FC<MyTeamDashboardProps> = ({ userTeams, user, allU
     }
     
     return (
-        <div className="p-4 sm:p-6 pb-[5.5rem] md:pb-4 text-white">
-            <button onClick={onBack} className="flex items-center gap-2 text-amber-400 font-semibold mb-6 hover:underline">
-                <ChevronLeftIcon className="h-5 h-5" />
-                Volver a DaviPlay
-            </button>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold tracking-tight">Mis Equipos</h1>
-                <button onClick={() => setIsCreating(true)} className="flex items-center gap-2 bg-white/10 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/20 transition-colors shadow-sm border border-white/20">
-                    <PlusIcon className="w-5 h-5" />
-                    Crear Equipo
+        <div className="space-y-8 animate-ios pb-32">
+            <div className="px-1">
+                <button onClick={onBack} className="flex items-center gap-2 text-textMuted-light dark:text-textMuted-dark font-black text-[10px] uppercase tracking-[0.2em] mb-4 hover:text-brand transition-colors">
+                    <ChevronLeftIcon className="h-4 w-4" />
+                    DaviPlay
                 </button>
+                <div className="flex justify-between items-end mb-8">
+                    <div className="space-y-1">
+                        <p className="text-textMuted-light dark:text-textMuted-dark text-sm font-medium">Gestiona tu equipo</p>
+                        <h1 className="text-4xl font-black tracking-tighter text-textMain-light dark:text-textMain-dark uppercase italic">Mis Equipos</h1>
+                    </div>
+                    <button onClick={() => setIsCreating(true)} className="bg-brand text-white font-black p-4 rounded-2xl shadow-button active:scale-90 transition-all">
+                        <PlusIcon className="w-6 h-6" />
+                    </button>
+                </div>
             </div>
-            <div className="space-y-4">
+
+            <div className="space-y-4 px-1">
                 {userTeams.length > 0 ? userTeams.map(team => (
-                    <button key={team.id} onClick={() => { setView('dashboard'); setSelectedTeam(team); }} className="w-full text-left bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between hover:bg-white/20 transition-colors">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center border-2 border-gray-600 overflow-hidden">
-                                {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-full h-full object-cover" /> : <ShieldIcon className="w-10 h-10 text-gray-500"/>}
+                    <button 
+                        key={team.id} 
+                        onClick={() => { setView('dashboard'); setSelectedTeam(team); }} 
+                        className="w-full bg-bgSurface-light dark:bg-bgSurface-dark border border-borderDefault-light dark:border-borderDefault-dark p-6 rounded-[32px] flex items-center justify-between shadow-premium-light dark:shadow-premium-dark active:scale-[0.98] transition-all group"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center border border-borderDefault-light dark:border-borderDefault-dark overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+                                {team.logo ? <img src={team.logo} alt={`${team.name} logo`} className="w-full h-full object-cover" /> : <ShieldIcon className="w-8 h-8 text-textDisabled-light"/>}
                             </div>
-                            <div>
-                                <p className="font-bold text-lg">{team.name}</p>
-                                <p className="text-sm text-gray-400">{team.level}</p>
+                            <div className="text-left">
+                                <p className="font-black text-xl italic uppercase tracking-tighter text-textMain-light dark:text-textMain-dark">{team.name}</p>
+                                <p className="text-[10px] font-bold text-textMuted-light dark:text-textMuted-dark uppercase tracking-widest mt-1">{team.level}</p>
                             </div>
                         </div>
-                         <div className="flex items-center gap-4">
-                            {team.captainId === user.id && <span className="text-xs font-bold text-yellow-400 border border-yellow-400/50 bg-yellow-400/10 px-2 py-0.5 rounded-full">Capitán</span>}
-                            <ChevronRightIcon className="w-6 h-6 text-gray-400"/>
+                        <div className="flex items-center gap-3">
+                            {team.captainId === user.id && (
+                                <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg uppercase italic border border-amber-200">Líder</span>
+                            )}
+                            <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-textDisabled-light">
+                                <ChevronRightIcon className="w-5 h-5"/>
+                            </div>
                         </div>
                     </button>
                 )) : (
-                    <div className="text-center py-20 bg-black/10 rounded-2xl border border-dashed border-white/10">
-                        <ShieldIcon className="w-16 h-16 mx-auto text-white/20 mb-4" />
-                        <p className="text-white/60">Aún no tienes equipos. ¡Crea uno!</p>
+                    <div className="text-center py-24 bg-bgSurface-light/50 dark:bg-bgSurface-dark/30 rounded-[40px] border-2 border-dashed border-borderDefault-light dark:border-borderDefault-dark px-6">
+                        <ShieldIcon className="mx-auto h-20 w-20 text-textDisabled-light opacity-30 mb-6" />
+                        <h2 className="text-2xl font-black text-textMain-light dark:text-textMain-dark italic uppercase tracking-tighter">Sin Escuadra</h2>
+                        <p className="text-textMuted-light dark:text-textMuted-dark mt-2 font-medium">Aún no eres parte de ningún equipo.</p>
+                        <button onClick={() => setIsCreating(true)} className="mt-8 bg-brand text-white font-black py-4 px-10 rounded-3xl shadow-button active:scale-95 transition-all uppercase tracking-widest text-sm">Crear Equipo</button>
                     </div>
                 )}
             </div>

@@ -10,13 +10,13 @@ import { ArrowUturnLeftIcon } from '../icons/ArrowUturnLeftIcon';
 
 const MessageStatusIcon: React.FC<{ message: UserMessage; teamPlayerCount: number; }> = ({ message, teamPlayerCount }) => {
   if (message.id.startsWith('temp-')) {
-    return <ClockIcon className="w-4 h-4 text-gray-400" aria-label="Enviando" />;
+    return <ClockIcon className="w-3 h-3 text-textMuted-light/50" aria-label="Enviando" />;
   }
   const isReadAll = message.readBy && message.readBy.length >= teamPlayerCount - 1;
   if (isReadAll) {
-    return <DoubleCheckIcon className="w-5 h-5 text-green-400" aria-label="Leído por todos" />;
+    return <DoubleCheckIcon className="w-3.5 h-3.5 text-brand" aria-label="Leído por todos" />;
   }
-  return <CheckIcon className="w-5 h-5 text-gray-400" aria-label="Enviado" />;
+  return <CheckIcon className="w-3.5 h-3.5 text-textMuted-light/40" aria-label="Enviado" />;
 };
 
 interface ChatMessageBubbleProps {
@@ -45,11 +45,11 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
 }) => {
     
     const Avatar = () => (
-        <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 overflow-hidden">
+        <div className="w-8 h-8 rounded-2xl bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden border border-borderDefault-light dark:border-borderDefault-dark shadow-sm">
             {message.senderProfilePicture ? (
                 <img src={message.senderProfilePicture} alt={message.senderName} className="w-full h-full object-cover" />
             ) : (
-                <UserIcon className="w-5 h-5 text-gray-400 m-1.5" />
+                <UserIcon className="w-5 h-5 text-textDisabled-light m-1.5" />
             )}
         </div>
     );
@@ -57,139 +57,129 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = React.memo(({
     if (message.deleted) {
         return (
              <div 
-                className={`flex items-center gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} mt-0.5 group relative ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+                className={`flex items-center gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-4' : 'mt-1'} group relative`}
                 onClick={onClick}
-                onContextMenu={onContextMenu}
             >
-                {isSelectionMode && !isCurrentUser && (
-                    <div className="w-8 flex-shrink-0 flex items-center justify-center">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
-                            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
-                        </div>
-                    </div>
-                )}
-
-                {!isCurrentUser && !isSelectionMode && <div className="w-8 flex-shrink-0"></div>}
-                <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl bg-gray-800 border border-gray-700">
-                    <p className="text-sm italic text-gray-500 flex items-center gap-2">
-                        <BanIcon className="w-4 h-4 flex-shrink-0" />
-                        <span>Este mensaje fue eliminado</span>
+                <div className="max-w-[80%] px-4 py-2 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-borderDefault-light dark:border-borderDefault-dark">
+                    <p className="text-xs italic text-textMuted-light dark:text-textMuted-dark flex items-center gap-2">
+                        <BanIcon className="w-3 h-3 flex-shrink-0" />
+                        <span>Mensaje eliminado</span>
                     </p>
                 </div>
-                {isSelectionMode && isCurrentUser && (
-                    <div className="w-8 flex-shrink-0 flex items-center justify-center">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
-                            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
-                        </div>
-                    </div>
-                )}
             </div>
         );
     }
     
-    const bubbleColor = isCurrentUser ? 'bg-amber-700 text-white' : 'bg-gray-700 text-white';
-    
-    const isFileOnlyMessage = message.attachment && !message.attachment.mimeType.startsWith('image/') && !message.text;
-    const isImageAttachment = message.attachment && message.attachment.mimeType.startsWith('image/');
+    const bubbleColor = isCurrentUser 
+        ? 'bg-brand text-white shadow-md shadow-brand/10' 
+        : 'bg-bgSurface-light dark:bg-bgSurface-dark text-textMain-light dark:text-textMain-dark border border-borderDefault-light dark:border-borderDefault-dark shadow-sm';
 
     const bubbleClasses = isCurrentUser
-        ? `rounded-l-2xl ${isFirstInGroup ? 'rounded-tr-2xl' : 'rounded-tr-md'} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-md'}`
-        : `rounded-r-2xl ${isFirstInGroup ? 'rounded-tl-2xl' : 'rounded-tl-md'} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-md'}`;
+        ? `rounded-2xl ${isFirstInGroup ? 'rounded-tr-sm' : ''} ${isLastInGroup ? 'rounded-br-2xl' : ''}`
+        : `rounded-2xl ${isFirstInGroup ? 'rounded-tl-sm' : ''} ${isLastInGroup ? 'rounded-bl-2xl' : ''}`;
         
     return (
         <div 
-            className={`flex items-end gap-2 group relative ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} ${highlighted ? 'animate-highlight-pulse rounded-2xl' : ''}`}
+            className={`flex items-end gap-2 group relative transition-all ${isCurrentUser ? 'justify-end pl-12' : 'justify-start pr-12'} ${isFirstInGroup ? 'mt-6' : 'mt-1'} ${highlighted ? 'scale-[1.02] z-10' : ''}`}
             onClick={onClick}
             onContextMenu={onContextMenu}
         >
-            {!isCurrentUser && (
-                <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
-                    {isSelectionMode ? (
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all self-center ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
-                            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
-                        </div>
-                    ) : (
-                        isLastInGroup ? <Avatar /> : <div/>
-                    )}
-                </div>
-            )}
-            
-            <div className={`flex items-center gap-1 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`max-w-xs md:max-w-md relative shadow-none ${bubbleColor} ${bubbleClasses} ${isImageAttachment ? 'p-1' : (isFileOnlyMessage ? 'p-2' : 'px-4 py-2')}`}>
-                    {!isCurrentUser && isFirstInGroup && (
-                        <p className="text-xs font-bold mb-1 text-amber-300 px-3 pt-1">{message.senderName}</p>
-                    )}
-                    {message.replyTo && (
-                        <button onClick={(e) => {
-                            if (isSelectionMode) {
-                                e.preventDefault();
-                                return;
-                            }
-                            e.stopPropagation();
-                            if (message.replyTo?.messageId) onScrollToMessage(message.replyTo.messageId);
-                        }} className="w-full text-left mb-2 p-2 mx-2 mt-1 bg-black/20 rounded-lg border-l-2 border-white/50 cursor-pointer hover:bg-black/30">
-                            <p className="text-xs font-bold">{message.replyTo.senderName.split(' ')[0]}</p>
-                            <p className="text-xs opacity-80 truncate">{message.replyTo.text}</p>
-                        </button>
-                    )}
-                    {message.attachment && (
-                        <div className={isFileOnlyMessage ? '' : (message.text ? 'mt-1 mb-2 mx-1' : '')}>
-                            {isImageAttachment ? (
-                                <img src={message.attachment.dataUrl} alt={message.attachment.fileName} className="rounded-lg max-w-xs max-h-80 w-auto h-auto object-cover cursor-pointer" onClick={(e) => {
-                                    if (isSelectionMode) {
-                                        e.preventDefault();
-                                        return;
-                                    }
-                                    e.stopPropagation();
-                                    onOpenLightbox(message.attachment.dataUrl);
-                                }} />
-                            ) : (
-                                <a href={message.attachment.dataUrl} download={message.attachment.fileName} onClick={e => {
-                                    if (isSelectionMode) {
-                                        e.preventDefault();
-                                    } else {
-                                        e.stopPropagation();
-                                    }
-                                }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/20 transition-colors">
-                                    <div className="flex-shrink-0 w-12 h-12 bg-black/20 rounded-full flex items-center justify-center">
-                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                    </div>
-                                    <div className="flex-grow min-w-0">
-                                        <p className="font-semibold text-sm truncate">{message.attachment.fileName}</p>
-                                        <p className="text-xs opacity-80">Descargar</p>
-                                    </div>
-                                </a>
-                            )}
-                        </div>
-                    )}
-                    {message.text && (
-                        <p className="text-sm break-words px-3 pb-1">{message.text}</p>
-                    )}
-                    <div className="text-xs opacity-70 mt-1 text-right flex items-center justify-end gap-1 px-3 pb-1">
-                        <span>{new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
-                    </div>
-                </div>
-                {showContextMenu && (
-                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onReply(message);
-                        }}
-                        className="p-1.5 text-gray-400 rounded-full hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Responder"
-                    >
-                        <ArrowUturnLeftIcon className={`w-5 h-5 ${isCurrentUser ? 'transform -scale-x-100' : ''}`} />
-                    </button>
-                )}
-            </div>
-
-            {isSelectionMode && isCurrentUser && (
-                <div className="w-8 flex-shrink-0 flex items-center justify-center">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-gray-800 border-gray-500'}`}>
+            {/* Selección visual */}
+            {isSelectionMode && (
+                <div className={`absolute inset-y-0 ${isCurrentUser ? '-right-4' : '-left-4'} flex items-center px-2 z-20`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-brand border-brand' : 'bg-transparent border-textDisabled-light'}`}>
                         {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
                     </div>
                 </div>
+            )}
+
+            {!isCurrentUser && (
+                <div className="w-8 flex-shrink-0">
+                    {isLastInGroup ? <Avatar /> : <div className="w-8" />}
+                </div>
+            )}
+            
+            <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                {!isCurrentUser && isFirstInGroup && (
+                    <p className="text-[10px] font-black text-textMuted-light dark:text-textMuted-dark uppercase tracking-widest mb-1.5 ml-2">
+                        {message.senderName.split(' ')[0]}
+                    </p>
+                )}
+
+                <div className={`relative transition-all duration-300 ${bubbleColor} ${bubbleClasses} ${highlighted ? 'ring-2 ring-brand ring-offset-2 dark:ring-offset-black' : ''}`}>
+                    {/* Reply Preview */}
+                    {message.replyTo && (
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (message.replyTo?.messageId) onScrollToMessage(message.replyTo.messageId);
+                            }} 
+                            className={`block w-[calc(100%-1rem)] text-left m-2 p-2 rounded-xl border-l-4 bg-black/5 dark:bg-white/5 backdrop-blur-sm transition-opacity hover:opacity-80 ${isCurrentUser ? 'border-white/30' : 'border-brand/40'}`}
+                        >
+                            <p className={`text-[10px] font-black uppercase tracking-tight truncate ${isCurrentUser ? 'text-white' : 'text-brand'}`}>
+                                {message.replyTo.senderName.split(' ')[0]}
+                            </p>
+                            <p className="text-xs opacity-70 truncate max-w-[200px]">{message.replyTo.text}</p>
+                        </button>
+                    )}
+
+                    {/* Image Attachment */}
+                    {message.attachment && message.attachment.mimeType.startsWith('image/') && (
+                        <div className="p-1">
+                            <img 
+                                src={message.attachment.dataUrl} 
+                                alt="Attachment" 
+                                className="rounded-xl max-w-full h-auto object-cover cursor-pointer hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenLightbox(message.attachment!.dataUrl);
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {/* File Attachment */}
+                    {message.attachment && !message.attachment.mimeType.startsWith('image/') && (
+                        <a 
+                            href={message.attachment.dataUrl} 
+                            download={message.attachment.fileName}
+                            className={`flex items-center gap-3 p-3 m-1 rounded-xl transition-colors ${isCurrentUser ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-xs font-bold truncate pr-2">{message.attachment.fileName}</p>
+                                <p className="text-[9px] opacity-60 uppercase font-black">Descargar</p>
+                            </div>
+                        </a>
+                    )}
+
+                    {/* Text content */}
+                    {message.text && (
+                        <p className="text-sm leading-relaxed px-4 py-2.5 break-words font-medium">
+                            {message.text}
+                        </p>
+                    )}
+
+                    {/* Meta info */}
+                    <div className={`flex items-center gap-1.5 px-3 pb-1.5 -mt-1 justify-end opacity-60`}>
+                        <span className="text-[9px] font-bold uppercase tabular-nums">
+                            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {isCurrentUser && <MessageStatusIcon message={message} teamPlayerCount={teamPlayerCount} />}
+                    </div>
+                </div>
+            </div>
+            
+            {/* Quick Reply Trigger (Mobile Friendly) */}
+            {!isSelectionMode && showContextMenu && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onReply(message); }}
+                    className={`p-2 rounded-full bg-bgSurface-light dark:bg-bgSurface-dark border border-borderDefault-light dark:border-borderDefault-dark shadow-md opacity-0 group-hover:opacity-100 transition-all active:scale-90 absolute top-1/2 -translate-y-1/2 ${isCurrentUser ? '-left-10' : '-right-10'}`}
+                >
+                    <ArrowUturnLeftIcon className={`w-4 h-4 text-textMuted-light ${isCurrentUser ? 'transform -scale-x-100' : ''}`} />
+                </button>
             )}
         </div>
     );
