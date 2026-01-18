@@ -42,22 +42,42 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
 
     const isFavorite = favoriteFields.includes(selectedField.complexId || selectedField.id);
 
-    // Determinar horarios base (del dueño o genéricos)
-    const availableHours = useMemo(() => {
-        if (selectedField.availableSlots) {
-            return [
-                ...(selectedField.availableSlots.mañana || []),
-                ...(selectedField.availableSlots.tarde || []),
-                ...(selectedField.availableSlots.noche || [])
-            ].sort();
-        }
-        return ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
-    }, [selectedField]);
-
     const isSameDay = (d1: Date, d2: Date) => 
         d1.getDate() === d2.getDate() && 
         d1.getMonth() === d2.getMonth() && 
         d1.getFullYear() === d2.getFullYear();
+
+    // Determinar horarios base y filtrar los que ya pasaron si es hoy
+    const availableHours = useMemo(() => {
+        let baseHours: string[] = [];
+        if (selectedField.availableSlots) {
+            baseHours = [
+                ...(selectedField.availableSlots.mañana || []),
+                ...(selectedField.availableSlots.tarde || []),
+                ...(selectedField.availableSlots.noche || [])
+            ].sort();
+        } else {
+            baseHours = ['08:00', '09:00', '10:00', '11:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
+        }
+
+        const now = new Date();
+        // Si el día seleccionado es hoy, filtramos las horas pasadas
+        if (isSameDay(selectedDate, now)) {
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+
+            return baseHours.filter(time => {
+                const [hour, minutes] = time.split(':').map(Number);
+                // Solo permitimos horas que sean mayores a la actual
+                // O si es la hora actual, que el turno empiece al menos 15 minutos después
+                if (hour > currentHour) return true;
+                if (hour === currentHour && minutes > (currentMinutes + 15)) return true;
+                return false;
+            });
+        }
+
+        return baseHours;
+    }, [selectedField, selectedDate]);
 
     // Calcular horas ocupadas para esta cancha y fecha
     const occupiedHours = useMemo(() => {
@@ -245,6 +265,14 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                         })}
                     </div>
                     
+                    {availableHours.length === 0 && (
+                        <div className="text-center py-10 bg-gray-50 dark:bg-gray-900/30 rounded-3xl border border-dashed border-borderDefault-light dark:border-borderDefault-dark">
+                            <ClockIcon className="w-8 h-8 mx-auto text-textDisabled-light mb-2" />
+                            <p className="text-textMuted-light font-bold text-sm">No hay horarios disponibles para hoy.</p>
+                            <p className="text-textDisabled-light text-xs">Prueba seleccionando otra fecha.</p>
+                        </div>
+                    )}
+
                     {/* Clima Detallado para la hora escogida */}
                     {selectedTime && (
                         <div className="mt-6 animate-ios">
@@ -255,10 +283,6 @@ const FieldDetail: React.FC<FieldDetailProps> = ({
                                 selectedTime={selectedTime} 
                             />
                         </div>
-                    )}
-
-                    {availableHours.length === 0 && (
-                        <p className="text-center py-10 text-textMuted-light font-bold">No hay horarios configurados para este día.</p>
                     )}
                 </div>
             </div>
